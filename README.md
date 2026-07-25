@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
   # 소방 대시보드 디자인
 
@@ -9,3 +10,7 @@
 
   Run `npm run dev` to start the development server.
   
+=======
+# FE_Repository
+케미가드119 프론트엔드 저장소
+>>>>>>> ace66170ea2ebbbd02a7ec62c6d5e32d9ad9e322
