@@ -27,6 +27,23 @@ interface Message {
   time: string;
 }
 
+interface CompatibilityResultItem {
+  substanceA: string;
+  substanceB: string;
+  result: string;
+  reason: string;
+  basis: string | null;
+}
+
+interface IncidentCheckResult {
+  facilityName: string;
+  incidentSubstance: string;
+  heldSubstanceCount: number;
+  facilityFound: boolean;
+  hasIncompatible: boolean;
+  results: CompatibilityResultItem[];
+}
+
 const REGION_DATA: { label: string; en: string; stations: string[] }[] = [
   {
     label: '서울',
@@ -352,45 +369,6 @@ const REGION_DATA: { label: string; en: string; stations: string[] }[] = [
   },
 ];
 
-const RESPONSE_TABLE = [
-  {
-    label: '사고 상황',
-    value: '차아염소산나트륨 누출 의심',
-    level: 'warn',
-    list: false,
-  },
-  {
-    label: '예상 대응',
-    value: ['누출구역 통제', '환기 실시', '적정 보호구 착용', '유입 차단'],
-    level: 'normal',
-    list: true,
-  },
-  { label: '시설 내 확인 물질', value: '염산', level: 'normal', list: false },
-  { label: '충돌 가능성', value: '높음', level: 'danger', list: false },
-  {
-    label: '구체적 위험',
-    value:
-      '차아염소산나트륨이 산성 물질과 접촉하면 유독성 염소가스가 발생할 수 있음',
-    level: 'danger',
-    list: false,
-  },
-  {
-    label: '우선 확인',
-    value: [
-      '두 물질의 저장구역·배수로 연결 여부 확인',
-      '누출액 혼합 여부 확인',
-    ],
-    level: 'warn',
-    list: true,
-  },
-  {
-    label: '최종 결정',
-    value: '현장 지휘관 판단',
-    level: 'normal',
-    list: false,
-  },
-];
-
 const INITIAL_MESSAGES: Message[] = [
   {
     id: 1,
@@ -398,13 +376,6 @@ const INITIAL_MESSAGES: Message[] = [
     text: '안녕하세요. 119 화학사고대응지원시스템입니다.\n현재 대응충돌검토 모드로 활성화되어 있습니다.\n신고 내용(사고위치, 물질명)을 입력해주세요.',
     time: '09:14',
   },
-  {
-    id: 2,
-    role: 'user',
-    text: '○○전자 공장, 차아염소산나트륨 저장탱크 누출',
-    time: '09:15',
-  },
-  { id: 3, role: 'assistant', text: '__TABLE__', time: '09:15' },
 ];
 
 const SUBSTANCE_INITIAL: Message[] = [
@@ -431,9 +402,46 @@ const MOCK_RESPONSES: Record<Mode, (q: string) => string> = {
     `${q.trim() || '조회 물질'} MSDS 요약 정보\n\n분류: 독성 화학물질 / 산업안전보건법 대상\n노출 기준(TWA): 1 ppm\n응급처치: 피부 접촉 시 다량의 물로 15분 이상 세척, 흡입 시 신선한 공기로 즉시 이송\n소화 방법: 물 분무, CO₂ 소화기 사용 가능\n보호구: 양압식 공기호흡기, 화학보호복(Level A)\n\n전체 MSDS는 사이드바 링크에서 확인하세요.`,
 };
 
-function ResponseCard({ time }: { time: string }) {
+const API_BASE = 'http://localhost:8080';
+
+function ResponseCard({
+  time,
+  checkResult,
+  station,
+}: {
+  time: string;
+  checkResult: IncidentCheckResult;
+  station: string;
+}) {
   const [groundOpen, setGroundOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+
+  async function handleConfirm() {
+    setSaving(true);
+    setSaveError(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/c2guard/records`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          facilityName: checkResult.facilityName,
+          incidentSubstance: checkResult.incidentSubstance,
+          heldSubstanceCount: checkResult.heldSubstanceCount,
+          hasIncompatible: checkResult.hasIncompatible,
+          station,
+        }),
+      });
+      if (!res.ok) throw new Error('save failed');
+      setConfirmed(true);
+    } catch (e) {
+      setSaveError(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="w-full rounded-xl border border-border bg-secondary overflow-hidden text-xs">
       <div className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 border-b border-border">
@@ -443,49 +451,34 @@ function ResponseCard({ time }: { time: string }) {
         </span>
       </div>
       <div className="divide-y divide-border">
-        {RESPONSE_TABLE.map((row) => (
-          <div key={row.label} className="flex items-start gap-2 px-3 py-2">
-            <span className="text-muted-foreground whitespace-nowrap w-[90px] shrink-0 pt-[1px]">
-              {row.label}
-            </span>
-            {row.list ? (
-              <ul className="flex flex-col gap-0.5">
-                {(row.value as string[]).map((item) => (
-                  <li
-                    key={item}
-                    className={`leading-relaxed font-medium flex items-start gap-1.5 ${row.level === 'danger' ? 'text-primary' : row.level === 'warn' ? 'text-accent' : 'text-foreground'}`}
-                  >
-                    <span className="mt-[5px] w-1 h-1 rounded-full bg-current shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            ) : row.label === '최종 결정' ? (
-              <div className="flex items-center justify-between flex-1 gap-2">
-                <span
-                  className={`leading-relaxed font-medium ${confirmed ? 'text-green-600' : 'text-foreground'}`}
-                >
-                  {confirmed ? '현장 지휘관 확인 완료' : (row.value as string)}
-                </span>
-                {!confirmed && (
-                  <button
-                    onClick={() => setConfirmed(true)}
-                    className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary text-white text-[11px] font-medium hover:bg-primary/90 active:scale-95 transition-all shrink-0"
-                  >
-                    <Check size={11} />
-                    확인
-                  </button>
-                )}
-              </div>
-            ) : (
-              <span
-                className={`leading-relaxed font-medium ${row.level === 'danger' ? 'text-primary' : row.level === 'warn' ? 'text-accent' : 'text-foreground'}`}
-              >
-                {row.value as string}
-              </span>
-            )}
-          </div>
-        ))}
+        <div className="flex items-start gap-2 px-3 py-2">
+          <span className="text-muted-foreground whitespace-nowrap w-[90px] shrink-0 pt-[1px]">
+            사고 물질
+          </span>
+          <span className="leading-relaxed font-medium text-foreground">
+            {checkResult.incidentSubstance}
+          </span>
+        </div>
+        <div className="flex items-start gap-2 px-3 py-2">
+          <span className="text-muted-foreground whitespace-nowrap w-[90px] shrink-0 pt-[1px]">
+            대상 시설
+          </span>
+          <span className="leading-relaxed font-medium text-foreground">
+            {checkResult.facilityFound
+              ? `${checkResult.facilityName} (${checkResult.heldSubstanceCount}종 보유 확인)`
+              : `${checkResult.facilityName} (시설 데이터 미확인)`}
+          </span>
+        </div>
+        <div className="flex items-start gap-2 px-3 py-2">
+          <span className="text-muted-foreground whitespace-nowrap w-[90px] shrink-0 pt-[1px]">
+            충돌 가능성
+          </span>
+          <span
+            className={`leading-relaxed font-medium ${checkResult.hasIncompatible ? 'text-primary' : 'text-foreground'}`}
+          >
+            {checkResult.hasIncompatible ? '높음' : '낮음/없음'}
+          </span>
+        </div>
         <div className="px-3 py-2">
           <button
             onClick={() => setGroundOpen((v) => !v)}
@@ -498,20 +491,50 @@ function ResponseCard({ time }: { time: string }) {
                 transform: groundOpen ? 'rotate(180deg)' : 'rotate(0deg)',
               }}
             />
-            <span>대응 근거</span>
+            <span>물질별 판정 상세 ({checkResult.results.length}건)</span>
           </button>
           {groundOpen && (
-            <ul className="mt-1.5 pl-1 flex flex-col gap-1">
-              {['MSDS', '반응성 자료', '유사 화학사고 사례'].map((item) => (
+            <ul className="mt-1.5 pl-1 flex flex-col gap-1.5">
+              {checkResult.results.length === 0 && (
+                <li className="text-muted-foreground">
+                  보유 물질 데이터가 없어 대조할 항목이 없습니다.
+                </li>
+              )}
+              {checkResult.results.map((r) => (
                 <li
-                  key={item}
-                  className="flex items-center gap-1.5 text-foreground"
+                  key={`${r.substanceA}-${r.substanceB}`}
+                  className="flex flex-col gap-0.5 text-foreground"
                 >
-                  <span className="w-1 h-1 rounded-full bg-muted-foreground shrink-0" />
-                  {item}
+                  <span className="font-medium">
+                    {r.substanceA} + {r.substanceB} → {r.result}
+                  </span>
+                  <span className="text-muted-foreground text-[11px]">
+                    {r.reason}
+                  </span>
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+        <div className="flex items-center justify-between px-3 py-2 gap-2">
+          <span
+            className={`leading-relaxed font-medium ${confirmed ? 'text-green-600' : 'text-foreground'}`}
+          >
+            {confirmed
+              ? '현장 지휘관 확인 완료'
+              : saveError
+                ? '저장 실패 - 다시 시도하세요'
+                : '최종 결정: 현장 지휘관 판단'}
+          </span>
+          {!confirmed && (
+            <button
+              onClick={handleConfirm}
+              disabled={saving}
+              className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary text-white text-[11px] font-medium hover:bg-primary/90 active:scale-95 transition-all shrink-0 disabled:opacity-50"
+            >
+              <Check size={11} />
+              {saving ? '저장 중...' : '확인'}
+            </button>
           )}
         </div>
       </div>
@@ -717,6 +740,12 @@ export default function App() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showSaveToast, setShowSaveToast] = useState(false);
+  const [checkResult, setCheckResult] = useState<IncidentCheckResult | null>(
+    null,
+  );
+  // TODO: 구어체 파싱(0번 API)이 아직 스텁이라 시설명은 임시로 별도 입력받는다.
+  // 파싱 API 완성되면 이 입력창은 지우고 신고문 한 줄에서 자동 추출하도록 변경.
+  const [facilityNameInput, setFacilityNameInput] = useState('(주)LG생활건강');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const activeMessages = mode === 'collision' ? messages : substanceMessages;
@@ -732,27 +761,66 @@ export default function App() {
 
   if (!station) return <LoginScreen onLogin={(s) => setStation(s)} />;
 
-  function handleSend() {
+  async function handleSend() {
     const trimmed = input.trim();
     if (!trimmed || isTyping) return;
+
     setActiveMessages((prev) => [
       ...prev,
       { id: Date.now(), role: 'user', text: trimmed, time: formatTime() },
     ]);
     setInput('');
     setIsTyping(true);
-    setTimeout(() => {
-      setActiveMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: 'assistant',
-          text: MOCK_RESPONSES[mode](trimmed),
-          time: formatTime(),
-        },
-      ]);
-      setIsTyping(false);
-    }, 1400);
+
+    if (mode === 'collision') {
+      try {
+        const res = await fetch(`${API_BASE}/api/incident-check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            facilityName: facilityNameInput,
+            incidentSubstance: trimmed,
+          }),
+        });
+        if (!res.ok) throw new Error('request failed');
+        const data: IncidentCheckResult = await res.json();
+        setCheckResult(data);
+        setActiveMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: 'assistant',
+            text: '__TABLE__',
+            time: formatTime(),
+          },
+        ]);
+      } catch (e) {
+        setActiveMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: 'assistant',
+            text: '서버 연결에 실패했습니다. 백엔드 서버(8080)가 켜져 있는지 확인해주세요.',
+            time: formatTime(),
+          },
+        ]);
+      } finally {
+        setIsTyping(false);
+      }
+    } else {
+      setTimeout(() => {
+        setActiveMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: 'assistant',
+            text: MOCK_RESPONSES.substance(trimmed),
+            time: formatTime(),
+          },
+        ]);
+        setIsTyping(false);
+      }, 1400);
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -766,6 +834,7 @@ export default function App() {
     setMessages([...INITIAL_MESSAGES]);
     setSubstanceMessages([...SUBSTANCE_INITIAL]);
     setInput('');
+    setCheckResult(null);
     setShowSaveToast(true);
   }
 
@@ -935,14 +1004,32 @@ export default function App() {
                 ))}
               </div>
 
+              {mode === 'collision' && (
+                <div className="mx-3 mb-2 flex items-center gap-2 shrink-0">
+                  <label className="text-[10px] text-muted-foreground whitespace-nowrap">
+                    대상 시설(임시)
+                  </label>
+                  <input
+                    value={facilityNameInput}
+                    onChange={(e) => setFacilityNameInput(e.target.value)}
+                    className="flex-1 rounded-md bg-input-background border border-border text-foreground text-[11px] px-2 py-1 outline-none focus:border-primary/50"
+                    placeholder="시설명 입력 (예: (주)LG생활건강)"
+                  />
+                </div>
+              )}
+
               <div className="flex-1 overflow-y-auto px-3 pb-2 space-y-3">
                 {activeMessages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {msg.text === '__TABLE__' ? (
-                      <ResponseCard time={msg.time} />
+                    {msg.text === '__TABLE__' && checkResult ? (
+                      <ResponseCard
+                        time={msg.time}
+                        checkResult={checkResult}
+                        station={station}
+                      />
                     ) : (
                       <div
                         className={`max-w-[86%] rounded-xl px-3 py-2 text-xs leading-relaxed ${msg.role === 'user' ? 'bg-primary/10 border border-primary/20 text-foreground' : 'bg-secondary border border-border text-card-foreground'}`}
