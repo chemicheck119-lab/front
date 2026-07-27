@@ -673,7 +673,7 @@ function LoginScreen({ onLogin }: { onLogin: (station: string) => void }) {
       <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-lg px-8 py-10 flex flex-col items-center gap-6">
         <ImageWithFallback
           src={fullLogo}
-          alt="케미가드 119 화학재난대응지원시스템"
+          alt="케미체크 119 화학재난대응지원시스템"
           className="h-14 w-auto object-contain"
         />
         <div className="w-full h-px bg-border" />
@@ -722,7 +722,7 @@ function LoginScreen({ onLogin }: { onLogin: (station: string) => void }) {
         </button>
 
         <p className="text-[11px] text-muted-foreground text-center">
-          119 화학재난대응지원시스템 · 케미가드
+          119 화학재난대응지원시스템 · 케미체크
         </p>
       </div>
     </div>
@@ -850,7 +850,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <ImageWithFallback
             src={fullLogo}
-            alt="케미가드 119 화학재난대응지원시스템"
+            alt="케미체크 119 화학재난대응지원시스템"
             className="h-9 w-auto object-contain"
           />
           <span className="hidden sm:flex items-center gap-1 text-[10px] text-primary font-mono px-2 py-0.5 rounded border border-primary/30 bg-primary/8">
