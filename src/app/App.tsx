@@ -264,8 +264,13 @@ function LoginScreen({ onLogin, isDark }: { onLogin: (station: string) => void; 
     <div className="flex flex-col items-center justify-center bg-background" style={{ height: "100dvh", fontFamily: "'Noto Sans KR', sans-serif" }}>
       <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-lg px-8 py-10 flex flex-col items-center gap-6">
         <ImageWithFallback
+<<<<<<< HEAD
           src={isDark ? darkLogo : lightLogo}
           alt="케미가드 119 화학재난대응지원시스템"
+=======
+          src={fullLogo}
+          alt="케미체크 119 화학재난대응지원시스템"
+>>>>>>> origin/main
           className="h-14 w-auto object-contain"
         />
         <div className="w-full h-px bg-border" />
@@ -306,7 +311,13 @@ function LoginScreen({ onLogin, isDark }: { onLogin: (station: string) => void; 
           시스템 접속
         </button>
 
+<<<<<<< HEAD
         <p className="text-[11px] text-muted-foreground text-center">119 화학재난대응지원시스템 · 케미가드</p>
+=======
+        <p className="text-[11px] text-muted-foreground text-center">
+          119 화학재난대응지원시스템 · 케미체크
+        </p>
+>>>>>>> origin/main
       </div>
     </div>
   );
@@ -415,8 +426,13 @@ export default function App() {
       <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-3">
           <ImageWithFallback
+<<<<<<< HEAD
             src={isDark ? darkLogo : lightLogo}
             alt="케미가드 119 화학재난대응지원시스템"
+=======
+            src={fullLogo}
+            alt="케미체크 119 화학재난대응지원시스템"
+>>>>>>> origin/main
             className="h-9 w-auto object-contain"
           />
         </div>
