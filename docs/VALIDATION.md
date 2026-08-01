@@ -8,7 +8,7 @@
 
 ```text
 pnpm typecheck  성공
-pnpm test       성공 — 8 files, 24 tests
+pnpm test       성공 — 8 files, 32 tests
 pnpm build      성공
 pnpm build:demo 성공
 ```
@@ -24,6 +24,8 @@ pnpm build:demo 성공
 - MapLibre 컨테이너 높이 0px 회귀 방지
 - Demo 모드에서만 fixture 사용, Live 장애 시 자동 대체 금지
 - 인증·확인 필요·근거 부족·경로 없음·artifact 미준비 오류 구분
+- BFF 세션 쿠키 기본 전송과 호출부 override 보존
+- `MODEL_TIMEOUT`·일시 장애·사고 참조 충돌·계약 위반 오류 구분
 - 사용자 오류 메시지에 안전한 문구와 request ID만 표시
 - 상황실 연락처 유무에 따른 안전한 전화 연결 상태
 - 현장 도구 Dialog의 초기 focus, Escape 종료, 호출 버튼 focus 복귀
