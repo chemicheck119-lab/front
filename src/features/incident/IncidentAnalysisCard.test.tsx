@@ -7,7 +7,7 @@ describe("사고 분석 현장 확인 흐름", () => {
   beforeEach(() => resetDemoSession());
   afterEach(() => cleanup());
 
-  it("두 CAS 확인과 충돌검토를 3단계로 보여주고 역할별 확인 동작을 구분한다", () => {
+  it("신고문만 입력하면 후보와 출처를 표시하되 충돌 규칙은 실행하지 않는다", () => {
     render(<IncidentAnalysisCard analysis={getDemoAnalysis()} onConfirm={vi.fn()} confirmingRole={null} />);
 
     const workflow = screen.getByRole("region", { name: "현장 확인 3단계" });
@@ -18,9 +18,14 @@ describe("사고 분석 현장 확인 흐름", () => {
     expect(screen.getByRole("button", { name: "사고물질 현장 확인" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "시설물질 현장 확인" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "시설 이력 현장 확인" })).toBeEnabled();
+    expect(screen.getByText("소방안전 빅데이터 기반 후보")).toBeInTheDocument();
+    expect(screen.getByText("ICIS·PRTR 과거 취급 이력")).toBeInTheDocument();
+    expect(screen.getByText("KOSHA MSDS 근거")).toBeInTheDocument();
+    expect(screen.getByText("현장 확인 필요")).toBeInTheDocument();
+    expect(screen.queryByText("NOAA CAMEO 충돌 규칙")).not.toBeInTheDocument();
   });
 
-  it("사고물질 확인 후 진행 수와 다음 시설 확인 상태를 갱신한다", () => {
+  it("사고물질 CAS만 확인하면 시설물질 확인을 기다리고 충돌 규칙은 실행하지 않는다", () => {
     makeDemoConfirmation("INCIDENT", "7681-52-9");
     render(<IncidentAnalysisCard analysis={getDemoAnalysis()} onConfirm={vi.fn()} confirmingRole={null} />);
 
@@ -28,5 +33,19 @@ describe("사고 분석 현장 확인 흐름", () => {
     expect(workflow).toHaveTextContent("필수 CAS 1/2 확인");
     expect(screen.queryByRole("button", { name: "사고물질 현장 확인" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "시설물질 현장 확인" })).toBeEnabled();
+    expect(screen.queryByText("NOAA CAMEO 충돌 규칙")).not.toBeInTheDocument();
+  });
+
+  it("두 CAS를 모두 확인한 뒤에만 CAMEO 충돌 규칙과 위험·근거·최종 판단을 공개한다", () => {
+    makeDemoConfirmation("INCIDENT", "7681-52-9");
+    makeDemoConfirmation("FACILITY", "7647-01-0");
+    render(<IncidentAnalysisCard analysis={getDemoAnalysis()} onConfirm={vi.fn()} confirmingRole={null} />);
+
+    const workflow = screen.getByRole("region", { name: "현장 확인 3단계" });
+    expect(workflow).toHaveTextContent("필수 CAS 2/2 확인");
+    expect(screen.getByText("NOAA CAMEO 충돌 규칙")).toBeInTheDocument();
+    expect(screen.queryByText("현장 확인 필요")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "충돌 검토 결과" })).toHaveTextContent("높음");
+    expect(screen.getByRole("region", { name: "충돌 검토 결과" })).toHaveTextContent("현장 지휘관 판단");
   });
 });

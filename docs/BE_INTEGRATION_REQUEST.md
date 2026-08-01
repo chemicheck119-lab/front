@@ -6,6 +6,17 @@ BE 권위 기준: `develop@d1a7391`
 
 AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
+AI staging upstream:
+
+```text
+MODEL_API_BASE_URL=https://chemicheck119-model-api-staging-w6s6lwanpa-du.a.run.app
+POST /api/v1/incidents/analyze
+X-API-Key: BE Secret에서만 주입
+모델 timeout: 15초
+```
+
+모델 API Key는 `VITE_*` 환경변수나 FE 요청에 포함하지 않습니다. 호출 구조는 항상 `FE → BE/BFF → AI`이며, BE는 모델의 camelCase 응답을 `chemicheck119-dashboard-bff-v1` 화면 계약으로 투영합니다.
+
 현재 Live 연결 대상은 사고 분석, 물질 검색, 현장 확인입니다. 이동갱신과 기록저장은 BE 미구현이며 해당 경로의 실패를 FE 결함으로 분류하지 않습니다. AI 계약·client·자동화 테스트는 완료됐지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
 
 ## 현재 연동 행렬
@@ -20,6 +31,16 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 | movement | BE 미구현 | `준비 중` 표시; `VITE_ENABLE_MOVEMENT_API=true` 전에는 Live 요청 차단 |
 | record | BE 미구현 | 내역 조회 유지·저장은 `준비 중`; `VITE_ENABLE_RECORD_API=true` 전에는 Live 요청 차단 |
 | AI Live E2E | 증적 없음 | 실제 배포 AI URL·API Key가 준비된 환경에서 별도 검증 필요 |
+
+## 공모전 시연 전 필수 통합 시나리오
+
+| 단계 | 입력/확인 상태 | 반드시 관찰할 결과 |
+|---|---|---|
+| 신고문만 입력 | `염산 저장탱크에서 누출` | 물질 후보와 `현장 확인 필요` 표시, 충돌 규칙 `executed=false`, 위험등급 비공개 |
+| 사고물질 CAS만 확인 | 사고물질 CAS 확인, 시설물질 미확인 | `시설물질 확인 대기`, 충돌 규칙 미실행, 기존 사고 화면 유지 |
+| 두 CAS 모두 확인 | 사고물질 CAS + 시설물질 CAS | CAMEO 결정 규칙 실행, 서수 위험등급·구체적 위험·대응 근거 표시, 최종 판단 `현장 지휘관` |
+
+세 요청은 같은 `incidentId`를 유지하고 각 응답의 `requestId`, `analysisId`, `confirmationId`를 기록합니다. 후보 물질명이나 과거 업체 취급 이력만으로 충돌 검토를 실행한 응답은 실패로 판정합니다.
 
 ## 공통 원칙
 

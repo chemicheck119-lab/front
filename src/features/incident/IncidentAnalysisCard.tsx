@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, ExternalLink, History, LockKeyhole, ShieldCheck } from "lucide-react";
 import type { EvidenceCard, IncidentAnalysisResponse } from "../../api/contracts";
+import { SourceBadges, type SourceBadgeKind } from "../evidence/SourceBadges";
 import { GroundedEvidenceAccordion } from "./GroundedEvidenceAccordion";
 import { analysisStateLabel, canShowRisk, getConfirmationWorkflow, type ConfirmationWorkflowStatus } from "./analysisState";
 
@@ -107,6 +108,12 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
     ? analysis.conflictReview.result
     : null;
   const stateMessage = stateGuidance[analysis.state];
+  const sourceBadges: SourceBadgeKind[] = [];
+  if (analysis.substanceCandidates.length > 0) sourceBadges.push("FIRE_DATA");
+  if (analysis.facilityHistory.status === "CANDIDATES_FOUND") sourceBadges.push("FACILITY_HISTORY");
+  if (analysis.evidenceCards.some((card) => card.source === "KOSHA")) sourceBadges.push("KOSHA");
+  if (completed) sourceBadges.push("CAMEO_RULE");
+  if (!analysis.confirmationGate.allRequiredConfirmed) sourceBadges.push("FIELD_CONFIRMATION");
 
   return (
     <div className="space-y-3">
@@ -120,6 +127,11 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
             충돌 규칙 {analysis.conflictReview.executed ? "실행됨" : "잠김"}
           </span>
         </header>
+
+        <section className="border-b border-border bg-card px-3 py-2.5" aria-label="분석 데이터 출처">
+          <p className="mb-1.5 text-[9px] font-semibold text-muted-foreground">분석 데이터 출처</p>
+          <SourceBadges kinds={sourceBadges} />
+        </section>
 
         <ConfirmationWorkflow analysis={analysis} />
 

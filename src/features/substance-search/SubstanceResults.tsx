@@ -1,5 +1,6 @@
 import { ArrowRight, ExternalLink, SearchX } from "lucide-react";
 import type { MaterialCandidate, MaterialDiscoveryResponse } from "../../api/contracts";
+import { SourceBadges, type SourceBadgeKind } from "../evidence/SourceBadges";
 
 interface SubstanceResultsProps {
   result: MaterialDiscoveryResponse | null;
@@ -28,6 +29,13 @@ const matchBasisLabel: Record<MaterialCandidate["matchBasis"], string> = {
   IDENTITY_AND_PUBLIC_PROPERTY_PROFILE: "이름·CAS와 공개 성상 일치",
 };
 
+function candidateSourceBadges(candidate: MaterialCandidate): SourceBadgeKind[] {
+  const kinds: SourceBadgeKind[] = ["FIRE_DATA"];
+  if (candidate.evidenceCards.some((evidence) => evidence.source === "KOSHA")) kinds.push("KOSHA");
+  kinds.push("FIELD_CONFIRMATION");
+  return kinds;
+}
+
 export function SubstanceResults({ result, incidentAvailable, onUseCandidate }: SubstanceResultsProps) {
   if (!result) return <div className="rounded-xl border border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">물질명·CAS·화학식 또는 색·냄새·상태·용도를 입력해주세요.</div>;
   const presentation = statusPresentation[result.status];
@@ -51,6 +59,7 @@ export function SubstanceResults({ result, incidentAvailable, onUseCandidate }: 
       </div>
       {result.candidates.map((candidate) => (
         <article key={candidate.casNumber} className="rounded-xl border border-border bg-secondary/50 p-3">
+          <div className="mb-2"><SourceBadges label={`${candidate.displayName} 후보 출처`} kinds={candidateSourceBadges(candidate)} /></div>
           <div className="flex items-start justify-between gap-2">
             <div><p className="text-[10px] text-muted-foreground">후보 순위 {candidate.rank} · {matchBasisLabel[candidate.matchBasis]}</p><h3 className="mt-0.5 text-sm font-bold">{candidate.displayName}</h3><p className="font-mono text-[11px] text-muted-foreground">CAS {candidate.casNumber}</p></div>
             <span className="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent">AI 확정 아님</span>

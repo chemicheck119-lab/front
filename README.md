@@ -103,6 +103,8 @@ BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`
 
 상세 계약과 BE 담당 체크리스트는 [BE 연동 요청서](./docs/BE_INTEGRATION_REQUEST.md)를 참고합니다.
 
+공모전 직전의 실제 3개 통합 시나리오, 3분 시연 대본, 10분 발표 수치와 인터넷 장애 대비 절차는 [공모전 통합·시연·발표 런북](./docs/CONTEST_DEMO_RUNBOOK.md)을 따릅니다.
+
 ## 검증
 
 ```bash

@@ -9,6 +9,8 @@ describe("물질검색 후보", () => {
     render(<SubstanceResults result={demoMaterialSearch} incidentAvailable onUseCandidate={onUseCandidate} />);
 
     expect(screen.getByText("AI 확정 아님")).toBeInTheDocument();
+    expect(screen.getByText("소방안전 빅데이터 기반 후보")).toBeInTheDocument();
+    expect(screen.getByText("현장 확인 필요")).toBeInTheDocument();
     expect(screen.getByText("상온 상태: 액체(휘발성)")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /사고물질 확인 창으로 가져오기/ }));
     expect(onUseCandidate).toHaveBeenCalledWith(demoMaterialSearch.candidates[0]);
