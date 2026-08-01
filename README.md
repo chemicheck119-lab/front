@@ -15,6 +15,7 @@
 | 물질검색 | BFF 계약 연동 완료 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
 | 확인 게이트 | 구현 완료 | 두 CAS 확인 전 위험등급과 충돌 결과 숨김 |
 | 기록 저장 | BFF 계약 연동 완료 | 성공 응답의 `resetAllowed=true` 뒤에만 초기화 |
+| 좌측 현장 도구 | UI·현재 세션 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
 | 실제 BE·길찾기 | 미연동 | BE 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
 
@@ -51,10 +52,14 @@ VITE_ENABLE_DEMO_MODE=true
 - `VITE_BFF_BASE_URL`: FE가 호출할 서비스 BE/BFF 주소
 - `VITE_MAP_STYLE_URL`: 운영 지도 Style URL
 - `VITE_MAP_DARK_STYLE_URL`: 선택적 다크 지도 Style URL
+- `VITE_DISPATCH_CENTER_NAME`: 로그인 세션 연동 전 임시 상황실 표시명
+- `VITE_DISPATCH_CENTER_PHONE`: 로그인 세션 연동 전 임시 상황실 전화번호
 - `VITE_LOCATION_UPDATE_INTERVAL_MS`: 위치 갱신 최소 간격
 - `VITE_ENABLE_DEMO_MODE`: 명시적 시연 fixture 사용 여부
 
 `VITE_*` 값은 브라우저 번들에 그대로 노출됩니다. 모델 API Key, 길찾기 API Key, 영구 토큰 등 비밀정보를 절대 넣지 않습니다. 브라우저는 모델 API를 직접 호출하지 않으며 모든 운영 요청은 BE/BFF를 거칩니다.
+
+상황실 전화번호는 비밀키가 아니지만 운영 조직별로 달라질 수 있으므로, 실제 서비스에서는 환경변수보다 인증된 로그인 세션/BFF 응답으로 제공하는 방식을 권장합니다. 좌측 도구의 자세한 동작은 [현장 도구 설계](./docs/FIELD_TOOLS.md)를 참고하세요.
 
 운영 타일은 OpenStreetMap 공개 표준 타일 서버를 그대로 사용하지 않습니다. 트래픽·저작자 표시·SLA를 감당하는 사업자 또는 자체 호스팅 Style URL을 설정하세요. 지도 구현은 [MapLibre GL JS 공식 문서](https://maplibre.org/maplibre-gl-js/docs/), 운영 타일 정책은 [OSM Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/)를 따릅니다.
 
