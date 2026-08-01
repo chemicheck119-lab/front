@@ -6,7 +6,7 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 
 | 항목 | 필요한 결정 | FE 임시 처리 |
 |---|---|---|
-| 개발·staging·운영 FE origin | 환경별 exact origin과 credential CORS allowlist | 값 확정 전 문서에 추정 origin을 기록하지 않음 |
+| staging·운영 FE origin 분리 | `chemicheck119.site` 이후 별도 운영 환경을 둘지 결정 | 현재 공개 develop origin은 `https://chemicheck119.site`로 고정 |
 | 로그인 방식 | SSO, 인증 Gateway, 별도 로그인 API 중 권위 흐름 | `VITE_AUTH_LOGIN_URL`이 있는 Live 환경만 운영 로그인 진입 표시 |
 | 세션 만료·로그아웃 | 새로고침·장시간 방치·명시적 로그아웃 때의 보존·민감정보 제거 정책 | 401에서 현재 메모리 상태 유지, 새 창 재인증 안내, 영구 저장은 하지 않음 |
 | 소방서 식별자 | 표시명과 분리된 안정적인 `stationId` | 임시 표시명은 권한·감사 식별자로 사용하지 않음 |
@@ -17,6 +17,7 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 
 ## 확정된 FE 경계
 
+- 공개 develop FE origin은 `https://chemicheck119.site`입니다. Live 전환 전 BE credential CORS allowlist에 이 exact origin을 등록합니다.
 - 모든 서비스 요청은 `VITE_BFF_BASE_URL`을 사용하고 인증 쿠키를 포함합니다.
 - FE는 모델 API와 길찾기 Provider를 직접 호출하거나 API Key를 보관하지 않습니다.
 - 사고 분석, 물질 검색, 현장 확인은 BE `develop@d1a7391` 기준 Live 연결 대상입니다.

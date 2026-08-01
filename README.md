@@ -143,7 +143,7 @@ corepack pnpm build:sites:demo
 
 배포 패키지는 정적 SPA fallback과 보안 응답 헤더를 제공하는 Worker를 포함합니다. Sites 프로젝트 식별자만 `.openai/hosting.json`에 보관하고 비밀값은 저장소에 기록하지 않습니다.
 
-팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`을 사용합니다. BE staging 주소와 미구현 기능 플래그는 확정됐지만 인증·CORS 경계가 아직 열리지 않아 배포 서비스는 명확한 Demo 빌드를 유지합니다. Live 전환 조건은 [GCP develop 배포](./docs/GCP_DEPLOYMENT.md)에 기록합니다.
+팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. BE staging 주소와 미구현 기능 플래그는 확정됐지만 인증·CORS 경계가 아직 열리지 않아 두 배포 모두 명확한 Demo 빌드를 유지합니다. Live 전환 조건은 [GCP develop 배포](./docs/GCP_DEPLOYMENT.md)에 기록합니다.
 
 ## 데이터 의미와 안전 경계
 
@@ -163,7 +163,7 @@ corepack pnpm build:sites:demo
 
 ## 배포 전 결정 필요
 
-- 개발·staging·운영 FE의 exact origin
+- staging·운영 환경을 공개 develop origin `https://chemicheck119.site`와 분리할지 여부
 - 실제 로그인 방식: SSO, 인증 Gateway, 별도 로그인 API
 - 새로고침·장시간 방치·명시적 로그아웃 시 사고 화면 보존·민감정보 제거 정책
 - 표시명과 분리된 안정적인 `stationId`
