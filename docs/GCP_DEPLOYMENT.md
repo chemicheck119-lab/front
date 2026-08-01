@@ -10,7 +10,22 @@ FE develop 시연 배포는 BE staging과 같은 GCP 프로젝트·서울 리전
 | Artifact Registry | `asia-northeast3-docker.pkg.dev/chemi-check/chemicheck119` |
 | 데이터 모드 | `DEMO_SIMULATION` |
 
-Docker 이미지는 `pnpm build:demo` 결과만 포함합니다. 따라서 실제 BFF 장애를 fixture로 바꾸지 않으며 모든 화면에 `시연 데이터` 경계가 유지됩니다.
+Docker 이미지는 기본적으로 `demo` 모드를 빌드합니다. 따라서 실제 BFF 장애를 fixture로 바꾸지 않으며 모든 화면에 `시연 데이터` 경계가 유지됩니다.
+
+## 전달받은 BE staging 설정
+
+2026-08-01 기준으로 다음 공개 설정을 `.env.staging`에 반영했습니다.
+
+| 환경변수 | 값 |
+|---|---|
+| `VITE_BFF_BASE_URL` | `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app` |
+| `VITE_ENABLE_DEMO_MODE` | `false` |
+| `VITE_ENABLE_MOVEMENT_API` | `false` |
+| `VITE_ENABLE_RECORD_API` | `false` |
+
+`pnpm build:staging` 또는 Docker build argument `VITE_BUILD_MODE=staging`으로 Live API 번들을 만들 수 있습니다. `VITE_*` 값은 정적 브라우저 번들에 포함되므로 API Key나 세션 비밀값은 넣지 않습니다.
+
+실측 결과 인증 쿠키가 없는 BFF 요청은 `401 AUTH_REQUIRED`를 반환해 인증 경계가 정상 작동합니다. 반면 현재 FE develop origin의 CORS preflight는 `403`이며 BE의 `CHEMICHECK119_CORS_ALLOWED_ORIGINS`도 비어 있습니다. 그러므로 기존 Cloud Run 서비스를 아직 staging 빌드로 교체하지 않습니다.
 
 ## Live 전환 조건
 
@@ -19,7 +34,7 @@ Docker 이미지는 `pnpm build:demo` 결과만 포함합니다. 따라서 실�
 - 실제 로그인·세션 컨텍스트 API 확정
 - FE origin을 BE `CHEMICHECK119_CORS_ALLOWED_ORIGINS`에 exact origin으로 등록
 - credential CORS와 Secure·SameSite 쿠키 검증
-- `VITE_BFF_BASE_URL`·`VITE_AUTH_LOGIN_URL`의 staging 값 확정
+- `VITE_AUTH_LOGIN_URL`의 staging 값 확정
 - 사고 분석·물질 검색·현장 확인 Live E2E 증적
 
 movement·record는 BE 배포 확인과 기능 플래그 승인 전까지 `준비 중` 상태를 유지합니다.
