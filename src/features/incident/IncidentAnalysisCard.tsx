@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, ExternalLink, History, LockKeyhole, ShieldCheck } from "lucide-react";
 import type { EvidenceCard, IncidentAnalysisResponse } from "../../api/contracts";
 import { GroundedEvidenceAccordion } from "./GroundedEvidenceAccordion";
-import { analysisStateLabel, canShowRisk } from "./analysisState";
+import { analysisStateLabel, canShowRisk, getConfirmationWorkflow, type ConfirmationWorkflowStatus } from "./analysisState";
 
 interface IncidentAnalysisCardProps {
   analysis: IncidentAnalysisResponse | null;
@@ -40,12 +40,13 @@ function EvidenceLinks({ evidence }: { evidence: EvidenceCard[] }) {
   );
 }
 
-function ConfirmationButton({ role, casNumber, displayName, confirmingRole, onConfirm }: {
+function ConfirmationButton({ role, casNumber, displayName, confirmingRole, onConfirm, label }: {
   role: "INCIDENT" | "FACILITY";
   casNumber: string;
   displayName: string;
   confirmingRole: "INCIDENT" | "FACILITY" | null;
   onConfirm: IncidentAnalysisCardProps["onConfirm"];
+  label?: string;
 }) {
   return (
     <button
@@ -54,8 +55,39 @@ function ConfirmationButton({ role, casNumber, displayName, confirmingRole, onCo
       disabled={confirmingRole !== null}
       onClick={() => onConfirm(role, casNumber, displayName)}
     >
-      {confirmingRole === role ? "확인 기록 중…" : "현장 물질 확인"}
+      {confirmingRole === role ? "확인 기록 중…" : label ?? `${roleLabel(role)} 현장 확인`}
     </button>
+  );
+}
+
+const confirmationStepStyle: Record<ConfirmationWorkflowStatus, string> = {
+  COMPLETED: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  CURRENT: "border-primary/35 bg-primary/5 text-primary",
+  LOCKED: "border-border bg-muted/45 text-muted-foreground",
+};
+
+function ConfirmationWorkflow({ analysis }: { analysis: IncidentAnalysisResponse }) {
+  const steps = getConfirmationWorkflow(analysis);
+  const confirmedCount = Number(analysis.confirmationGate.incidentConfirmed) + Number(analysis.confirmationGate.facilityConfirmed);
+
+  return (
+    <section className="border-b border-border bg-card px-3 py-2.5" aria-label="현장 확인 3단계">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[10px] font-bold">현장 확인 진행</p>
+        <p className="text-[10px] font-semibold text-muted-foreground">필수 CAS {confirmedCount}/2 확인</p>
+      </div>
+      <ol className="grid grid-cols-3 gap-1.5">
+        {steps.map((step, index) => (
+          <li key={step.id} className={`min-w-0 rounded-lg border px-2 py-2 ${confirmationStepStyle[step.status]}`}>
+            <div className="flex items-center gap-1.5">
+              {step.status === "COMPLETED" ? <CheckCircle2 size={12} className="shrink-0" /> : step.status === "LOCKED" ? <LockKeyhole size={11} className="shrink-0" /> : <span className="grid h-3 w-3 shrink-0 place-items-center rounded-full bg-current text-[8px] font-bold text-white dark:text-slate-950">{index + 1}</span>}
+              <span className="truncate text-[10px] font-bold">{step.label}</span>
+            </div>
+            <p className="mt-1 truncate text-[9px] opacity-80">{step.detail}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -88,6 +120,8 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
             충돌 규칙 {analysis.conflictReview.executed ? "실행됨" : "잠김"}
           </span>
         </header>
+
+        <ConfirmationWorkflow analysis={analysis} />
 
         {!riskVisible && (
           <div className="border-b border-border bg-accent/5 px-3 py-3">
@@ -139,7 +173,7 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
                   return (
                     <div key={`${candidate.facilityName}-${candidate.casNumber}`} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-secondary/40 p-2.5">
                       <div><p className="text-[10px] font-semibold">{displayName}</p><p className="mt-0.5 font-mono text-[10px] text-muted-foreground">CAS {candidate.casNumber} · {candidate.facilityName}</p>{candidate.sourceUrl && <a href={candidate.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-blue-600">공개 이력 원문<ExternalLink size={9} /></a>}</div>
-                      {!analysis.confirmationGate.facilityConfirmed && <ConfirmationButton role="FACILITY" casNumber={candidate.casNumber} displayName={displayName} confirmingRole={confirmingRole} onConfirm={onConfirm} />}
+                      {!analysis.confirmationGate.facilityConfirmed && <ConfirmationButton role="FACILITY" casNumber={candidate.casNumber} displayName={displayName} confirmingRole={confirmingRole} onConfirm={onConfirm} label="시설 이력 현장 확인" />}
                     </div>
                   );
                 })}

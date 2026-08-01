@@ -33,6 +33,7 @@ import { formatDistance, formatEta, getLocationPresentation } from "../features/
 import { PHASE_LABELS, AgentPanel } from "../features/operations-agent/AgentPanel";
 import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard";
 import { analysisStateLabel } from "../features/incident/analysisState";
+import { confirmationDateTimeToIso, defaultConfirmationBasis, toConfirmationDateTimeInput } from "../features/incident/confirmationForm";
 import { SubstanceResults } from "../features/substance-search/SubstanceResults";
 import { FieldToolsPanel } from "../features/field-tools/FieldToolsPanel";
 import { LoginScreen } from "../features/auth/LoginScreen";
@@ -139,6 +140,7 @@ export default function App() {
   const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
   const [confirmationTarget, setConfirmationTarget] = useState<ConfirmationTarget | null>(null);
   const [confirmationBasis, setConfirmationBasis] = useState<ConfirmationRequest["confirmationBasis"]>("CONTAINER_LABEL");
+  const [confirmationObservedAt, setConfirmationObservedAt] = useState(() => toConfirmationDateTimeInput());
   const [confirmingRole, setConfirmingRole] = useState<"INCIDENT" | "FACILITY" | null>(null);
   const [nowMs, setNowMs] = useState(Date.now());
   const movementSequence = useRef(0);
@@ -265,6 +267,8 @@ export default function App() {
 
   async function handleConfirm() {
     if (!confirmationTarget || !incidentId || confirmingRole) return;
+    const observedAt = confirmationDateTimeToIso(confirmationObservedAt);
+    if (!observedAt) return;
     setConfirmingRole(confirmationTarget.role);
     setError(null);
     try {
@@ -273,7 +277,7 @@ export default function App() {
         casNumber: confirmationTarget.casNumber,
         displayName: confirmationTarget.displayName,
         confirmationBasis,
-        observedAt: nowIso(),
+        observedAt,
       });
       setConfirmationIds((previous) => previous.includes(response.confirmationId) ? previous : [...previous, response.confirmationId]);
       setMessages((previous) => [...previous, makeMessage("SYSTEM", `${confirmationTarget.displayName}(${confirmationTarget.casNumber}) 현장 확인 기록이 저장됐습니다.`)]);
@@ -285,6 +289,13 @@ export default function App() {
     } finally {
       setConfirmingRole(null);
     }
+  }
+
+  function openConfirmation(target: ConfirmationTarget) {
+    setError(null);
+    setConfirmationBasis(defaultConfirmationBasis(target.role));
+    setConfirmationObservedAt(toConfirmationDateTimeInput());
+    setConfirmationTarget(target);
   }
 
   function resetSession() {
@@ -405,11 +416,11 @@ export default function App() {
                 {movementError && <div className="rounded-lg border border-accent/30 bg-accent/5 p-2 text-[10px] text-accent">경로 갱신: {movementError} 기존 화면은 유지됩니다.</div>}
                 {mode === "collision" ? (
                   <>
-                    <IncidentAnalysisCard analysis={analysis} onConfirm={(role, casNumber, displayName) => { setConfirmationBasis("CONTAINER_LABEL"); setConfirmationTarget({ role, casNumber, displayName }); }} confirmingRole={confirmingRole} />
+                    <IncidentAnalysisCard analysis={analysis} onConfirm={(role, casNumber, displayName) => openConfirmation({ role, casNumber, displayName })} confirmingRole={confirmingRole} />
                     <AgentPanel agent={analysis?.agent} />
                     {messages.length > 1 && <details className="rounded-xl border border-border bg-secondary/30"><summary className="cursor-pointer px-3 py-2.5 text-[11px] font-semibold">대화·상태 기록 {messages.length}건</summary><div className="space-y-2 border-t border-border p-3">{messages.slice(-6).map((message) => <div key={message.messageId} className={`rounded-lg p-2 text-[10px] leading-relaxed ${message.role === "USER" ? "ml-8 bg-primary/10" : "mr-8 bg-card border border-border"}`}><p className="font-semibold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "에이전트" : "시스템"}</p><p className="mt-0.5">{message.text}</p></div>)}</div></details>}
                   </>
-                ) : <SubstanceResults result={materialResult} incidentAvailable={Boolean(incidentId)} onUseCandidate={(candidate) => { setConfirmationBasis("CONTAINER_LABEL"); setConfirmationTarget({ role: "INCIDENT", casNumber: candidate.casNumber, displayName: candidate.displayName }); }} />}
+                ) : <SubstanceResults result={materialResult} incidentAvailable={Boolean(incidentId)} onUseCandidate={(candidate) => openConfirmation({ role: "INCIDENT", casNumber: candidate.casNumber, displayName: candidate.displayName })} />}
               </div>
 
               <div className="shrink-0 border-t border-border p-3">
@@ -429,7 +440,7 @@ export default function App() {
           <div className="space-y-4 p-5">
             <div className="rounded-xl bg-secondary p-3"><p className="text-[10px] text-muted-foreground">확인할 후보</p><p className="mt-1 text-sm font-bold">{confirmationTarget.displayName}</p><p className="mt-0.5 font-mono text-xs text-muted-foreground">CAS {confirmationTarget.casNumber}</p></div>
             <label className="block text-xs font-semibold">역할
-              <select value={confirmationTarget.role} onChange={(event) => setConfirmationTarget((current) => current ? { ...current, role: event.target.value as ConfirmationTarget["role"] } : current)} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm outline-none focus:border-primary">
+              <select value={confirmationTarget.role} onChange={(event) => { const role = event.target.value as ConfirmationTarget["role"]; setConfirmationBasis(defaultConfirmationBasis(role)); setConfirmationTarget((current) => current ? { ...current, role } : current); }} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm outline-none focus:border-primary">
                 <option value="INCIDENT">사고물질</option>
                 <option value="FACILITY">시설물질</option>
               </select>
@@ -439,9 +450,13 @@ export default function App() {
                 {CONFIRMATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">이 작업은 후보를 자동 확정하지 않습니다. 현장에서 직접 확인한 근거만 기록해주세요.</p>
+            <label className="block text-xs font-semibold">확인 시각
+              <input type="datetime-local" step={60} max={toConfirmationDateTimeInput()} value={confirmationObservedAt} onChange={(event) => setConfirmationObservedAt(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm outline-none focus:border-primary" required />
+              <span className="mt-1 block text-[10px] font-normal text-muted-foreground">현재 기기 시각을 기본값으로 사용합니다. 실제 확인 시각과 다르면 수정하세요.</span>
+            </label>
+            <p className="rounded-xl bg-accent/10 p-3 text-[11px] leading-relaxed text-accent">이 작업은 AI 후보 승인이 아니라 현장 확인 레코드 생성입니다. 직접 확인한 근거와 시각만 기록해주세요.</p>
             {error && <ErrorNotice error={error} />}
-            <div className="flex gap-2"><button onClick={() => setConfirmationTarget(null)} disabled={Boolean(confirmingRole)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button onClick={() => void handleConfirm()} disabled={Boolean(confirmingRole)} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{confirmingRole ? "저장 중…" : "확인 기록 저장"}</button></div>
+            <div className="flex gap-2"><button onClick={() => setConfirmationTarget(null)} disabled={Boolean(confirmingRole)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button onClick={() => void handleConfirm()} disabled={Boolean(confirmingRole) || !confirmationDateTimeToIso(confirmationObservedAt)} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{confirmingRole ? "저장 중…" : "현장 확인 기록 저장"}</button></div>
           </div>
         </DialogShell>
       )}
