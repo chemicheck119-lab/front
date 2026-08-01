@@ -38,6 +38,7 @@ import { SubstanceResults } from "../features/substance-search/SubstanceResults"
 import { FieldToolsPanel } from "../features/field-tools/FieldToolsPanel";
 import { LoginScreen } from "../features/auth/LoginScreen";
 import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
+import { adaptDirectEntryIssue, resolveInitialStation } from "../features/auth/accessMode";
 
 type Mode = "collision" | "substance";
 type MessageRole = "USER" | "ASSISTANT" | "SYSTEM";
@@ -115,7 +116,11 @@ function mergeResponderPosition(context: MapContext | null, position: ReturnType
 }
 
 export default function App() {
-  const [station, setStation] = useState<string | null>(null);
+  const [station, setStation] = useState<string | null>(() => resolveInitialStation(
+    runtimeDataMode,
+    apiConfig.authEnabled,
+    apiConfig.defaultStationName,
+  ));
   const [isDark, setIsDark] = useState(false);
   const [mode, setMode] = useState<Mode>("collision");
   const [journeyState, setJourneyState] = useState<JourneyState>("EN_ROUTE");
@@ -212,8 +217,8 @@ export default function App() {
   };
 
   function captureRequestIssue(caught: unknown) {
-    const issue = toUserFacingError(caught);
-    if (issue.kind === "SESSION_EXPIRED") setSessionExpired(issue);
+    const issue = adaptDirectEntryIssue(toUserFacingError(caught), apiConfig.authEnabled);
+    if (apiConfig.authEnabled && issue.kind === "SESSION_EXPIRED") setSessionExpired(issue);
     return issue;
   }
 
@@ -376,12 +381,13 @@ export default function App() {
         <div className="flex items-center gap-3"><ImageWithFallback src={isDark ? darkLogo : lightLogo} alt="케미체크119" className="h-9 w-auto object-contain" /><span className="hidden rounded-md bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary lg:inline">전국 현장대응</span></div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${runtimeDataMode === "DEMO_SIMULATION" ? "border-accent/40 bg-accent/10 text-accent" : runtimeDataMode === "LIVE_API" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-muted text-muted-foreground"}`}>{modeLabel(runtimeDataMode)}</span>
+          {runtimeDataMode === "LIVE_API" && !apiConfig.authEnabled && <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold text-blue-700 dark:text-blue-300">인증 미사용</span>}
           <div className="flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 text-xs font-semibold"><User size={13} />{station}</div>
           <button onClick={() => setIsDark((value) => !value)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted" aria-label={isDark ? "라이트 모드" : "다크 모드"}>{isDark ? <Sun size={17} /> : <Moon size={17} />}</button>
         </div>
       </header>
 
-      {sessionExpired && <SessionExpiredBanner authLoginUrl={apiConfig.authLoginUrl} hasIncident={Boolean(incidentId || analysisIds.length || messages.length > 1)} requestId={sessionExpired.requestId} />}
+      {apiConfig.authEnabled && sessionExpired && <SessionExpiredBanner authLoginUrl={apiConfig.authLoginUrl} hasIncident={Boolean(incidentId || analysisIds.length || messages.length > 1)} requestId={sessionExpired.requestId} />}
 
       <div className="flex min-h-0 flex-1">
         <FieldToolsPanel

@@ -55,7 +55,7 @@ BE가 전달한 staging 설정은 `.env.staging`에 비밀값 없이 고정합�
 corepack pnpm build:staging
 ```
 
-현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. `https://chemicheck119.site`의 credential CORS는 staging BFF에 등록하고 허용·거부 경계를 실측했습니다. 이 빌드는 fixture를 사용하지 않지만, 운영 로그인 URL과 세션 컨텍스트 API가 준비되기 전에는 로그인 화면에서 안전하게 진입을 차단합니다. 기존 develop 시연 배포는 이 준비 상태와 별개로 계속 `build:demo`를 사용합니다.
+현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. 공모전 staging은 `VITE_ENABLE_AUTH=false`로 로그인·세션·로그아웃 UI 없이 `현장대응본부` 화면에 바로 진입합니다. AI 분석을 포함한 모든 서비스 요청은 모델 서버가 아니라 이 BFF만 호출합니다. 2026-08-01 실측 시 BFF가 무인증 요청에 아직 `401 AUTH_REQUIRED`를 반환하므로 실제 분석 E2E에는 BE의 인증 필터 비활성화 배포가 추가로 필요합니다.
 
 ## 환경변수와 보안
 
@@ -64,6 +64,8 @@ corepack pnpm build:staging
 - `VITE_BFF_BASE_URL`: FE가 호출할 서비스 BE/BFF 주소
 - `VITE_MAP_STYLE_URL`: 운영 지도 Style URL
 - `VITE_MAP_DARK_STYLE_URL`: 선택적 다크 지도 Style URL
+- `VITE_ENABLE_AUTH`: 로그인·세션 UI와 인증 쿠키 전송 사용 여부. 현재 공모전 staging은 `false`
+- `VITE_DEFAULT_STATION_NAME`: 인증 미사용 Live 화면에 표시할 임시 현장 조직명
 - `VITE_AUTH_LOGIN_URL`: 배포 환경의 신뢰된 운영 로그인 진입 URL
 - `VITE_DISPATCH_CENTER_NAME`: 로그인 세션 연동 전 임시 상황실 표시명
 - `VITE_DISPATCH_CENTER_PHONE`: 로그인 세션 연동 전 임시 상황실 전화번호
@@ -75,11 +77,11 @@ corepack pnpm build:staging
 
 `VITE_*` 값은 브라우저 번들에 그대로 노출됩니다. 모델 API Key, 길찾기 API Key, 영구 토큰 등 비밀정보를 절대 넣지 않습니다. 브라우저는 모델 API를 직접 호출하지 않으며 모든 운영 요청은 BE/BFF를 거칩니다.
 
-BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`를 기본 적용합니다. 다른 origin을 사용하는 운영·staging에서는 BE가 정확한 FE origin과 credential 허용 CORS 정책을 함께 설정해야 합니다.
+BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를 전달합니다. 현재 인증 미사용 staging은 `credentials: omit`으로 호출하며, 향후 인증을 도입할 때 정확한 FE origin과 credential 허용 CORS 정책을 함께 설정해야 합니다.
 
-401 응답은 403 권한 거부와 분리합니다. 세션 만료 시 현재 사고·후보·현장 확인 상태를 메모리에 유지하고, 안전한 운영 인증 URL이 있으면 새 창 재로그인을 제공합니다. 로그인 성공 후 사용자가 실패한 작업을 다시 실행해 BFF 요청이 성공하면 만료 안내를 해제합니다. 새로고침 이후의 보존·폐기 정책은 아직 팀 결정 전이므로 브라우저 영구 저장소에는 사고 상태를 기록하지 않습니다.
+인증 미사용 환경에서 받은 401은 로그인 화면을 띄우지 않고 `BFF가 아직 인증 없는 직접 요청을 허용하지 않습니다`로 안내합니다. 향후 `VITE_ENABLE_AUTH=true`로 전환하면 401 세션 만료와 403 권한 거부를 분리하고 기존 재인증 UI를 다시 사용합니다.
 
-시연 모드에서만 지역·소방서를 로컬로 선택해 접속합니다. Live 모드의 소속과 권한은 사용자 입력값으로 만들지 않으며, 안전한 `VITE_AUTH_LOGIN_URL`이 설정된 경우에만 운영 로그인 링크를 표시합니다. 로그인 후 대시보드 진입에는 BE가 HttpOnly 세션의 사용자·소방서 정보를 돌려주는 세션 컨텍스트 API가 추가로 필요합니다.
+시연 모드에서는 기존 지역·소방서 선택 화면을 유지합니다. 인증 미사용 Live staging은 `VITE_DEFAULT_STATION_NAME`으로 바로 진입하며 이 표시명을 권한·감사 식별자로 사용하지 않습니다. 향후 인증 모드는 안전한 `VITE_AUTH_LOGIN_URL`과 세션 컨텍스트 API가 준비된 경우에만 활성화합니다.
 
 상황실 전화번호는 비밀키가 아니지만 운영 조직별로 달라질 수 있으므로, 실제 서비스에서는 환경변수보다 인증된 로그인 세션/BFF 응답으로 제공하는 방식을 권장합니다. 좌측 도구의 자세한 동작은 [현장 도구 설계](./docs/FIELD_TOOLS.md)를 참고하세요.
 
@@ -87,7 +89,7 @@ BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`
 
 ## BFF 경로
 
-권위 기준은 BE `develop@d1a7391`입니다. 모든 요청은 `VITE_BFF_BASE_URL`과 인증 쿠키를 사용합니다.
+권위 기준은 BE `develop@d1a7391`입니다. 모든 요청은 `VITE_BFF_BASE_URL`을 사용하며 인증 쿠키는 인증 기능이 활성화된 환경에서만 포함합니다.
 
 동일 커밋의 OpenAPI 원본과 생성 타입을 저장소에 고정했습니다. 갱신 절차는 [BFF 계약 동기화](./contracts/README.md), 출처 메타데이터는 [dashboard-bff-v1.source.json](./contracts/dashboard-bff-v1.source.json)을 참고합니다.
 
@@ -120,7 +122,7 @@ corepack pnpm check
 
 - API 응답과 안전 상태 매핑
 - 고정 OpenAPI 원본과 생성 타입·보안 경계의 드리프트 검사
-- 401 세션 만료와 403 접근 거부 분리, 진행 사고 보존 안내
+- 인증 미사용 직접 진입과 401 BE 배포 상태 안내
 - 응답 최상위·확인 gate·규칙 실행을 함께 보는 위험 공개 조건
 - 문장별 RAG 근거와 citation 연결
 - 물질검색 후보의 비자동 현장 확인 연결
@@ -135,17 +137,17 @@ corepack pnpm check
 브라우저 검증 결과와 스크린샷은 [검증 기록](./docs/VALIDATION.md)에 있습니다.
 `develop` 대상 PR과 `develop` push에서는 GitHub Actions가 같은 `pnpm check`를 실행하며 BE staging 연동 번들과 Sites 시연 배포 번들까지 검증합니다.
 
-### Develop 시연 배포
+### Develop staging 배포
 
-`develop` 검증본은 OpenAI Sites의 비공개 시연 배포로 게시합니다. 실제 BFF·로그인 주소가 확정되기 전에는 `build:sites:demo`로 명확한 시연 데이터 번들을 만들며, 운영 연결 실패를 fixture로 자동 대체하지 않습니다.
+`develop` 검증본은 OpenAI Sites의 비공개 배포와 Firebase Hosting 공개 배포로 게시합니다. 현재 공모전 staging 번들은 로그인 없이 BFF에 직접 연결하고, 운영 연결 실패를 fixture로 자동 대체하지 않습니다.
 
 ```bash
-corepack pnpm build:sites:demo
+corepack pnpm build:sites:staging
 ```
 
 배포 패키지는 정적 SPA fallback과 보안 응답 헤더를 제공하는 Worker를 포함합니다. Sites 프로젝트 식별자만 `.openai/hosting.json`에 보관하고 비밀값은 저장소에 기록하지 않습니다.
 
-팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. BFF credential CORS는 공개 origin에만 열렸지만 로그인 어댑터·서명 세션 발급·세션 컨텍스트가 아직 없어 두 배포 모두 명확한 Demo 빌드를 유지합니다. Live 전환 조건은 [GCP develop 배포](./docs/GCP_DEPLOYMENT.md)에 기록합니다.
+팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. 현재 두 배포는 인증 미사용 staging 번들을 사용하며, BFF가 무인증 요청을 허용하도록 배포되기 전까지 분석 요청은 명시적인 준비 상태 오류를 표시합니다.
 
 ## 데이터 의미와 안전 경계
 
@@ -159,7 +161,7 @@ corepack pnpm build:sites:demo
 ## 알려진 한계
 
 - AI 계약·BE client·자동화 테스트는 완료됐지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
-- 사용자 세션 검증과 현장확인 BFF는 구현됐지만 실제 로그인 방식·세션 발급 어댑터·세션 컨텍스트 API는 확정 전입니다.
+- 현재 공모전 staging은 인증을 사용하지 않지만 BFF 배포본에는 아직 인증 필터가 남아 있어 무인증 Live E2E가 차단됩니다.
 - 이동갱신·기록저장 BFF와 실제 길찾기 Provider·영구 DB는 아직 운영 연동 전입니다.
 - 저장소의 기존 로고 이미지에는 `케미가드` 표기가 남아 있습니다. 서비스 표시명 확정 후 별도 디자인 자산 교체가 필요합니다.
 

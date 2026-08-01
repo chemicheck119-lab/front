@@ -54,7 +54,8 @@ describe("BFF 오류 매핑", () => {
     await expect(apiRequest("/test")).rejects.toMatchObject({ kind, requestId: "REQ-TEST-001" });
   });
 
-  it("모든 BFF 요청에 사용자 세션 쿠키 전송을 명시한다", async () => {
+  it("인증 사용 환경의 BFF 요청에 사용자 세션 쿠키 전송을 명시한다", async () => {
+    apiConfig.authEnabled = true;
     const fetchMock = vi.fn().mockResolvedValue(successfulResponse());
     vi.stubGlobal("fetch", fetchMock);
 
@@ -64,6 +65,19 @@ describe("BFF 오류 매핑", () => {
       credentials: "include",
       method: "POST",
       headers: expect.objectContaining({ "Content-Type": "application/json" }),
+    }));
+  });
+
+  it("인증 미사용 환경의 BFF 요청은 브라우저 인증 정보를 보내지 않는다", async () => {
+    apiConfig.authEnabled = false;
+    const fetchMock = vi.fn().mockResolvedValue(successfulResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/test", { method: "POST", body: "{}" });
+
+    expect(fetchMock).toHaveBeenCalledWith("https://bff.example.test/test", expect.objectContaining({
+      credentials: "omit",
+      method: "POST",
     }));
   });
 

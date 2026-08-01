@@ -55,7 +55,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       const response = await fetch(`${apiConfig.baseUrl}${path}`, {
         ...init,
         signal: controller.signal,
-        credentials: init.credentials ?? "include",
+        credentials: init.credentials ?? (apiConfig.authEnabled ? "include" : "omit"),
         headers: { "Content-Type": "application/json", ...init.headers },
       });
       const body = await response.json().catch(() => ({}));

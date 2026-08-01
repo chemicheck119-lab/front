@@ -23,8 +23,8 @@ X-API-Key: BE Secret에서만 주입
 
 | 영역 | 상태 | FE 처리 |
 |---|---|---|
-| credential CORS | 연동 완료 | `https://chemicheck119.site` exact origin 허용; preflight 200·미인증 401·외부 origin 403 실측 |
-| 사용자 세션 검증 | BE 검증 필터 구현·발급 주체 미확정 | 모든 요청에 `credentials: include`; 401은 화면 보존·새 창 재인증, 403은 접근 거부로 분리 |
+| CORS | 연동 완료 | `https://chemicheck119.site` exact origin 허용; preflight 200·미인증 401·외부 origin 403 실측 |
+| 현재 공모전 인증 | FE 비활성화·BE 변경 필요 | FE는 로그인·세션·로그아웃 UI 없이 `credentials: omit`; BE는 무인증 서비스 요청을 허용하도록 인증 필터를 비활성화해 재배포 필요 |
 | 사고 분석 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 물질 검색 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 현장 확인 | 연동 가능 | 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 사고 분석 재호출 |
@@ -46,15 +46,17 @@ X-API-Key: BE Secret에서만 주입
 
 - FE는 서비스 BE/BFF만 호출합니다.
 - 모델 API의 `X-API-Key`와 길찾기 Provider Key는 BE Secret으로만 보관합니다.
-- 사용자 인증·사고 접근권한·확인 기록은 BE가 검증합니다.
-- FE는 모든 BFF 요청에 인증 세션 쿠키를 포함하며, BE는 credential 허용 CORS를 정확한 FE origin으로 제한합니다.
+- 현재 공모전 staging은 인증을 사용하지 않으며 FE는 인증 쿠키를 전송하지 않습니다. 이 임시 정책은 운영 인증 체계가 아닙니다.
+- BE는 정확한 FE origin만 CORS로 허용하고, 인증 미사용 배포에서도 사고·확인 입력을 서버 계약으로 검증합니다.
 - 모든 응답은 `requestId`를 포함해 FE→BE→AI 로그를 연결합니다.
 - 과거 업체 취급 이력을 현재 재고로 바꾸어 표현하지 않습니다.
 - 사고물질·시설물질 CAS 두 개가 확인되기 전 CAMEO 규칙을 실행하지 않습니다.
 - BE 모델 응답 제한은 15초이며 FE 요청 제한은 20초로 두어 구조화된 `MODEL_TIMEOUT` 응답을 우선 수신합니다.
 - FE는 `develop@d1a7391d`의 OpenAPI 원본과 생성 타입을 고정하고 CI에서 경로·세션 보안·필수 필드 드리프트를 검사합니다.
 
-## 0. 운영 로그인 후 세션 컨텍스트
+## 0. 운영 로그인 후 세션 컨텍스트 (공모전 이후 보류)
+
+현재 공모전 staging에서는 로그인·세션·로그아웃 UI를 사용하지 않으므로 아래 계약은 연결하지 않습니다. 운영 인증을 다시 도입할 때 사용하는 후속 설계입니다.
 
 권장 신규 경로: `GET /api/c2guard/v1/session`
 
@@ -100,7 +102,7 @@ X-API-Key: BE Secret에서만 주입
 - [x] FE origin `https://chemicheck119.site`를 exact allowlist로 두고 credential CORS 허용
 - [ ] 사용자 표시명·역할·소방서·상황실 연락처의 권위 출처와 최신성 제공
 - [ ] 로그아웃 또는 만료 세션 처리 경로 확정
-- [ ] FE는 이 응답 성공 전 Live 대시보드 진입을 허용하지 않음
+- [ ] 운영 인증 재도입 시에만 FE가 이 응답 성공 전 Live 대시보드 진입을 제한
 
 ## 1. 사고 분석
 
@@ -299,8 +301,8 @@ FE는 성공 응답의 `reanalyzeRequired=true`를 받으면 동일한 `incident
 | 결정 항목 | 필요한 이유 |
 |---|---|
 | staging·운영 origin 분리 여부 | 공개 develop origin은 `https://chemicheck119.site`로 확정·CORS 등록 완료; 이후 환경 분리 시 별도 exact origin 필요 |
-| SSO·인증 Gateway·별도 로그인 API 중 실제 방식 | `VITE_AUTH_LOGIN_URL`, 복귀 URL, 세션 발급 주체 확정 |
-| 세션 만료·로그아웃 FE 동작 | 401 메모리 보존·새 창 재인증은 구현됨; 새로고침·장시간 방치·명시적 로그아웃의 민감정보 제거 정책 확정 |
+| 공모전 staging BE 인증 필터 | 로그인 없이 `POST /api/c2guard/v1/**` 요청이 통과하도록 현재 배포의 `401 AUTH_REQUIRED` 제거 |
+| 공모전 이후 인증 방식 | SSO·인증 Gateway·별도 로그인 API와 세션 보존·로그아웃 정책 확정 |
 | 안정적인 `stationId` | 표시명 변경과 무관한 조직 식별·권한·감사 로그 연결 |
 | movement·record 배포 활성화 승인 | 현재 `준비 중` UX에서 각 환경의 기능 플래그를 켤 검증 기준 확정 |
 
