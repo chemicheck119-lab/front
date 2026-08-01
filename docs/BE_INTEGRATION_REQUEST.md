@@ -4,7 +4,7 @@
 
 AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
-2026-08-01 기준 BE `develop`에는 BFF v1 계약, Model API client, 사고분석, 물질검색 구현이 병합됐습니다. 현장확인·이동갱신·기록저장과 사용자 세션 인증은 아직 후속 구현 범위입니다.
+2026-08-01 기준 BE `develop`에는 BFF v1 계약, Model API client, 사고분석, 물질검색, 사용자 세션 검증, 현장확인 구현이 병합됐습니다. 이동갱신·기록저장·세션 발급 어댑터·staging 배포는 아직 후속 범위입니다.
 
 ## 공통 원칙
 
@@ -16,6 +16,54 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 - 과거 업체 취급 이력을 현재 재고로 바꾸어 표현하지 않습니다.
 - 사고물질·시설물질 CAS 두 개가 확인되기 전 CAMEO 규칙을 실행하지 않습니다.
 - BE 모델 응답 제한은 15초이며 FE 요청 제한은 20초로 두어 구조화된 `MODEL_TIMEOUT` 응답을 우선 수신합니다.
+
+## 0. 운영 로그인 후 세션 컨텍스트
+
+권장 신규 경로: `GET /api/c2guard/v1/session`
+
+필요한 이유: `CHEMICHECK119_SESSION`은 HttpOnly이므로 FE가 사용자 소속과 역할을 직접 읽을 수 없습니다. 지역·소방서 선택값을 권한 정보로 사용하지 않고, BE가 검증한 principal을 화면과 사고분석의 조직 컨텍스트로 사용해야 합니다.
+
+요청 body: 없음. 브라우저는 `credentials: include`로 서명된 세션 쿠키를 전달합니다.
+
+권장 응답:
+
+```json
+{
+  "schemaVersion": "chemicheck119-dashboard-bff-v1",
+  "requestId": "REQ-SESSION-0001",
+  "authenticated": true,
+  "user": {
+    "userId": "USER-001",
+    "displayName": "최현준",
+    "role": "RESPONDER"
+  },
+  "organization": {
+    "organizationId": "ORG-GG-SUWON",
+    "organizationName": "경기 수원소방서",
+    "stationName": "경기 수원소방서"
+  },
+  "dispatchContext": {
+    "dispatchCenterName": "경기 수원소방서 상황실",
+    "dispatchCenterPhone": "<운영 검증 연락처>",
+    "phoneVerifiedAt": "2026-08-01T09:00:00+09:00"
+  }
+}
+```
+
+오류 처리:
+
+- `401 AUTH_REQUIRED`: 로그인 어댑터로 다시 이동할 수 있는 인증 필요 상태
+- `403 ACCESS_DENIED`: 유효한 사용자지만 서비스 또는 조직 접근권한 없음
+- `503`: 세션 검증 또는 조직 컨텍스트가 준비되지 않아 대시보드 진입 차단
+
+담당자 체크리스트:
+
+- [ ] 배포 인증 어댑터가 HttpOnly·Secure 세션을 발급
+- [ ] 응답 조직은 FE 입력이 아니라 검증된 JWT principal에서 결정
+- [ ] FE origin을 exact allowlist로 두고 credential CORS 허용
+- [ ] 사용자 표시명·역할·소방서·상황실 연락처의 권위 출처와 최신성 제공
+- [ ] 로그아웃 또는 만료 세션 처리 경로 확정
+- [ ] FE는 이 응답 성공 전 Live 대시보드 진입을 허용하지 않음
 
 ## 1. 사고 분석
 

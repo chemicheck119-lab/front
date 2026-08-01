@@ -13,10 +13,10 @@
 | 이동 경로·ETA | BFF 계약 연동 완료 | FE는 movement API만 호출하며 가짜 직선 경로를 만들지 않음 |
 | 현장대응 에이전트 | BFF 계약 연동 완료 | 단계·목표·다음 행동·도구 실행 요약 표시 |
 | 물질검색 | BFF 계약 연동 완료 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
-| 확인 게이트 | 구현 완료 | 두 CAS 확인 전 위험등급과 충돌 결과 숨김 |
+| 확인 게이트 | FE·BE 구현 완료 | BE 저장은 DB 전까지 process-local, 두 CAS 확인 전 규칙 차단 |
 | 기록 저장 | BFF 계약 연동 완료 | 성공 응답의 `resetAllowed=true` 뒤에만 초기화 |
 | 좌측 현장 도구 | UI·화면 상태 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
-| 실제 BE/BFF | 부분 구현 | BE `develop`에 사고분석·물질검색 구현, 나머지 3개 경로·인증 연동 필요 |
+| 실제 BE/BFF | 부분 구현 | 사고분석·물질검색·사용자 인증·현장확인 구현, movement·record 후속 필요 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
 
@@ -53,6 +53,7 @@ VITE_ENABLE_DEMO_MODE=true
 - `VITE_BFF_BASE_URL`: FE가 호출할 서비스 BE/BFF 주소
 - `VITE_MAP_STYLE_URL`: 운영 지도 Style URL
 - `VITE_MAP_DARK_STYLE_URL`: 선택적 다크 지도 Style URL
+- `VITE_AUTH_LOGIN_URL`: 배포 환경의 신뢰된 운영 로그인 진입 URL
 - `VITE_DISPATCH_CENTER_NAME`: 로그인 세션 연동 전 임시 상황실 표시명
 - `VITE_DISPATCH_CENTER_PHONE`: 로그인 세션 연동 전 임시 상황실 전화번호
 - `VITE_API_TIMEOUT_MS`: BFF 요청 제한 시간. BE의 모델 제한 15초보다 긴 20초 권장
@@ -62,6 +63,8 @@ VITE_ENABLE_DEMO_MODE=true
 `VITE_*` 값은 브라우저 번들에 그대로 노출됩니다. 모델 API Key, 길찾기 API Key, 영구 토큰 등 비밀정보를 절대 넣지 않습니다. 브라우저는 모델 API를 직접 호출하지 않으며 모든 운영 요청은 BE/BFF를 거칩니다.
 
 BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`를 기본 적용합니다. 다른 origin을 사용하는 운영·staging에서는 BE가 정확한 FE origin과 credential 허용 CORS 정책을 함께 설정해야 합니다.
+
+시연 모드에서만 지역·소방서를 로컬로 선택해 접속합니다. Live 모드의 소속과 권한은 사용자 입력값으로 만들지 않으며, 안전한 `VITE_AUTH_LOGIN_URL`이 설정된 경우에만 운영 로그인 링크를 표시합니다. 로그인 후 대시보드 진입에는 BE가 HttpOnly 세션의 사용자·소방서 정보를 돌려주는 세션 컨텍스트 API가 추가로 필요합니다.
 
 상황실 전화번호는 비밀키가 아니지만 운영 조직별로 달라질 수 있으므로, 실제 서비스에서는 환경변수보다 인증된 로그인 세션/BFF 응답으로 제공하는 방식을 권장합니다. 좌측 도구의 자세한 동작은 [현장 도구 설계](./docs/FIELD_TOOLS.md)를 참고하세요.
 
@@ -94,6 +97,7 @@ corepack pnpm check
 테스트 범위:
 
 - API 응답과 안전 상태 매핑
+- 시연 접속과 Live 운영 인증 진입 분리
 - 에이전트 phase 표시
 - GPS 최신성·권한 거부·낮은 정확도
 - GeoJSON 경로 표시 조건
@@ -116,5 +120,6 @@ corepack pnpm check
 ## 알려진 한계
 
 - AI PR #31은 `main`에 병합됐고, BE BFF v1 계약·모델 client·사고분석·물질검색은 BE `develop`에 반영됐습니다.
-- 현장확인·이동갱신·기록저장 BFF와 사용자 세션 인증, 실제 길찾기 Provider는 아직 운영 연동 전입니다.
+- 사용자 세션 검증과 현장확인 BFF는 구현됐지만 세션 발급 어댑터·세션 컨텍스트 API·staging E2E는 아직 준비되지 않았습니다.
+- 이동갱신·기록저장 BFF와 실제 길찾기 Provider·영구 DB는 아직 운영 연동 전입니다.
 - 저장소의 기존 로고 이미지에는 `케미가드` 표기가 남아 있습니다. 서비스 표시명 확정 후 별도 디자인 자산 교체가 필요합니다.
