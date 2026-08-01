@@ -2,11 +2,8 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
-  ClipboardList,
-  ExternalLink,
   LogIn,
   Moon,
-  Phone,
   Save,
   Search,
   Send,
@@ -38,6 +35,7 @@ import { PHASE_LABELS, AgentPanel } from "../features/operations-agent/AgentPane
 import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard";
 import { analysisStateLabel } from "../features/incident/analysisState";
 import { SubstanceResults } from "../features/substance-search/SubstanceResults";
+import { FieldToolsPanel } from "../features/field-tools/FieldToolsPanel";
 
 type Mode = "collision" | "substance";
 type MessageRole = "USER" | "ASSISTANT" | "SYSTEM";
@@ -245,6 +243,10 @@ export default function App() {
 
   const route = effectiveMapContext?.route;
   const agentPhase = analysis?.agent?.phase;
+  const dispatchContact = {
+    name: apiConfig.dispatchCenterName || `${station} 상황실`,
+    phone: apiConfig.dispatchCenterPhone,
+  };
 
   async function runAnalysis(text: string, appendUserMessage: boolean) {
     setLoading(true);
@@ -387,14 +389,21 @@ export default function App() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-[148px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-3">
-          <nav className="space-y-1">
-            <a href="https://msds.kosha.or.kr/MSDSInfo/kcic/msdssearchMsds.do" target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-[11px] font-semibold text-sidebar-foreground hover:bg-sidebar-accent hover:text-primary"><ExternalLink size={14} />MSDS 바로가기</a>
-            <button className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-[11px] font-semibold text-sidebar-foreground hover:bg-sidebar-accent hover:text-primary"><Phone size={14} />상황실 전화연결</button>
-            <button className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-[11px] font-semibold text-sidebar-foreground hover:bg-sidebar-accent hover:text-primary"><ClipboardList size={14} />대응기록 조회</button>
-          </nav>
-          <div className="mt-auto rounded-xl border border-sidebar-border bg-sidebar-accent/60 p-2.5 text-[10px] leading-relaxed text-muted-foreground">AI는 절차를 조율합니다. 화학 충돌 등급은 확인된 CAS를 결정 규칙으로 검토한 결과만 표시합니다.</div>
-        </aside>
+        <FieldToolsPanel
+          station={station}
+          dispatchContact={dispatchContact}
+          dataMode={runtimeDataMode}
+          gpsLabel={gpsPresentation.label}
+          gpsDetail={gpsPresentation.detail}
+          analysis={analysis}
+          incidentId={incidentId}
+          messages={messages}
+          analysisIds={analysisIds}
+          confirmationIds={confirmationIds}
+          canSave={Boolean(incidentId && analysisIds.length)}
+          onRequestSave={() => setShowSaveDialog(true)}
+          onContactAttempt={() => setMessages((previous) => [...previous, makeMessage("SYSTEM", `${dispatchContact.name} 전화 연결을 시도했습니다.`)])}
+        />
 
         <main className="flex min-w-0 flex-1 flex-col gap-2 p-2">
           <section className="grid h-[72px] shrink-0 grid-cols-4 gap-2" aria-label="현장대응 요약">
