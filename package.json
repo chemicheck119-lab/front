@@ -3,16 +3,18 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "build": "vite build",
     "dev": "vite",
     "dev:demo": "vite --mode demo",
     "build:demo": "vite build --mode demo",
+    "build:sites:demo": "node scripts/prepare-sites-build.mjs --clean && vite build --mode demo --outDir dist/client --emptyOutDir && node scripts/prepare-sites-build.mjs",
     "contract:generate": "openapi-typescript contracts/dashboard-bff-v1.openapi.json -o src/api/generated/dashboard-bff.ts",
     "contract:check": "node scripts/check-bff-contract.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm contract:check && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm contract:check && pnpm typecheck && pnpm test && pnpm build && pnpm build:sites:demo"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
