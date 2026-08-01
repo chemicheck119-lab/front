@@ -8,7 +8,8 @@
 
 ```text
 pnpm typecheck  성공
-pnpm test       성공 — 13 files, 53 tests
+pnpm contract:check 성공 — BE d1a7391d, 5 paths, generated types synchronized
+pnpm test       성공 — 14 files, 58 tests
 pnpm build      성공
 pnpm build:demo 성공
 ```
@@ -40,6 +41,9 @@ pnpm build:demo 성공
 - 현재 사고 기록의 미저장 건수와 저장 동작
 - record 미배포 시 내역 조회 유지와 `준비 중` 저장 상태
 - retryable 503의 1회 재시도와 안전 검증 실패 결과 비공개
+- 401 세션 만료와 403 접근 거부의 분리
+- 세션 만료 시 진행 사고 보존·안전한 새 창 재로그인 안내
+- 고정 OpenAPI 해시·경로·쿠키 보안·필수 필드·생성 타입 드리프트
 
 ## 브라우저 검증
 

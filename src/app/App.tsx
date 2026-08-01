@@ -37,6 +37,7 @@ import { confirmationDateTimeToIso, defaultConfirmationBasis, toConfirmationDate
 import { SubstanceResults } from "../features/substance-search/SubstanceResults";
 import { FieldToolsPanel } from "../features/field-tools/FieldToolsPanel";
 import { LoginScreen } from "../features/auth/LoginScreen";
+import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
 
 type Mode = "collision" | "substance";
 type MessageRole = "USER" | "ASSISTANT" | "SYSTEM";
@@ -132,6 +133,7 @@ export default function App() {
   const [lastIncidentText, setLastIncidentText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<UserFacingErrorInfo | null>(null);
+  const [sessionExpired, setSessionExpired] = useState<UserFacingErrorInfo | null>(null);
   const [movementError, setMovementError] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -180,10 +182,14 @@ export default function App() {
       journeyState,
       clientSequence: movementSequence.current,
     }).then((response) => {
+      setSessionExpired(null);
       setMapContext(response.mapContext);
       setMovementError(null);
       if (response.mapContext.route.status === "ARRIVED") setJourneyState("ARRIVED");
-    }).catch((caught) => setMovementError(userFacingError(caught)));
+    }).catch((caught) => {
+      const issue = captureRequestIssue(caught);
+      setMovementError(issue.kind === "SESSION_EXPIRED" ? null : userFacingError(caught));
+    });
   }, [incidentId, responderLocation.position, journeyState]);
 
   useEffect(() => {
@@ -204,6 +210,12 @@ export default function App() {
     name: apiConfig.dispatchCenterName || `${station} 상황실`,
     phone: apiConfig.dispatchCenterPhone,
   };
+
+  function captureRequestIssue(caught: unknown) {
+    const issue = toUserFacingError(caught);
+    if (issue.kind === "SESSION_EXPIRED") setSessionExpired(issue);
+    return issue;
+  }
 
   async function runAnalysis(text: string, appendUserMessage: boolean) {
     setLoading(true);
@@ -227,6 +239,7 @@ export default function App() {
         },
         evidenceTopK: 5,
       });
+      setSessionExpired(null);
       setAnalysis(response);
       setIncidentId(response.incidentId);
       setLastIncidentText(text);
@@ -234,8 +247,8 @@ export default function App() {
       if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
       setMessages((previous) => [...previous, makeMessage("ASSISTANT", response.agent?.currentObjective ?? response.requiredNextSteps[0] ?? analysisStateLabel(response.state), response.analysisId)]);
     } catch (caught) {
-      const issue = toUserFacingError(caught);
-      setError(issue);
+      const issue = captureRequestIssue(caught);
+      setError(issue.kind === "SESSION_EXPIRED" ? null : issue);
       if (appendUserMessage) setInput(text);
       setMessages((previous) => [...previous, makeMessage("SYSTEM", `${issue.message}${issue.requestId ? ` (요청 ID: ${issue.requestId})` : ""}`)]);
     } finally {
@@ -255,9 +268,11 @@ export default function App() {
     setError(null);
     try {
       const response = await discoverSubstances(query);
+      setSessionExpired(null);
       setMaterialResult(response);
     } catch (caught) {
-      setError(toUserFacingError(caught));
+      const issue = captureRequestIssue(caught);
+      setError(issue.kind === "SESSION_EXPIRED" ? null : issue);
       setInput(query);
       setMaterialResult(null);
     } finally {
@@ -279,13 +294,15 @@ export default function App() {
         confirmationBasis,
         observedAt,
       });
+      setSessionExpired(null);
       setConfirmationIds((previous) => previous.includes(response.confirmationId) ? previous : [...previous, response.confirmationId]);
       setMessages((previous) => [...previous, makeMessage("SYSTEM", `${confirmationTarget.displayName}(${confirmationTarget.casNumber}) 현장 확인 기록이 저장됐습니다.`)]);
       setConfirmationTarget(null);
       if (response.reanalyzeRequired && lastIncidentText) await runAnalysis(lastIncidentText, false);
       setMode("collision");
     } catch (caught) {
-      setError(toUserFacingError(caught));
+      const issue = captureRequestIssue(caught);
+      setError(issue.kind === "SESSION_EXPIRED" ? null : issue);
     } finally {
       setConfirmingRole(null);
     }
@@ -327,6 +344,7 @@ export default function App() {
     };
     try {
       const response = await saveIncidentRecord(incidentId, payload);
+      setSessionExpired(null);
       if (shouldResetAfterSave(response)) {
         setSavedRecordId(response.recordId);
         setShowSaveDialog(false);
@@ -338,7 +356,8 @@ export default function App() {
         }, 2200);
       }
     } catch (caught) {
-      setSaveError(userFacingError(caught));
+      const issue = captureRequestIssue(caught);
+      setSaveError(issue.kind === "SESSION_EXPIRED" ? null : userFacingError(caught));
     } finally {
       setSaving(false);
     }
@@ -361,6 +380,8 @@ export default function App() {
           <button onClick={() => setIsDark((value) => !value)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted" aria-label={isDark ? "라이트 모드" : "다크 모드"}>{isDark ? <Sun size={17} /> : <Moon size={17} />}</button>
         </div>
       </header>
+
+      {sessionExpired && <SessionExpiredBanner authLoginUrl={apiConfig.authLoginUrl} hasIncident={Boolean(incidentId || analysisIds.length || messages.length > 1)} requestId={sessionExpired.requestId} />}
 
       <div className="flex min-h-0 flex-1">
         <FieldToolsPanel

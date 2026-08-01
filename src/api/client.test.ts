@@ -36,7 +36,8 @@ describe("BFF 오류 매핑", () => {
   });
 
   it.each([
-    [401, "UNAUTHORIZED", "AUTH"],
+    [401, "UNAUTHORIZED", "SESSION_EXPIRED"],
+    [403, "FORBIDDEN", "AUTH"],
     [422, "CONFIRMATION_REQUIRED", "CONFIRMATION_REQUIRED"],
     [503, "INSUFFICIENT_EVIDENCE", "NO_EVIDENCE"],
     [503, "ROUTE_UNAVAILABLE", "NO_ROUTE"],
@@ -103,5 +104,14 @@ describe("BFF 오류 매핑", () => {
     expect(issue.message).toContain("결과 카드를 표시하지 않습니다");
     expect(issue.requestId).toBe("REQ-SAFE-1");
     expect(issue.message).not.toContain("internal details");
+  });
+
+  it("401은 진행 화면을 보존해야 하는 세션 만료 상태로 구분한다", () => {
+    const issue = toUserFacingError(new ApiError("SESSION_EXPIRED", "internal auth details", "REQ-AUTH-1"));
+
+    expect(issue.kind).toBe("SESSION_EXPIRED");
+    expect(issue.message).toContain("세션이 만료");
+    expect(issue.requestId).toBe("REQ-AUTH-1");
+    expect(issue.retryable).toBe(false);
   });
 });

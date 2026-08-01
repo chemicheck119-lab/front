@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiConfig } from "./config";
-import { analyzeIncident } from "./incidents";
+import { analyzeIncident, normalizeIncidentAnalyzeRequest } from "./incidents";
 
 const originalConfig = { ...apiConfig };
 
@@ -30,5 +30,13 @@ describe("Demo와 Live API 경계", () => {
     await expect(analyzeIncident({ incidentId: "INC-LIVE-TEST", text: "실제 신고" }))
       .rejects.toMatchObject({ kind: "NETWORK" });
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("화면 입력을 고정 OpenAPI의 필수 기본값이 있는 요청으로 정규화한다", () => {
+    expect(normalizeIncidentAnalyzeRequest({ text: "신고 내용" })).toEqual({
+      text: "신고 내용",
+      inputType: "MANUAL_TEXT",
+      evidenceTopK: 5,
+    });
   });
 });

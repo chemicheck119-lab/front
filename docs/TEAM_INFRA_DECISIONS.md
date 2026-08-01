@@ -8,7 +8,7 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 |---|---|---|
 | 개발·staging·운영 FE origin | 환경별 exact origin과 credential CORS allowlist | 값 확정 전 문서에 추정 origin을 기록하지 않음 |
 | 로그인 방식 | SSO, 인증 Gateway, 별도 로그인 API 중 권위 흐름 | `VITE_AUTH_LOGIN_URL`이 있는 Live 환경만 운영 로그인 진입 표시 |
-| 세션 만료·로그아웃 | 진행 중 사고 보존·재인증·민감정보 제거 정책 | Live 대시보드 진입은 세션 컨텍스트 계약 확정 전 제한 |
+| 세션 만료·로그아웃 | 새로고침·장시간 방치·명시적 로그아웃 때의 보존·민감정보 제거 정책 | 401에서 현재 메모리 상태 유지, 새 창 재인증 안내, 영구 저장은 하지 않음 |
 | 소방서 식별자 | 표시명과 분리된 안정적인 `stationId` | 임시 표시명은 권한·감사 식별자로 사용하지 않음 |
 | 지도·경로 사업자 | 운영 Style URL, 경로 Provider, attribution, SLA | 공개 OSM 표준 타일과 FE 보유 Provider Key를 사용하지 않음 |
 | 기록 보존기간 | 사고 기록의 보존·삭제·접근 감사 정책 | FE 로컬 상태를 영구 기록으로 간주하지 않음 |
@@ -23,6 +23,8 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 - 확인 성공 응답의 `reanalyzeRequired=true`이면 동일한 `incidentId`로 사고 분석을 다시 호출합니다.
 - movement와 record는 BE 배포가 검증된 환경에서 각각의 기능 플래그를 켜기 전까지 호출하지 않습니다.
 - 시연 fixture는 `VITE_ENABLE_DEMO_MODE=true`인 명시적 데모 환경에서만 사용합니다.
+- 401은 세션 만료/인증 필요, 403은 접근권한 없음으로 분리합니다. 401에서는 현재 화면을 초기화하지 않습니다.
+- BFF OpenAPI는 승인된 BE 전체 commit SHA에 고정하고 `pnpm contract:check`로 생성 타입과 보안 경계를 검증합니다.
 
 ## 활성화 체크
 
