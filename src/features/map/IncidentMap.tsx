@@ -145,7 +145,7 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
 
   return (
     <section className="relative h-full min-h-[460px] overflow-hidden rounded-2xl border border-border bg-card" aria-label="전국 사고 및 출동 지도">
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="chemicheck-map-canvas absolute inset-0" />
       {!styleUrl && (
         <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,var(--muted),var(--card))] p-8 text-center">
           <div className="max-w-xs">
