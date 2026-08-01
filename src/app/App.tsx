@@ -4,8 +4,6 @@ import {
   Check,
   Moon,
   Save,
-  Search,
-  Send,
   Sun,
   User,
   X,
@@ -37,6 +35,7 @@ import { FieldToolsPanel } from "../features/field-tools/FieldToolsPanel";
 import { LoginScreen } from "../features/auth/LoginScreen";
 import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
 import { adaptDirectEntryIssue, resolveInitialStation } from "../features/auth/accessMode";
+import { MessageComposer } from "../features/composer/MessageComposer";
 
 type Mode = "collision" | "substance";
 type MessageRole = "USER" | "ASSISTANT" | "SYSTEM";
@@ -259,8 +258,8 @@ export default function App() {
     }
   }
 
-  async function handleSubmit() {
-    const query = input.trim();
+  async function handleSubmit(rawInput = input) {
+    const query = rawInput.trim();
     if (!query || loading) return;
     setInput("");
     if (mode === "collision") {
@@ -449,10 +448,14 @@ export default function App() {
               </div>
 
               <div className="shrink-0 border-t border-border p-3">
-                <div className="flex items-end gap-2">
-                  <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void handleSubmit(); } }} rows={2} className="min-h-[52px] flex-1 resize-none rounded-xl border border-border bg-input-background px-3 py-2 text-xs outline-none placeholder:text-muted-foreground focus:border-primary" placeholder={mode === "collision" ? "신고 내용과 확인된 상황을 입력하세요…" : "물질명·CAS·화학식 또는 색·냄새·상태 입력…"} />
-                  <button onClick={() => void handleSubmit()} disabled={!input.trim() || loading || runtimeDataMode === "UNAVAILABLE"} className="grid h-[52px] w-[52px] place-items-center rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-40" aria-label={mode === "collision" ? "사고 분석" : "물질 검색"}>{mode === "collision" ? <Send size={16} /> : <Search size={16} />}</button>
-                </div>
+                <MessageComposer
+                  mode={mode}
+                  value={input}
+                  loading={loading}
+                  unavailable={runtimeDataMode === "UNAVAILABLE"}
+                  onChange={setInput}
+                  onSubmit={(value) => { void handleSubmit(value); }}
+                />
                 {loading && <p className="mt-1.5 text-[10px] text-muted-foreground">{mode === "collision" ? "신고·시설 이력·확인 게이트를 점검 중입니다…" : "물질 후보와 공식 근거를 검색 중입니다…"}</p>}
               </div>
             </div>
