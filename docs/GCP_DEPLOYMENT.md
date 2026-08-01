@@ -35,15 +35,17 @@ npx firebase-tools deploy --only hosting --project chemi-check
 
 `pnpm build:staging` 또는 Docker build argument `VITE_BUILD_MODE=staging`으로 Live API 번들을 만들 수 있습니다. `VITE_*` 값은 정적 브라우저 번들에 포함되므로 API Key나 세션 비밀값은 넣지 않습니다.
 
-실측 결과 인증 쿠키가 없는 BFF 요청은 `401 AUTH_REQUIRED`를 반환해 인증 경계가 정상 작동합니다. 반면 공개 FE origin의 CORS preflight는 BE allowlist에 등록되기 전까지 허용할 수 없습니다. 그러므로 Firebase Hosting과 기존 Cloud Run 서비스는 아직 staging 빌드로 교체하지 않고 demo 빌드를 유지합니다.
+2026-08-01에 BE staging의 `CHEMICHECK119_CORS_ALLOWED_ORIGINS`에 `https://chemicheck119.site`를 등록하고 새 리비전으로 트래픽을 전환했습니다. 실측 결과 credential preflight는 `200`과 정확한 `Access-Control-Allow-Origin`, `Access-Control-Allow-Credentials: true`를 반환합니다. 인증 쿠키가 없는 POST는 CORS 헤더가 포함된 `401 AUTH_REQUIRED`, 임의 외부 origin은 `403 Invalid CORS request`를 반환합니다.
+
+FE API client와 CORS 경계는 Live 호출 준비가 됐지만 로그인 어댑터와 서명 세션 발급 경로가 없습니다. 그러므로 Firebase Hosting과 기존 Cloud Run FE 서비스는 아직 staging 빌드로 교체하지 않고 demo 빌드를 유지합니다.
 
 ## Live 전환 조건
 
 다음 조건이 모두 충족되기 전에는 이 서비스를 운영 Live 빌드로 바꾸지 않습니다.
 
 - 실제 로그인·세션 컨텍스트 API 확정
-- `https://chemicheck119.site`를 BE `CHEMICHECK119_CORS_ALLOWED_ORIGINS`에 exact origin으로 등록
-- credential CORS와 Secure·SameSite 쿠키 검증
+- [완료] `https://chemicheck119.site`를 BE `CHEMICHECK119_CORS_ALLOWED_ORIGINS`에 exact origin으로 등록
+- 서명 세션이 있는 브라우저에서 Secure·SameSite 쿠키 전송 검증
 - `VITE_AUTH_LOGIN_URL`의 staging 값 확정
 - 사고 분석·물질 검색·현장 확인 Live E2E 증적
 

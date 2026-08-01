@@ -17,7 +17,7 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 
 ## 확정된 FE 경계
 
-- 공개 develop FE origin은 `https://chemicheck119.site`입니다. Live 전환 전 BE credential CORS allowlist에 이 exact origin을 등록합니다.
+- 공개 develop FE origin은 `https://chemicheck119.site`입니다. BE staging credential CORS allowlist에 이 exact origin만 등록했으며 허용 preflight `200`, 미인증 `401`, 외부 origin `403`을 확인했습니다.
 - 모든 서비스 요청은 `VITE_BFF_BASE_URL`을 사용하고 인증 쿠키를 포함합니다.
 - FE는 모델 API와 길찾기 Provider를 직접 호출하거나 API Key를 보관하지 않습니다.
 - 사고 분석, 물질 검색, 현장 확인은 BE `develop@d1a7391` 기준 Live 연결 대상입니다.

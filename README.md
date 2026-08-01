@@ -55,7 +55,7 @@ BE가 전달한 staging 설정은 `.env.staging`에 비밀값 없이 고정합�
 corepack pnpm build:staging
 ```
 
-현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. 이 빌드는 fixture를 사용하지 않지만, 운영 로그인 URL·세션 컨텍스트 API·BE credential CORS가 준비되기 전에는 로그인 화면에서 안전하게 진입을 차단합니다. 기존 develop 시연 배포는 이 준비 상태와 별개로 계속 `build:demo`를 사용합니다.
+현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. `https://chemicheck119.site`의 credential CORS는 staging BFF에 등록하고 허용·거부 경계를 실측했습니다. 이 빌드는 fixture를 사용하지 않지만, 운영 로그인 URL과 세션 컨텍스트 API가 준비되기 전에는 로그인 화면에서 안전하게 진입을 차단합니다. 기존 develop 시연 배포는 이 준비 상태와 별개로 계속 `build:demo`를 사용합니다.
 
 ## 환경변수와 보안
 
@@ -143,7 +143,7 @@ corepack pnpm build:sites:demo
 
 배포 패키지는 정적 SPA fallback과 보안 응답 헤더를 제공하는 Worker를 포함합니다. Sites 프로젝트 식별자만 `.openai/hosting.json`에 보관하고 비밀값은 저장소에 기록하지 않습니다.
 
-팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. BE staging 주소와 미구현 기능 플래그는 확정됐지만 인증·CORS 경계가 아직 열리지 않아 두 배포 모두 명확한 Demo 빌드를 유지합니다. Live 전환 조건은 [GCP develop 배포](./docs/GCP_DEPLOYMENT.md)에 기록합니다.
+팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. BFF credential CORS는 공개 origin에만 열렸지만 로그인 어댑터·서명 세션 발급·세션 컨텍스트가 아직 없어 두 배포 모두 명확한 Demo 빌드를 유지합니다. Live 전환 조건은 [GCP develop 배포](./docs/GCP_DEPLOYMENT.md)에 기록합니다.
 
 ## 데이터 의미와 안전 경계
 

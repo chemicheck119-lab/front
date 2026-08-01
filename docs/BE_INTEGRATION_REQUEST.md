@@ -12,7 +12,8 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
 | 영역 | 상태 | FE 처리 |
 |---|---|---|
-| 사용자 세션 검증 | BE 구현 | 모든 요청에 `credentials: include`; 401은 화면 보존·새 창 재인증, 403은 접근 거부로 분리 |
+| credential CORS | 연동 완료 | `https://chemicheck119.site` exact origin 허용; preflight 200·미인증 401·외부 origin 403 실측 |
+| 사용자 세션 검증 | BE 검증 필터 구현·발급 주체 미확정 | 모든 요청에 `credentials: include`; 401은 화면 보존·새 창 재인증, 403은 접근 거부로 분리 |
 | 사고 분석 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 물질 검색 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 현장 확인 | 연동 가능 | 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 사고 분석 재호출 |
@@ -75,7 +76,7 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
 - [ ] 배포 인증 어댑터가 HttpOnly·Secure 세션을 발급
 - [ ] 응답 조직은 FE 입력이 아니라 검증된 JWT principal에서 결정
-- [ ] FE origin을 exact allowlist로 두고 credential CORS 허용
+- [x] FE origin `https://chemicheck119.site`를 exact allowlist로 두고 credential CORS 허용
 - [ ] 사용자 표시명·역할·소방서·상황실 연락처의 권위 출처와 최신성 제공
 - [ ] 로그아웃 또는 만료 세션 처리 경로 확정
 - [ ] FE는 이 응답 성공 전 Live 대시보드 진입을 허용하지 않음
@@ -276,7 +277,7 @@ FE는 성공 응답의 `reanalyzeRequired=true`를 받으면 동일한 `incident
 
 | 결정 항목 | 필요한 이유 |
 |---|---|
-| 개발·staging·운영 FE exact origin | credential CORS allowlist와 Secure cookie 검증 |
+| staging·운영 origin 분리 여부 | 공개 develop origin은 `https://chemicheck119.site`로 확정·CORS 등록 완료; 이후 환경 분리 시 별도 exact origin 필요 |
 | SSO·인증 Gateway·별도 로그인 API 중 실제 방식 | `VITE_AUTH_LOGIN_URL`, 복귀 URL, 세션 발급 주체 확정 |
 | 세션 만료·로그아웃 FE 동작 | 401 메모리 보존·새 창 재인증은 구현됨; 새로고침·장시간 방치·명시적 로그아웃의 민감정보 제거 정책 확정 |
 | 안정적인 `stationId` | 표시명 변경과 무관한 조직 식별·권한·감사 로그 연결 |
