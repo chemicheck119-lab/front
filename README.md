@@ -121,7 +121,17 @@ corepack pnpm check
 - 시연 데이터와 실제 API 구분
 
 브라우저 검증 결과와 스크린샷은 [검증 기록](./docs/VALIDATION.md)에 있습니다.
-`develop` 대상 PR과 `develop` push에서는 GitHub Actions가 같은 `pnpm check`를 실행합니다.
+`develop` 대상 PR과 `develop` push에서는 GitHub Actions가 같은 `pnpm check`를 실행하며 Sites 시연 배포 번들까지 검증합니다.
+
+### Develop 시연 배포
+
+`develop` 검증본은 OpenAI Sites의 비공개 시연 배포로 게시합니다. 실제 BFF·로그인 주소가 확정되기 전에는 `build:sites:demo`로 명확한 시연 데이터 번들을 만들며, 운영 연결 실패를 fixture로 자동 대체하지 않습니다.
+
+```bash
+corepack pnpm build:sites:demo
+```
+
+배포 패키지는 정적 SPA fallback과 보안 응답 헤더를 제공하는 Worker를 포함합니다. Sites 프로젝트 식별자만 `.openai/hosting.json`에 보관하고 비밀값은 저장소에 기록하지 않습니다.
 
 ## 데이터 의미와 안전 경계
 
