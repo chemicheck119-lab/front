@@ -133,6 +133,8 @@ corepack pnpm build:sites:demo
 
 배포 패키지는 정적 SPA fallback과 보안 응답 헤더를 제공하는 Worker를 포함합니다. Sites 프로젝트 식별자만 `.openai/hosting.json`에 보관하고 비밀값은 저장소에 기록하지 않습니다.
 
+팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`을 사용합니다. 현재는 인증·CORS 경계가 확정되지 않아 명확한 Demo 빌드만 배포하며, Live 전환 조건은 [GCP develop 배포](./docs/GCP_DEPLOYMENT.md)에 기록합니다.
+
 ## 데이터 의미와 안전 경계
 
 - 전국 시설 데이터는 17개 시·도, 28,647개 사업장의 **과거 공개 취급 후보**이며 현재 재고가 아닙니다.
