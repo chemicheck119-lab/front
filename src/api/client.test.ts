@@ -16,6 +16,15 @@ function failedResponse(status: number, code: string, requestId = "REQ-TEST-001"
   } as unknown as Response;
 }
 
+function successfulResponse(body: unknown = { ok: true }) {
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: vi.fn().mockReturnValue(null) },
+    json: vi.fn().mockResolvedValue(body),
+  } as unknown as Response;
+}
+
 describe("BFF 오류 매핑", () => {
   beforeEach(() => {
     Object.assign(apiConfig, { ...originalConfig, baseUrl: "https://bff.example.test" });
@@ -33,10 +42,37 @@ describe("BFF 오류 매핑", () => {
     [503, "ROUTE_UNAVAILABLE", "NO_ROUTE"],
     [503, "PROFILE_INDEX_NOT_AVAILABLE", "NOT_READY"],
     [422, "INVALID_REQUEST", "VALIDATION"],
+    [409, "INCIDENT_REFERENCE_CONFLICT", "CONFLICT"],
+    [422, "MODEL_CONTRACT_VIOLATION", "SERVER"],
+    [503, "MODEL_SERVICE_UNAVAILABLE", "SERVICE_UNAVAILABLE"],
+    [504, "MODEL_TIMEOUT", "TIMEOUT"],
+    [504, "ROUTE_UNAVAILABLE", "NO_ROUTE"],
   ] as const)("HTTP %s / %s를 %s 상태로 구분한다", async (status, code, kind) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(failedResponse(status, code)));
 
     await expect(apiRequest("/test")).rejects.toMatchObject({ kind, requestId: "REQ-TEST-001" });
+  });
+
+  it("모든 BFF 요청에 사용자 세션 쿠키 전송을 명시한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(successfulResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/test", { method: "POST", body: "{}" });
+
+    expect(fetchMock).toHaveBeenCalledWith("https://bff.example.test/test", expect.objectContaining({
+      credentials: "include",
+      method: "POST",
+      headers: expect.objectContaining({ "Content-Type": "application/json" }),
+    }));
+  });
+
+  it("호출부가 명시한 credentials 설정은 덮어쓰지 않는다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(successfulResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/public", { credentials: "omit" });
+
+    expect(fetchMock).toHaveBeenCalledWith("https://bff.example.test/public", expect.objectContaining({ credentials: "omit" }));
   });
 
   it("사용자 메시지에는 내부 상세 대신 안전한 문구와 request ID만 표시한다", () => {
@@ -44,5 +80,12 @@ describe("BFF 오류 매핑", () => {
 
     expect(message).toBe("도로 경로를 불러올 수 없습니다. (요청 ID: REQ-MAP-9)");
     expect(message).not.toContain("secret");
+  });
+
+  it("BFF timeout과 일시 장애를 사용자 행동이 가능한 문구로 구분한다", () => {
+    expect(userFacingError(new ApiError("TIMEOUT", "internal timeout", "REQ-TIME-1", true)))
+      .toBe("응답 시간이 초과되었습니다. 다시 시도해주세요. (요청 ID: REQ-TIME-1)");
+    expect(userFacingError(new ApiError("SERVICE_UNAVAILABLE", "upstream unavailable", "REQ-UP-1", true)))
+      .toBe("분석 서비스에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도해주세요. (요청 ID: REQ-UP-1)");
   });
 });
