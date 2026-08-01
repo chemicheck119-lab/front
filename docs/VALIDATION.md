@@ -8,8 +8,9 @@
 
 ```text
 pnpm typecheck  성공
-pnpm test       성공 — 4 files, 7 tests
+pnpm test       성공 — 7 files, 17 tests
 pnpm build      성공
+pnpm build:demo 성공
 ```
 
 테스트한 핵심 상태:
@@ -20,6 +21,10 @@ pnpm build      성공
 - 한 CAS 확인 시 위험 숨김
 - 두 CAS 확인·규칙 실행 뒤 위험 표시
 - 저장 성공 응답에서만 초기화
+- MapLibre 컨테이너 높이 0px 회귀 방지
+- Demo 모드에서만 fixture 사용, Live 장애 시 자동 대체 금지
+- 인증·확인 필요·근거 부족·경로 없음·artifact 미준비 오류 구분
+- 사용자 오류 메시지에 안전한 문구와 request ID만 표시
 
 ## 브라우저 검증
 
@@ -58,6 +63,6 @@ pnpm build      성공
 
 ## 검증 한계
 
-- 공개 MapLibre demo style은 로컬 시각 확인에만 사용했습니다. 저장소 기본값과 운영 설정에는 포함하지 않았습니다.
+- 공개 MapLibre demo style은 `.env.demo`와 `pnpm dev:demo`에서만 사용하며 운영 설정에는 사용하지 않습니다.
 - 실제 BE·길찾기 Provider·차량 GPS는 아직 연결되지 않았으므로 운영 연동 완료가 아닙니다.
 - 실제 장비 위치 권한과 장시간 이동은 staging 태블릿에서 추가 검증해야 합니다.
