@@ -16,10 +16,12 @@ export class ApiError extends Error {
 
 function errorKind(status: number, code?: string): ApiErrorKind {
   if (status === 401 || status === 403) return "AUTH";
-  if (status === 400 || status === 422) return "VALIDATION";
   if (code?.includes("CONFIRMATION")) return "CONFIRMATION_REQUIRED";
-  if (code?.includes("ROUTE")) return "NO_ROUTE";
-  if (status === 409 || code?.includes("ARTIFACT")) return "NOT_READY";
+  if (code?.includes("EVIDENCE")) return "NO_EVIDENCE";
+  if (code && ["ROUTE_UNAVAILABLE", "ROUTE_ENDPOINT_MISMATCH", "INCIDENT_LOCATION_REQUIRED", "RESPONDER_POSITION_REQUIRED", "POSITION_STALE"].includes(code)) return "NO_ROUTE";
+  if (code?.includes("ARTIFACT") || code?.includes("INDEX_NOT_AVAILABLE") || code?.includes("PROFILE_INDEX")) return "NOT_READY";
+  if (status === 400 || status === 422) return "VALIDATION";
+  if (status === 409) return "NOT_READY";
   return "SERVER";
 }
 
