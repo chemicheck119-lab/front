@@ -19,7 +19,7 @@ import { updateMovement } from "../api/movement";
 import { discoverSubstances } from "../api/substances";
 import { confirmSubstance } from "../api/confirmations";
 import { saveIncidentRecord, shouldResetAfterSave } from "../api/records";
-import { userFacingError } from "../api/client";
+import { toUserFacingError, userFacingError, type UserFacingErrorInfo } from "../api/client";
 import type {
   ConfirmationRequest,
   IncidentAnalysisResponse,
@@ -130,10 +130,11 @@ export default function App() {
   const [incidentId, setIncidentId] = useState<string | null>(null);
   const [lastIncidentText, setLastIncidentText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserFacingErrorInfo | null>(null);
   const [movementError, setMovementError] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [recordResetPending, setRecordResetPending] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
   const [confirmationTarget, setConfirmationTarget] = useState<ConfirmationTarget | null>(null);
@@ -142,6 +143,7 @@ export default function App() {
   const [nowMs, setNowMs] = useState(Date.now());
   const movementSequence = useRef(0);
   const lastMovementSentAt = useRef(0);
+  const recordResetTimer = useRef<number | null>(null);
   const responderLocation = useResponderLocation(Boolean(station));
 
   useEffect(() => {
@@ -166,7 +168,7 @@ export default function App() {
   ), [mapContext, analysis, responderLocation.position]);
 
   useEffect(() => {
-    if (!incidentId || !responderLocation.position || runtimeDataMode !== "LIVE_API") return;
+    if (!apiConfig.movementEnabled || !incidentId || !responderLocation.position || runtimeDataMode !== "LIVE_API") return;
     const elapsed = Date.now() - lastMovementSentAt.current;
     if (elapsed < apiConfig.locationUpdateIntervalMs) return;
     lastMovementSentAt.current = Date.now();
@@ -187,6 +189,10 @@ export default function App() {
     const timer = window.setTimeout(() => setSavedRecordId(null), 3000);
     return () => window.clearTimeout(timer);
   }, [savedRecordId]);
+
+  useEffect(() => () => {
+    if (recordResetTimer.current !== null) window.clearTimeout(recordResetTimer.current);
+  }, []);
 
   if (!station) return <LoginScreen isDark={isDark} dataMode={runtimeDataMode} authLoginUrl={apiConfig.authLoginUrl} onDemoLogin={setStation} />;
 
@@ -226,9 +232,10 @@ export default function App() {
       if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
       setMessages((previous) => [...previous, makeMessage("ASSISTANT", response.agent?.currentObjective ?? response.requiredNextSteps[0] ?? analysisStateLabel(response.state), response.analysisId)]);
     } catch (caught) {
-      const message = userFacingError(caught);
-      setError(message);
-      setMessages((previous) => [...previous, makeMessage("SYSTEM", message)]);
+      const issue = toUserFacingError(caught);
+      setError(issue);
+      if (appendUserMessage) setInput(text);
+      setMessages((previous) => [...previous, makeMessage("SYSTEM", `${issue.message}${issue.requestId ? ` (요청 ID: ${issue.requestId})` : ""}`)]);
     } finally {
       setLoading(false);
     }
@@ -248,7 +255,8 @@ export default function App() {
       const response = await discoverSubstances(query);
       setMaterialResult(response);
     } catch (caught) {
-      setError(userFacingError(caught));
+      setError(toUserFacingError(caught));
+      setInput(query);
       setMaterialResult(null);
     } finally {
       setLoading(false);
@@ -271,8 +279,9 @@ export default function App() {
       setMessages((previous) => [...previous, makeMessage("SYSTEM", `${confirmationTarget.displayName}(${confirmationTarget.casNumber}) 현장 확인 기록이 저장됐습니다.`)]);
       setConfirmationTarget(null);
       if (response.reanalyzeRequired && lastIncidentText) await runAnalysis(lastIncidentText, false);
+      setMode("collision");
     } catch (caught) {
-      setError(userFacingError(caught));
+      setError(toUserFacingError(caught));
     } finally {
       setConfirmingRole(null);
     }
@@ -296,7 +305,7 @@ export default function App() {
   }
 
   async function handleSave() {
-    if (!incidentId || analysisIds.length === 0 || saving) return;
+    if (!apiConfig.recordEnabled || !incidentId || analysisIds.length === 0 || saving || recordResetPending) return;
     setSaving(true);
     setSaveError(null);
     const payload: RecordSaveRequest = {
@@ -310,7 +319,12 @@ export default function App() {
       if (shouldResetAfterSave(response)) {
         setSavedRecordId(response.recordId);
         setShowSaveDialog(false);
-        resetSession();
+        setRecordResetPending(true);
+        recordResetTimer.current = window.setTimeout(() => {
+          resetSession();
+          setRecordResetPending(false);
+          recordResetTimer.current = null;
+        }, 2200);
       }
     } catch (caught) {
       setSaveError(userFacingError(caught));
@@ -327,7 +341,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-[100dvh] min-w-[960px] flex-col overflow-hidden bg-background text-foreground" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+    <div className="flex h-[100dvh] min-w-[1024px] flex-col overflow-hidden bg-background text-foreground" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
         <div className="flex items-center gap-3"><ImageWithFallback src={isDark ? darkLogo : lightLogo} alt="케미체크119" className="h-9 w-auto object-contain" /><span className="hidden rounded-md bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary lg:inline">전국 현장대응</span></div>
         <div className="flex items-center gap-2">
@@ -349,7 +363,8 @@ export default function App() {
           messages={messages}
           analysisIds={analysisIds}
           confirmationIds={confirmationIds}
-          canSave={Boolean(incidentId && analysisIds.length)}
+          canSave={Boolean(apiConfig.recordEnabled && !recordResetPending && incidentId && analysisIds.length)}
+          recordAvailable={apiConfig.recordEnabled}
           onRequestSave={() => setShowSaveDialog(true)}
           onContactAttempt={() => setMessages((previous) => [...previous, makeMessage("SYSTEM", `${dispatchContact.name} 전화 연결을 시도했습니다.`)])}
         />
@@ -357,7 +372,7 @@ export default function App() {
         <main className="flex min-w-0 flex-1 flex-col gap-2 p-2">
           <section className="grid h-[72px] shrink-0 grid-cols-4 gap-2" aria-label="현장대응 요약">
             <StatusCard label="현재 단계" value={agentPhase ? PHASE_LABELS[agentPhase] : phaseFallback} detail={analysisStateLabel(analysis?.state)} tone="primary" />
-            <StatusCard label="출동 상태" value={journeyLabel(journeyState)} detail={journeyState === "ARRIVED" || journeyState === "ON_SCENE" ? "현장 도착 확인" : "movement 갱신 대기"} tone="blue" />
+            <StatusCard label="출동 상태" value={journeyLabel(journeyState)} detail={!apiConfig.movementEnabled ? "이동 API 준비 중" : journeyState === "ARRIVED" || journeyState === "ON_SCENE" ? "현장 도착 확인" : "위치 갱신 대기"} tone="blue" />
             <StatusCard label="ETA · 남은 거리" value={`${formatEta(route?.etaSeconds)} · ${formatDistance(route?.remainingDistanceM)}`} detail={route?.providerMode === "DEMO_SIMULATION" ? "시연 경로" : route?.provider ?? "도로 경로 없음"} tone="neutral" />
             <StatusCard label="GPS 상태" value={gpsPresentation.label} detail={gpsPresentation.detail} tone={gpsPresentation.tone === "bad" ? "danger" : gpsPresentation.tone === "good" ? "green" : "neutral"} />
           </section>
@@ -374,7 +389,7 @@ export default function App() {
                     <button onClick={() => setMode("collision")} className={`min-h-9 rounded-lg text-xs font-bold transition ${mode === "collision" ? "bg-primary text-white shadow" : "text-muted-foreground"}`}>대응충돌검토</button>
                     <button onClick={() => setMode("substance")} className={`min-h-9 rounded-lg text-xs font-bold transition ${mode === "substance" ? "bg-primary text-white shadow" : "text-muted-foreground"}`}>물질검색</button>
                   </div>
-                  <button disabled={!incidentId || analysisIds.length === 0} onClick={() => setShowSaveDialog(true)} className="flex min-h-11 items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 text-[11px] font-bold hover:bg-muted disabled:opacity-40"><Save size={13} />기록 저장</button>
+                  <button disabled={!apiConfig.recordEnabled || recordResetPending || !incidentId || analysisIds.length === 0} onClick={() => setShowSaveDialog(true)} className="flex min-h-11 items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 text-[11px] font-bold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"><Save size={13} />{!apiConfig.recordEnabled ? "기록 저장 준비 중" : recordResetPending ? "저장 완료" : "기록 저장"}</button>
                 </div>
                 {mode === "collision" && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
@@ -386,7 +401,7 @@ export default function App() {
               </div>
 
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-                {error && <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-[11px] text-primary"><AlertTriangle size={14} className="mt-0.5 shrink-0" /><span>{error}</span></div>}
+                {error && <ErrorNotice error={error} onRetry={error.retryable && (input.trim() || lastIncidentText) ? () => { if (input.trim()) void handleSubmit(); else if (lastIncidentText) void runAnalysis(lastIncidentText, false); } : undefined} />}
                 {movementError && <div className="rounded-lg border border-accent/30 bg-accent/5 p-2 text-[10px] text-accent">경로 갱신: {movementError} 기존 화면은 유지됩니다.</div>}
                 {mode === "collision" ? (
                   <>
@@ -394,7 +409,7 @@ export default function App() {
                     <AgentPanel agent={analysis?.agent} />
                     {messages.length > 1 && <details className="rounded-xl border border-border bg-secondary/30"><summary className="cursor-pointer px-3 py-2.5 text-[11px] font-semibold">대화·상태 기록 {messages.length}건</summary><div className="space-y-2 border-t border-border p-3">{messages.slice(-6).map((message) => <div key={message.messageId} className={`rounded-lg p-2 text-[10px] leading-relaxed ${message.role === "USER" ? "ml-8 bg-primary/10" : "mr-8 bg-card border border-border"}`}><p className="font-semibold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "에이전트" : "시스템"}</p><p className="mt-0.5">{message.text}</p></div>)}</div></details>}
                   </>
-                ) : <SubstanceResults result={materialResult} />}
+                ) : <SubstanceResults result={materialResult} incidentAvailable={Boolean(incidentId)} onUseCandidate={(candidate) => { setConfirmationBasis("CONTAINER_LABEL"); setConfirmationTarget({ role: "INCIDENT", casNumber: candidate.casNumber, displayName: candidate.displayName }); }} />}
               </div>
 
               <div className="shrink-0 border-t border-border p-3">
@@ -412,13 +427,20 @@ export default function App() {
       {confirmationTarget && (
         <DialogShell title="현장 물질 확인 기록" onClose={() => !confirmingRole && setConfirmationTarget(null)}>
           <div className="space-y-4 p-5">
-            <div className="rounded-xl bg-secondary p-3"><p className="text-[10px] text-muted-foreground">{confirmationTarget.role === "INCIDENT" ? "사고물질" : "시설물질"}</p><p className="mt-1 text-sm font-bold">{confirmationTarget.displayName}</p><p className="mt-0.5 font-mono text-xs text-muted-foreground">CAS {confirmationTarget.casNumber}</p></div>
+            <div className="rounded-xl bg-secondary p-3"><p className="text-[10px] text-muted-foreground">확인할 후보</p><p className="mt-1 text-sm font-bold">{confirmationTarget.displayName}</p><p className="mt-0.5 font-mono text-xs text-muted-foreground">CAS {confirmationTarget.casNumber}</p></div>
+            <label className="block text-xs font-semibold">역할
+              <select value={confirmationTarget.role} onChange={(event) => setConfirmationTarget((current) => current ? { ...current, role: event.target.value as ConfirmationTarget["role"] } : current)} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm outline-none focus:border-primary">
+                <option value="INCIDENT">사고물질</option>
+                <option value="FACILITY">시설물질</option>
+              </select>
+            </label>
             <label className="block text-xs font-semibold">확인 근거
               <select value={confirmationBasis} onChange={(event) => setConfirmationBasis(event.target.value as ConfirmationRequest["confirmationBasis"])} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm outline-none focus:border-primary">
                 {CONFIRMATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <p className="text-[11px] leading-relaxed text-muted-foreground">이 작업은 후보를 자동 확정하지 않습니다. 현장에서 직접 확인한 근거만 기록해주세요.</p>
+            {error && <ErrorNotice error={error} />}
             <div className="flex gap-2"><button onClick={() => setConfirmationTarget(null)} disabled={Boolean(confirmingRole)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button onClick={() => void handleConfirm()} disabled={Boolean(confirmingRole)} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{confirmingRole ? "저장 중…" : "확인 기록 저장"}</button></div>
           </div>
         </DialogShell>
@@ -435,7 +457,22 @@ export default function App() {
         </DialogShell>
       )}
 
-      {savedRecordId && <div className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-xs font-semibold text-white shadow-2xl"><Check size={15} />대응 기록을 저장했습니다. <span className="font-mono text-[10px] text-white/70">{savedRecordId}</span></div>}
+      {savedRecordId && <div className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-xs font-semibold text-white shadow-2xl"><Check size={15} />저장된 기록은 화학사고 대응에 활용됩니다. <span className="font-mono text-[10px] text-white/70">{savedRecordId}</span></div>}
+    </div>
+  );
+}
+
+function ErrorNotice({ error, onRetry }: { error: UserFacingErrorInfo; onRetry?: () => void }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-[11px] text-primary" role="alert">
+      <div className="flex items-start gap-2"><AlertTriangle size={14} className="mt-0.5 shrink-0" /><span className="flex-1 leading-relaxed">{error.message}</span></div>
+      {(error.requestId || onRetry) && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 pl-5">
+          {error.requestId && <button type="button" onClick={() => void navigator.clipboard.writeText(error.requestId ?? "").then(() => setCopied(true)).catch(() => setCopied(false))} className="min-h-8 rounded-lg border border-primary/25 px-2 text-[10px] font-semibold">{copied ? "요청 ID 복사됨" : `요청 ID ${error.requestId} 복사`}</button>}
+          {onRetry && <button type="button" onClick={onRetry} className="min-h-8 rounded-lg bg-primary px-2 text-[10px] font-semibold text-white">다시 시도</button>}
+        </div>
+      )}
     </div>
   );
 }

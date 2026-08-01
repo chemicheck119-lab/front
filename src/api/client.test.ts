@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, apiRequest, userFacingError } from "./client";
+import { ApiError, apiRequest, toUserFacingError, userFacingError } from "./client";
 import { apiConfig } from "./config";
 
 const originalConfig = { ...apiConfig };
@@ -87,5 +87,21 @@ describe("BFF 오류 매핑", () => {
       .toBe("응답 시간이 초과되었습니다. 다시 시도해주세요. (요청 ID: REQ-TIME-1)");
     expect(userFacingError(new ApiError("SERVICE_UNAVAILABLE", "upstream unavailable", "REQ-UP-1", true)))
       .toBe("분석 서비스에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도해주세요. (요청 ID: REQ-UP-1)");
+  });
+
+  it("retryable 503은 한 번만 자동 재시도하고 request ID를 보존한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(failedResponse(503, "MODEL_SERVICE_UNAVAILABLE", "REQ-RETRY-1"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiRequest("/retry-test")).rejects.toMatchObject({ kind: "SERVICE_UNAVAILABLE", requestId: "REQ-RETRY-1" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("안전 검증 실패는 결과 비공개 오류로 변환한다", () => {
+    const issue = toUserFacingError(new ApiError("SAFETY", "internal details", "REQ-SAFE-1"));
+
+    expect(issue.message).toContain("결과 카드를 표시하지 않습니다");
+    expect(issue.requestId).toBe("REQ-SAFE-1");
+    expect(issue.message).not.toContain("internal details");
   });
 });

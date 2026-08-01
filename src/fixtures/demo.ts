@@ -90,12 +90,38 @@ export const demoAnalysis: IncidentAnalysisResponse = {
     },
   ],
   facilityHistory: {
-    status: "NO_HISTORY_MATCH",
+    status: "CANDIDATES_FOUND",
     label: "과거 공개 이력 기반 시설물질 후보",
     warning: "과거 이력은 현재 재고를 의미하지 않으며 현장 확인이 필요합니다.",
-    candidates: [],
+    candidates: [{
+      facilityName: "시연 사업장",
+      casNumber: "7647-01-0",
+      chemicalNames: "염산",
+      sourceUrl: "https://icis.me.go.kr/",
+    }],
   },
-  evidenceCards: [],
+  evidenceCards: [
+    {
+      evidenceId: "EVD-DEMO-KOSHA-1",
+      casNumber: "7681-52-9",
+      source: "KOSHA",
+      title: "차아염소산나트륨 공식 MSDS 근거",
+      bodyLabel: "공식 문서 발췌",
+      bodyPreview: "용기 라벨과 현장 MSDS에서 제품명, CAS, 농도를 함께 대조해야 합니다.",
+      sourceUrl: "https://msds.kosha.or.kr/MSDSInfo/kcic/msdssearchMsds.do",
+      documentVersion: "시연 링크",
+    },
+    {
+      evidenceId: "EVD-DEMO-CAMEO-1",
+      casNumber: "7647-01-0",
+      source: "CAMEO",
+      title: "CAMEO Chemicals 염산 자료",
+      bodyLabel: "공식 문서 발췌",
+      bodyPreview: "공개 반응성 자료는 현장 조건을 대체하지 않으며 추가 확인이 필요합니다.",
+      sourceUrl: "https://cameochemicals.noaa.gov/chemical/3598",
+      documentVersion: "시연 링크",
+    },
+  ],
   groundedRag: {
     status: "NOT_RUN_REQUIRES_CONFIRMED_PAIR",
     statements: [],
@@ -194,6 +220,26 @@ export function getDemoAnalysis(incidentId = DEMO_INCIDENT_ID): IncidentAnalysis
         ruleVersion: "RUNTIME_MANIFEST_PINNED",
         finalDecision: "현장 지휘관 판단",
       },
+    };
+    response.groundedRag = {
+      status: "COMPLETED",
+      usedLlm: true,
+      semanticGroundingVerified: false,
+      riskDecisionSource: "DETERMINISTIC_CAMEO_RULE_ENGINE",
+      statements: [
+        {
+          text: "확인된 두 CAS의 조합은 공개 CAMEO 반응성 규칙에서 추가 격리와 현장 조건 확인이 필요한 조합으로 검토됐습니다.",
+          sourceIds: ["CAMEO-PAIR"],
+        },
+        {
+          text: "농도, 온도, 실제 혼합 여부는 이 공개 근거만으로 확인할 수 없으므로 현장 계측과 지휘관 판단이 필요합니다.",
+          sourceIds: ["CAMEO-LIMIT"],
+        },
+      ],
+      citations: [
+        { sourceId: "CAMEO-PAIR", title: "CAMEO 반응성 검토", sourceUrls: ["https://cameochemicals.noaa.gov/reactivity"] },
+        { sourceId: "CAMEO-LIMIT", title: "CAMEO Chemicals", sourceUrls: ["https://cameochemicals.noaa.gov/"] },
+      ],
     };
     if (response.agent) {
       response.agent.phase = "CONFLICT_SCREENING_COMPLETE";

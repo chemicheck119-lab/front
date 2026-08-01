@@ -16,8 +16,8 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 | 사고 분석 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 물질 검색 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 현장 확인 | 연동 가능 | 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 사고 분석 재호출 |
-| movement | BE 미구현 | 현재 오류는 FE 결함 아님; 비활성화/`준비 중` UX 결정 필요 |
-| record | BE 미구현 | 현재 오류는 FE 결함 아님; 비활성화/`준비 중` UX 결정 필요 |
+| movement | BE 미구현 | `준비 중` 표시; `VITE_ENABLE_MOVEMENT_API=true` 전에는 Live 요청 차단 |
+| record | BE 미구현 | 내역 조회 유지·저장은 `준비 중`; `VITE_ENABLE_RECORD_API=true` 전에는 Live 요청 차단 |
 | AI Live E2E | 증적 없음 | 실제 배포 AI URL·API Key가 준비된 환경에서 별도 검증 필요 |
 
 ## 공통 원칙
@@ -137,7 +137,7 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
 `POST /api/c2guard/v1/incidents/{incidentId}/movement`
 
-상태: BE 미구현. 현재 이 경로의 실패는 FE 결함으로 분류하지 않습니다. BE 완성 전 UI를 비활성화할지 명시적 `준비 중`으로 유지할지는 제품 결정이 필요합니다.
+상태: BE 미구현. FE는 명시적인 `준비 중` 상태를 표시하고 `VITE_ENABLE_MOVEMENT_API=true`가 검증된 배포 환경에 설정되기 전까지 이 경로를 호출하지 않습니다.
 
 필요한 이유: 브라우저 GPS를 검증하고 서버측 길찾기 결과를 GeoJSON·ETA로 전달하기 위해 필요합니다. FE는 Key를 갖지 않습니다.
 
@@ -237,7 +237,7 @@ FE는 성공 응답의 `reanalyzeRequired=true`를 받으면 동일한 `incident
 
 `POST /api/c2guard/v1/incidents/{incidentId}/record`
 
-상태: BE 미구현. 현재 이 경로의 실패는 FE 결함으로 분류하지 않습니다. BE 완성 전 UI를 비활성화할지 명시적 `준비 중`으로 유지할지는 제품 결정이 필요합니다.
+상태: BE 미구현. FE는 현재 사고 내역 조회는 유지하되 저장 버튼을 `준비 중`으로 표시하고, `VITE_ENABLE_RECORD_API=true`가 검증된 배포 환경에 설정되기 전까지 이 경로를 호출하지 않습니다.
 
 요청: `conversationStartedAt`, 순번·역할·시각이 있는 `messages[]`, 중복 없는 `analysisIds[]`, `confirmationIds[]`.
 
@@ -278,7 +278,7 @@ FE는 성공 응답의 `reanalyzeRequired=true`를 받으면 동일한 `incident
 | SSO·인증 Gateway·별도 로그인 API 중 실제 방식 | `VITE_AUTH_LOGIN_URL`, 복귀 URL, 세션 발급 주체 확정 |
 | 세션 만료·로그아웃 FE 동작 | 진행 중 사고 화면 보존, 재인증, 민감 정보 제거 정책 확정 |
 | 안정적인 `stationId` | 표시명 변경과 무관한 조직 식별·권한·감사 로그 연결 |
-| movement·record 준비 전 UX | 자동 호출·버튼 비활성화 또는 명시적 `준비 중` 중 선택 |
+| movement·record 배포 활성화 승인 | 현재 `준비 중` UX에서 각 환경의 기능 플래그를 켤 검증 기준 확정 |
 
 ## 추가 운영 컨텍스트: 상황실 연락처
 
