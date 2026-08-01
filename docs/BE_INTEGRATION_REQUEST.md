@@ -2,16 +2,20 @@
 
 기준 계약: `chemicheck119-dashboard-bff-v1`
 
-참고 AI 작업: `chemicheck119/llm` PR #31 `codex/30-national-incident-agent`
+AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
+
+2026-08-01 기준 BE `develop`에는 BFF v1 계약, Model API client, 사고분석, 물질검색 구현이 병합됐습니다. 현장확인·이동갱신·기록저장과 사용자 세션 인증은 아직 후속 구현 범위입니다.
 
 ## 공통 원칙
 
 - FE는 서비스 BE/BFF만 호출합니다.
 - 모델 API의 `X-API-Key`와 길찾기 Provider Key는 BE Secret으로만 보관합니다.
 - 사용자 인증·사고 접근권한·확인 기록은 BE가 검증합니다.
+- FE는 모든 BFF 요청에 인증 세션 쿠키를 포함하며, BE는 credential 허용 CORS를 정확한 FE origin으로 제한합니다.
 - 모든 응답은 `requestId`를 포함해 FE→BE→AI 로그를 연결합니다.
 - 과거 업체 취급 이력을 현재 재고로 바꾸어 표현하지 않습니다.
 - 사고물질·시설물질 CAS 두 개가 확인되기 전 CAMEO 규칙을 실행하지 않습니다.
+- BE 모델 응답 제한은 15초이며 FE 요청 제한은 20초로 두어 구조화된 `MODEL_TIMEOUT` 응답을 우선 수신합니다.
 
 ## 1. 사고 분석
 
