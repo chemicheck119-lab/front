@@ -10,9 +10,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import lightLogo from "@/imports/logo-light.jpg";
-import darkLogo from "@/imports/logo-dark.jpg";
+import { BrandLogo } from "@/app/components/BrandLogo";
 import { apiConfig, runtimeDataMode } from "../api/config";
 import { analyzeIncident } from "../api/incidents";
 import { updateMovement } from "../api/movement";
@@ -207,7 +205,7 @@ export default function App() {
     if (recordResetTimer.current !== null) window.clearTimeout(recordResetTimer.current);
   }, []);
 
-  if (!station) return <LoginScreen isDark={isDark} dataMode={runtimeDataMode} authLoginUrl={apiConfig.authLoginUrl} onDemoLogin={setStation} />;
+  if (!station) return <LoginScreen dataMode={runtimeDataMode} authLoginUrl={apiConfig.authLoginUrl} onDemoLogin={setStation} />;
 
   const route = effectiveMapContext?.route;
   const agentPhase = analysis?.agent?.phase;
@@ -378,7 +376,7 @@ export default function App() {
   return (
     <div className="flex h-[100dvh] min-w-[1024px] flex-col overflow-hidden bg-background text-foreground" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
-        <div className="flex items-center gap-3"><ImageWithFallback src={isDark ? darkLogo : lightLogo} alt="케미체크119" className="h-9 w-auto object-contain" /><span className="hidden rounded-md bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary lg:inline">전국 현장대응</span></div>
+        <div className="flex items-center gap-3"><BrandLogo /><span className="hidden rounded-md bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary lg:inline">전국 현장대응</span></div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${runtimeDataMode === "DEMO_SIMULATION" ? "border-accent/40 bg-accent/10 text-accent" : runtimeDataMode === "LIVE_API" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-muted text-muted-foreground"}`}>{modeLabel(runtimeDataMode)}</span>
           {runtimeDataMode === "LIVE_API" && !apiConfig.authEnabled && <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold text-blue-700 dark:text-blue-300">인증 미사용</span>}

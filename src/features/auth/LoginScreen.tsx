@@ -1,8 +1,6 @@
 import { AlertTriangle, ExternalLink, LogIn, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import lightLogo from "@/imports/logo-light.jpg";
-import darkLogo from "@/imports/logo-dark.jpg";
+import { BrandLogo } from "@/app/components/BrandLogo";
 import type { DataMode } from "../../api/contracts";
 
 const REGIONS: Array<{ label: string; stations: string[] }> = [
@@ -37,13 +35,12 @@ export function normalizeAuthLoginUrl(value: string, baseUrl = window.location.o
 }
 
 interface LoginScreenProps {
-  isDark: boolean;
   dataMode: DataMode;
   authLoginUrl: string;
   onDemoLogin: (station: string) => void;
 }
 
-export function LoginScreen({ isDark, dataMode, authLoginUrl, onDemoLogin }: LoginScreenProps) {
+export function LoginScreen({ dataMode, authLoginUrl, onDemoLogin }: LoginScreenProps) {
   const [region, setRegion] = useState("");
   const [station, setStation] = useState("");
   const stations = REGIONS.find((item) => item.label === region)?.stations ?? [];
@@ -54,7 +51,7 @@ export function LoginScreen({ isDark, dataMode, authLoginUrl, onDemoLogin }: Log
   return (
     <main className="grid min-h-[100dvh] place-items-center bg-background p-6" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
       <section className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 shadow-xl">
-        <ImageWithFallback src={isDark ? darkLogo : lightLogo} alt="케미체크119 화학재난대응지원시스템" className="mx-auto h-14 w-auto object-contain" />
+        <BrandLogo variant="login" className="mx-auto" />
         <div className="my-6 h-px bg-border" />
 
         {isDemo ? (
