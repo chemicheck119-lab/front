@@ -1,8 +1,12 @@
 /**
  * chemicheck119-dashboard-bff-v1 화면 사용 타입.
- * 원본: llm/contracts/dashboard-bff-v1.openapi.json (AI PR #31)
+ * 권위 원본: BE_Repository develop@d1a7391d / contracts/dashboard-bff-v1.openapi.json
  * FE는 이 계약을 표시용으로만 사용하고 모델 API를 직접 호출하지 않는다.
  */
+import type { components as DashboardBffComponents } from "./generated/dashboard-bff";
+
+type DashboardBffSchemas = DashboardBffComponents["schemas"];
+
 export type DataMode = "LIVE_API" | "CACHED_API" | "DEMO_SIMULATION" | "UNAVAILABLE";
 export type JourneyState = "DISPATCHED" | "EN_ROUTE" | "ARRIVED" | "ON_SCENE";
 export type AgentPhase =
@@ -151,28 +155,8 @@ export interface MaterialDiscoveryResponse {
   safetyNotice: string;
 }
 
-export interface IncidentAnalyzeRequest {
-  incidentId?: string | null;
-  text: string;
-  inputType?: "MANUAL_TEXT" | "DISPATCH_TEXT" | "VOICE_TRANSCRIPT" | "STRUCTURED_FORM";
-  occurredAt?: string | null;
-  location?: {
-    facilityName?: string | null;
-    address?: string | null;
-    province?: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
-    coordinateSource?: "DISPATCH_SYSTEM" | "GEOCODING_PROVIDER" | "RESPONDER_OBSERVATION" | "MANUAL_ENTRY" | "DEMO_FIXTURE" | null;
-    resolvedAt?: string | null;
-  } | null;
-  operationsContext?: {
-    dispatchStationName?: string | null;
-    responderPosition?: PositionSnapshot | null;
-    journeyState?: JourneyState;
-  } | null;
-  plannedActions?: string[];
-  evidenceTopK?: number;
-}
+export type IncidentAnalyzeRequest = DashboardBffSchemas["DashboardIncidentAnalyzeRequest"];
+export type IncidentAnalyzeInput = Omit<IncidentAnalyzeRequest, "inputType" | "evidenceTopK"> & Partial<Pick<IncidentAnalyzeRequest, "inputType" | "evidenceTopK">>;
 
 export interface ConflictReviewWaiting {
   executed: false;
@@ -255,11 +239,7 @@ export interface IncidentAnalysisResponse {
   safetyNotice: string;
 }
 
-export interface MovementUpdateRequest {
-  responderPosition: PositionSnapshot;
-  journeyState: JourneyState;
-  clientSequence: number;
-}
+export type MovementUpdateRequest = DashboardBffSchemas["DashboardMovementUpdateRequest"];
 
 export interface MovementUpdateResponse {
   schemaVersion: "chemicheck119-dashboard-bff-v1";
@@ -272,42 +252,8 @@ export interface MovementUpdateResponse {
   routeRecalculated: boolean;
 }
 
-export interface ConfirmationRequest {
-  role: "INCIDENT" | "FACILITY";
-  casNumber: string;
-  displayName?: string | null;
-  confirmationBasis: "CONTAINER_LABEL" | "SITE_MSDS" | "SHIPPING_DOCUMENT" | "INSTRUMENT_READING" | "RESPONDER_OBSERVATION" | "OTHER_VERIFIED_SOURCE";
-  observedAt: string;
-}
-
-export interface ConfirmationResponse {
-  requestId: string;
-  incidentId: string;
-  confirmationId: string;
-  role: "INCIDENT" | "FACILITY";
-  casNumber: string;
-  createdAt: string;
-  reanalyzeRequired: true;
-}
-
-export interface RecordSaveRequest {
-  conversationStartedAt: string;
-  messages: Array<{
-    messageId: string;
-    sequence: number;
-    role: "USER" | "ASSISTANT" | "SYSTEM";
-    text: string;
-    createdAt: string;
-    analysisId?: string | null;
-  }>;
-  analysisIds: string[];
-  confirmationIds: string[];
-}
-
-export interface RecordSaveResponse {
-  requestId: string;
-  incidentId: string;
-  recordId: string;
-  savedAt: string;
-  resetAllowed: true;
-}
+export type ConfirmationRequest = DashboardBffSchemas["DashboardConfirmationRequest"];
+export type ConfirmationResponse = DashboardBffSchemas["DashboardConfirmationResponse"];
+export type RecordSaveRequest = DashboardBffSchemas["DashboardRecordSaveRequest"];
+export type RecordSaveResponse = DashboardBffSchemas["DashboardRecordSaveResponse"];
+export type MaterialDiscoveryRequest = DashboardBffSchemas["DashboardMaterialDiscoveryRequest"];

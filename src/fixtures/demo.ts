@@ -324,6 +324,7 @@ export const demoMaterialSearch: MaterialDiscoveryResponse = {
 export function makeDemoConfirmation(role: "INCIDENT" | "FACILITY", casNumber: string): ConfirmationResponse {
   demoConfirmedRoles.add(role);
   return {
+    schemaVersion: "chemicheck119-dashboard-bff-v1",
     requestId: `REQ-DEMO-CONFIRM-${role}`,
     incidentId: DEMO_INCIDENT_ID,
     confirmationId: `CNF-DEMO-${role}`,
@@ -336,6 +337,7 @@ export function makeDemoConfirmation(role: "INCIDENT" | "FACILITY", casNumber: s
 
 export function makeDemoRecord(): RecordSaveResponse {
   return {
+    schemaVersion: "chemicheck119-dashboard-bff-v1",
     requestId: "REQ-DEMO-RECORD-001",
     incidentId: DEMO_INCIDENT_ID,
     recordId: `REC-DEMO-${Date.now()}`,

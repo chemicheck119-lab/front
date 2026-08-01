@@ -8,9 +8,11 @@
     "dev": "vite",
     "dev:demo": "vite --mode demo",
     "build:demo": "vite build --mode demo",
+    "contract:generate": "openapi-typescript contracts/dashboard-bff-v1.openapi.json -o src/api/generated/dashboard-bff.ts",
+    "contract:check": "node scripts/check-bff-contract.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm contract:check && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -79,6 +81,7 @@
     "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react": "4.7.0",
     "jsdom": "26.1.0",
+    "openapi-typescript": "7.13.0",
     "tailwindcss": "4.1.12",
     "typescript": "5.9.3",
     "vite": "6.3.5",

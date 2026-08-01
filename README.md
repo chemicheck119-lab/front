@@ -17,6 +17,7 @@
 | 기록 저장 | FE 계약 연동 완료·BE 미구현 | 내역 조회는 유지하고 저장은 `준비 중`; 기능 플래그와 성공 응답 뒤에만 초기화 |
 | 좌측 현장 도구 | UI·화면 상태 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
 | 실제 BE/BFF | 3개 경로 연동 가능 | `develop@d1a7391` 기준 사고분석·물질검색·현장확인, movement·record 미구현 |
+| BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·5개 경로·세션 보안·생성 타입을 `pnpm check`에서 검증 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
 
@@ -66,6 +67,8 @@ VITE_ENABLE_DEMO_MODE=true
 
 BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`를 기본 적용합니다. 다른 origin을 사용하는 운영·staging에서는 BE가 정확한 FE origin과 credential 허용 CORS 정책을 함께 설정해야 합니다.
 
+401 응답은 403 권한 거부와 분리합니다. 세션 만료 시 현재 사고·후보·현장 확인 상태를 메모리에 유지하고, 안전한 운영 인증 URL이 있으면 새 창 재로그인을 제공합니다. 로그인 성공 후 사용자가 실패한 작업을 다시 실행해 BFF 요청이 성공하면 만료 안내를 해제합니다. 새로고침 이후의 보존·폐기 정책은 아직 팀 결정 전이므로 브라우저 영구 저장소에는 사고 상태를 기록하지 않습니다.
+
 시연 모드에서만 지역·소방서를 로컬로 선택해 접속합니다. Live 모드의 소속과 권한은 사용자 입력값으로 만들지 않으며, 안전한 `VITE_AUTH_LOGIN_URL`이 설정된 경우에만 운영 로그인 링크를 표시합니다. 로그인 후 대시보드 진입에는 BE가 HttpOnly 세션의 사용자·소방서 정보를 돌려주는 세션 컨텍스트 API가 추가로 필요합니다.
 
 상황실 전화번호는 비밀키가 아니지만 운영 조직별로 달라질 수 있으므로, 실제 서비스에서는 환경변수보다 인증된 로그인 세션/BFF 응답으로 제공하는 방식을 권장합니다. 좌측 도구의 자세한 동작은 [현장 도구 설계](./docs/FIELD_TOOLS.md)를 참고하세요.
@@ -75,6 +78,8 @@ BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`
 ## BFF 경로
 
 권위 기준은 BE `develop@d1a7391`입니다. 모든 요청은 `VITE_BFF_BASE_URL`과 인증 쿠키를 사용합니다.
+
+동일 커밋의 OpenAPI 원본과 생성 타입을 저장소에 고정했습니다. 갱신 절차는 [BFF 계약 동기화](./contracts/README.md), 출처 메타데이터는 [dashboard-bff-v1.source.json](./contracts/dashboard-bff-v1.source.json)을 참고합니다.
 
 | 경로 | 현재 상태 |
 |---|---|
@@ -94,6 +99,7 @@ BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`
 corepack pnpm typecheck
 corepack pnpm test
 corepack pnpm build
+corepack pnpm contract:check
 # 또는 한 번에
 corepack pnpm check
 ```
@@ -101,6 +107,8 @@ corepack pnpm check
 테스트 범위:
 
 - API 응답과 안전 상태 매핑
+- 고정 OpenAPI 원본과 생성 타입·보안 경계의 드리프트 검사
+- 401 세션 만료와 403 접근 거부 분리, 진행 사고 보존 안내
 - 응답 최상위·확인 gate·규칙 실행을 함께 보는 위험 공개 조건
 - 문장별 RAG 근거와 citation 연결
 - 물질검색 후보의 비자동 현장 확인 연결
@@ -135,7 +143,7 @@ corepack pnpm check
 
 - 개발·staging·운영 FE의 exact origin
 - 실제 로그인 방식: SSO, 인증 Gateway, 별도 로그인 API
-- 세션 만료·로그아웃 시 이동 경로와 현재 사고 화면 보존 정책
+- 새로고침·장시간 방치·명시적 로그아웃 시 사고 화면 보존·민감정보 제거 정책
 - 표시명과 분리된 안정적인 `stationId`
 - movement·record는 현재 `준비 중`으로 표시하며, BE 배포 확인 후 환경별 기능 플래그 활성화
 
