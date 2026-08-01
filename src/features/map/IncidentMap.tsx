@@ -50,6 +50,7 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
   useEffect(() => {
     if (!containerRef.current || !styleUrl || mapRef.current) return;
     try {
+      setMapError(null);
       const map = new maplibregl.Map({
         container: containerRef.current,
         style: styleUrl,
@@ -187,7 +188,7 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
         </div>
       )}
       {context?.hazardOverlayStatus === "NOT_COMPUTED_NO_VALIDATED_DISPERSION_MODEL" && (
-        <div className="absolute bottom-3 left-3 z-10 flex max-w-[330px] items-center gap-2 rounded-lg border border-border bg-card/90 px-2.5 py-1.5 text-[10px] text-muted-foreground backdrop-blur-sm">
+        <div className="absolute bottom-10 left-3 z-10 flex max-w-[330px] items-center gap-2 rounded-lg border border-border bg-card/90 px-2.5 py-1.5 text-[10px] text-muted-foreground backdrop-blur-sm">
           <AlertTriangle size={12} /> 검증된 확산 모델이 없어 위험 반경은 표시하지 않습니다.
         </div>
       )}

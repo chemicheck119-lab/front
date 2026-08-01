@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_API_TIMEOUT_MS?: string;
   readonly VITE_MAP_STYLE_URL?: string;
   readonly VITE_MAP_DARK_STYLE_URL?: string;
+  readonly VITE_MAP_PUBLIC_TOKEN?: string;
   readonly VITE_AUTH_LOGIN_URL?: string;
   readonly VITE_ENABLE_AUTH?: string;
   readonly VITE_DEFAULT_STATION_NAME?: string;

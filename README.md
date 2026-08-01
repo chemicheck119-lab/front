@@ -8,7 +8,7 @@
 
 | 기능 | 상태 | 설명 |
 |---|---|---|
-| MapLibre 전국 지도 | UI·계약 연동 완료 | 사고/대원 마커와 BE GeoJSON LineString 표시 |
+| MapLibre 전국 지도 | 운영 배경지도 연동 완료 | MapTiler Dataviz Light/Dark, 사고/대원 마커와 BE GeoJSON LineString 표시 |
 | 브라우저 위치 | 구현 완료 | `watchPosition`, 권한 거부·대기·오래됨·낮은 정확도 처리 |
 | 이동 경로·ETA | FE 계약 연동 완료·BE 미구현 | Live 기본값은 `준비 중`; 기능 플래그 전에는 movement를 호출하거나 가짜 직선 경로를 만들지 않음 |
 | 현장대응 에이전트 | BFF 계약 연동 완료 | 단계·목표·다음 행동·도구 실행 요약 표시 |
@@ -64,6 +64,7 @@ corepack pnpm build:staging
 - `VITE_BFF_BASE_URL`: FE가 호출할 서비스 BE/BFF 주소
 - `VITE_MAP_STYLE_URL`: 운영 지도 Style URL
 - `VITE_MAP_DARK_STYLE_URL`: 선택적 다크 지도 Style URL
+- `VITE_MAP_PUBLIC_TOKEN`: 도메인 제한된 브라우저용 공개 지도 키. Git에 저장하지 않고 빌드 환경에서만 주입
 - `VITE_ENABLE_AUTH`: 로그인·세션 UI와 인증 쿠키 전송 사용 여부. 현재 공모전 staging은 `false`
 - `VITE_DEFAULT_STATION_NAME`: 인증 미사용 Live 화면에 표시할 임시 현장 조직명
 - `VITE_AUTH_LOGIN_URL`: 배포 환경의 신뢰된 운영 로그인 진입 URL
@@ -85,7 +86,7 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 
 상황실 전화번호는 비밀키가 아니지만 운영 조직별로 달라질 수 있으므로, 실제 서비스에서는 환경변수보다 인증된 로그인 세션/BFF 응답으로 제공하는 방식을 권장합니다. 좌측 도구의 자세한 동작은 [현장 도구 설계](./docs/FIELD_TOOLS.md)를 참고하세요.
 
-운영 타일은 OpenStreetMap 공개 표준 타일 서버를 그대로 사용하지 않습니다. 트래픽·저작자 표시·SLA를 감당하는 사업자 또는 자체 호스팅 Style URL을 설정하세요. 지도 구현은 [MapLibre GL JS 공식 문서](https://maplibre.org/maplibre-gl-js/docs/), 운영 타일 정책은 [OSM Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/)를 따릅니다.
+운영 배경지도는 MapTiler Dataviz Light/Dark Style JSON을 MapLibre GL JS로 렌더링합니다. 공개 키는 `chemicheck119.site`·Sites·로컬 개발 origin으로 제한하고 소스에 저장하지 않습니다. MapTiler와 OpenStreetMap 출처는 Style JSON의 공식 attribution을 MapLibre 컨트롤로 그대로 표시합니다. 공개 OSM 표준 타일 서버를 운영 트래픽에 직접 사용하지 않습니다.
 
 ## BFF 경로
 

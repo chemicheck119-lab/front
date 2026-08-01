@@ -10,7 +10,7 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 | 공모전 이후 로그인 방식 | SSO, 인증 Gateway, 별도 로그인 API 중 권위 흐름 | 현재 staging은 로그인·세션·로그아웃 UI를 사용하지 않음 |
 | 공모전 이후 세션 정책 | 새로고침·장시간 방치·명시적 로그아웃 때의 보존·민감정보 제거 정책 | 인증 기능을 다시 켤 때 확정 |
 | 소방서 식별자 | 표시명과 분리된 안정적인 `stationId` | 임시 표시명은 권한·감사 식별자로 사용하지 않음 |
-| 지도·경로 사업자 | 운영 Style URL, 경로 Provider, attribution, SLA | 공개 OSM 표준 타일과 FE 보유 Provider Key를 사용하지 않음 |
+| 경로 사업자 | 도로 경로 Provider, 서버 토큰, SLA | movement BE 배포 전까지 가짜 직선 경로를 만들지 않음 |
 | 기록 보존기간 | 사고 기록의 보존·삭제·접근 감사 정책 | FE 로컬 상태를 영구 기록으로 간주하지 않음 |
 | movement 활성화 | BE 배포, Provider, staging 이동 검증 완료 기준 | `VITE_ENABLE_MOVEMENT_API=false`, 화면에 `준비 중` 표시 |
 | record 활성화 | BE 영구 저장·원자성·staging 검증 완료 기준 | `VITE_ENABLE_RECORD_API=false`, 내역 조회만 유지 |
@@ -18,6 +18,7 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 ## 확정된 FE 경계
 
 - 공개 develop FE origin은 `https://chemicheck119.site`입니다. BE staging credential CORS allowlist에 이 exact origin만 등록했으며 허용 preflight `200`, 미인증 `401`, 외부 origin `403`을 확인했습니다.
+- 운영 배경지도는 MapTiler Dataviz Light/Dark로 확정했습니다. 공개 키는 허용 origin으로 제한하고 Git에 저장하지 않으며, MapTiler·OpenStreetMap attribution은 Style JSON 원문을 표시합니다.
 - 모든 서비스 요청은 `VITE_BFF_BASE_URL`을 사용합니다. 현재 공모전 staging은 `VITE_ENABLE_AUTH=false`로 인증 쿠키를 포함하지 않고 현장 화면에 바로 진입합니다.
 - FE는 모델 API와 길찾기 Provider를 직접 호출하거나 API Key를 보관하지 않습니다.
 - 사고 분석, 물질 검색, 현장 확인은 BE `develop@d1a7391` 기준 Live 연결 대상입니다.
