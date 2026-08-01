@@ -1,0 +1,12 @@
+.git
+.github
+.openai
+.codex
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.demo
+*.log
+*.tgz
