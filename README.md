@@ -1,12 +1,105 @@
 # 케미체크119 프론트엔드
 
-119 화학재난 현장대응을 지원하는 태블릿 대시보드입니다.
+119 화학재난 신고부터 출동 위치·도로 경로·현장 물질 확인·충돌 규칙·대응 기록 저장까지 한 화면에서 연결하는 태블릿 대시보드입니다.
+
+> 통합 기준 브랜치는 `develop`입니다. 기능 브랜치는 `develop`에서 분기하고 PR도 `develop`만 대상으로 만듭니다. `main`에는 직접 커밋하거나 병합하지 않습니다.
+
+## 현재 구현 상태
+
+| 기능 | 상태 | 설명 |
+|---|---|---|
+| MapLibre 전국 지도 | UI·계약 연동 완료 | 사고/대원 마커와 BE GeoJSON LineString 표시 |
+| 브라우저 위치 | 구현 완료 | `watchPosition`, 권한 거부·대기·오래됨·낮은 정확도 처리 |
+| 이동 경로·ETA | BFF 계약 연동 완료 | FE는 movement API만 호출하며 가짜 직선 경로를 만들지 않음 |
+| 현장대응 에이전트 | BFF 계약 연동 완료 | 단계·목표·다음 행동·도구 실행 요약 표시 |
+| 물질검색 | BFF 계약 연동 완료 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
+| 확인 게이트 | 구현 완료 | 두 CAS 확인 전 위험등급과 충돌 결과 숨김 |
+| 기록 저장 | BFF 계약 연동 완료 | 성공 응답의 `resetAllowed=true` 뒤에만 초기화 |
+| 실제 BE·길찾기 | 미연동 | BE 구현과 서버측 길찾기 Provider 설정 필요 |
+| 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
 
 ## 실행
 
 ```bash
-npm install
-npm run dev
+corepack pnpm install
+cp .env.example .env.local
+corepack pnpm dev
 ```
 
-기능 개발은 `develop` 브랜치를 통합 기준으로 사용하며 `main`에는 직접 병합하지 않습니다.
+로컬 기본 주소는 `http://localhost:5173`입니다.
+
+### 시연 모드
+
+`.env.local`에서 아래 값을 명시적으로 설정합니다.
+
+```text
+VITE_ENABLE_DEMO_MODE=true
+```
+
+시연 fixture는 `src/fixtures/demo.ts`에만 있으며 실제 API 장애 시 자동 fallback으로 사용되지 않습니다. 운영에서는 `false`로 두고, API 장애를 “연결할 수 없음” 상태로 표시합니다.
+
+## 환경변수와 보안
+
+설정 목록은 [.env.example](./.env.example)을 참고합니다.
+
+- `VITE_BFF_BASE_URL`: FE가 호출할 서비스 BE/BFF 주소
+- `VITE_MAP_STYLE_URL`: 운영 지도 Style URL
+- `VITE_MAP_DARK_STYLE_URL`: 선택적 다크 지도 Style URL
+- `VITE_LOCATION_UPDATE_INTERVAL_MS`: 위치 갱신 최소 간격
+- `VITE_ENABLE_DEMO_MODE`: 명시적 시연 fixture 사용 여부
+
+`VITE_*` 값은 브라우저 번들에 그대로 노출됩니다. 모델 API Key, 길찾기 API Key, 영구 토큰 등 비밀정보를 절대 넣지 않습니다. 브라우저는 모델 API를 직접 호출하지 않으며 모든 운영 요청은 BE/BFF를 거칩니다.
+
+운영 타일은 OpenStreetMap 공개 표준 타일 서버를 그대로 사용하지 않습니다. 트래픽·저작자 표시·SLA를 감당하는 사업자 또는 자체 호스팅 Style URL을 설정하세요. 지도 구현은 [MapLibre GL JS 공식 문서](https://maplibre.org/maplibre-gl-js/docs/), 운영 타일 정책은 [OSM Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/)를 따릅니다.
+
+## BFF 경로
+
+FE는 다음 5개 경로만 사용합니다.
+
+```text
+POST /api/c2guard/v1/incidents/analyze
+POST /api/c2guard/v1/incidents/{incidentId}/movement
+POST /api/c2guard/v1/substances/discover
+POST /api/c2guard/v1/incidents/{incidentId}/confirmations
+POST /api/c2guard/v1/incidents/{incidentId}/record
+```
+
+상세 계약과 BE 담당 체크리스트는 [BE 연동 요청서](./docs/BE_INTEGRATION_REQUEST.md)를 참고합니다.
+
+## 검증
+
+```bash
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm build
+# 또는 한 번에
+corepack pnpm check
+```
+
+테스트 범위:
+
+- API 응답과 안전 상태 매핑
+- 에이전트 phase 표시
+- GPS 최신성·권한 거부·낮은 정확도
+- GeoJSON 경로 표시 조건
+- 두 CAS 현장 확인 게이트
+- 기록 저장 성공 후 초기화 조건
+- 시연 데이터와 실제 API 구분
+
+브라우저 검증 결과와 스크린샷은 [검증 기록](./docs/VALIDATION.md)에 있습니다.
+`develop` 대상 PR과 `develop` push에서는 GitHub Actions가 같은 `pnpm check`를 실행합니다.
+
+## 데이터 의미와 안전 경계
+
+- 전국 시설 데이터는 17개 시·도, 28,647개 사업장의 **과거 공개 취급 후보**이며 현재 재고가 아닙니다.
+- 색·냄새·상태 기반 후보는 자동 물질 확정값이 아닙니다.
+- 위험등급은 확률이 아니라 CAMEO 결정 규칙의 서수 등급을 원본 그대로 표시합니다.
+- 검증된 확산 모델이 없으므로 임의의 위험 반경을 그리지 않습니다.
+- 에이전트는 업무 절차를 조율하며 자율 위험 결정을 하지 않습니다.
+- 최종 판단 주체는 현장 지휘관입니다.
+
+## 알려진 한계
+
+- AI PR #31이 아직 `main`에 병합되지 않아 해당 브랜치의 BFF v1 계약을 기준으로 구현했습니다.
+- BE가 5개 BFF 경로와 실제 길찾기 Provider를 구현하기 전까지 실제 연동 완료가 아닙니다.
+- 저장소의 기존 로고 이미지에는 `케미가드` 표기가 남아 있습니다. 서비스 표시명 확정 후 별도 디자인 자산 교체가 필요합니다.
