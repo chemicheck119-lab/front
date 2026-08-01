@@ -9,9 +9,10 @@
 ```text
 pnpm typecheck  성공
 pnpm contract:check 성공 — BE d1a7391d, 5 paths, generated types synchronized
-pnpm test       성공 — 14 files, 58 tests
+pnpm test       성공 — 15 files, 61 tests
 pnpm build      성공
 pnpm build:demo 성공
+pnpm build:staging 성공
 ```
 
 테스트한 핵심 상태:

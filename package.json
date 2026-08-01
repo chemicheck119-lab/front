@@ -9,12 +9,13 @@
     "dev": "vite",
     "dev:demo": "vite --mode demo",
     "build:demo": "vite build --mode demo",
+    "build:staging": "vite build --mode staging",
     "build:sites:demo": "node scripts/prepare-sites-build.mjs --clean && vite build --mode demo --outDir dist/client --emptyOutDir && node scripts/prepare-sites-build.mjs",
     "contract:generate": "openapi-typescript contracts/dashboard-bff-v1.openapi.json -o src/api/generated/dashboard-bff.ts",
     "contract:check": "node scripts/check-bff-contract.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm contract:check && pnpm typecheck && pnpm test && pnpm build && pnpm build:sites:demo"
+    "check": "pnpm contract:check && pnpm typecheck && pnpm test && pnpm build && pnpm build:staging && pnpm build:sites:demo"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

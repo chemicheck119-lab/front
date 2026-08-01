@@ -7,7 +7,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm build:demo
+ARG VITE_BUILD_MODE=demo
+RUN case "$VITE_BUILD_MODE" in demo|staging) ;; *) echo "unsupported VITE_BUILD_MODE: $VITE_BUILD_MODE" >&2; exit 1 ;; esac \
+    && pnpm build --mode "$VITE_BUILD_MODE"
 
 FROM nginx:stable-alpine
 
