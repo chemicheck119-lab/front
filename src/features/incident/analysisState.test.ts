@@ -17,4 +17,15 @@ describe("현장 확인 게이트", () => {
     expect(canShowRisk(getDemoAnalysis())).toBe(true);
     resetDemoSession();
   });
+
+  it("하위 규칙 결과가 완료돼도 응답 최상위 공개 플래그가 닫혀 있으면 숨긴다", () => {
+    resetDemoSession();
+    makeDemoConfirmation("INCIDENT", "7681-52-9");
+    makeDemoConfirmation("FACILITY", "7647-01-0");
+    const response = getDemoAnalysis();
+    response.riskDisplayAllowed = false;
+
+    expect(canShowRisk(response)).toBe(false);
+    resetDemoSession();
+  });
 });

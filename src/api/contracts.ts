@@ -101,6 +101,23 @@ export interface EvidenceCard {
   documentVersion: string;
 }
 
+export type GroundedRagStatus =
+  | "COMPLETED"
+  | "FALLBACK_EXTRACTIVE"
+  | "NOT_RUN_REQUIRES_CONFIRMED_PAIR"
+  | "NOT_RUN_RULE_NOT_COMPLETED"
+  | "NO_GROUNDED_EVIDENCE"
+  | "DISABLED";
+
+export interface GroundedRagResult {
+  status: GroundedRagStatus;
+  statements: Array<{ text: string; sourceIds: string[] }>;
+  citations: Array<{ sourceId: string; title: string; sourceUrls: string[] }>;
+  usedLlm?: boolean;
+  semanticGroundingVerified?: boolean;
+  riskDecisionSource?: "DETERMINISTIC_CAMEO_RULE_ENGINE" | string;
+}
+
 export interface MaterialCandidate {
   rank: number;
   casNumber: string;
@@ -212,11 +229,7 @@ export interface IncidentAnalysisResponse {
     candidates: Array<{ facilityName: string; casNumber: string; chemicalNames?: string | null; sourceUrl?: string | null }>;
   };
   evidenceCards: EvidenceCard[];
-  groundedRag?: {
-    status: string;
-    statements: Array<{ text: string; sourceIds: string[] }>;
-    citations: Array<{ sourceId: string; title: string; sourceUrls: string[] }>;
-  } | null;
+  groundedRag?: GroundedRagResult | null;
   agent?: OperationsAgentSnapshot | null;
   confirmationGate: {
     incidentConfirmed: boolean;

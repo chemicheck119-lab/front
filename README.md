@@ -10,11 +10,11 @@
 |---|---|---|
 | MapLibre 전국 지도 | UI·계약 연동 완료 | 사고/대원 마커와 BE GeoJSON LineString 표시 |
 | 브라우저 위치 | 구현 완료 | `watchPosition`, 권한 거부·대기·오래됨·낮은 정확도 처리 |
-| 이동 경로·ETA | FE 계약 연동 완료·BE 미구현 | movement 오류는 현재 FE 결함으로 보지 않으며 가짜 직선 경로를 만들지 않음 |
+| 이동 경로·ETA | FE 계약 연동 완료·BE 미구현 | Live 기본값은 `준비 중`; 기능 플래그 전에는 movement를 호출하거나 가짜 직선 경로를 만들지 않음 |
 | 현장대응 에이전트 | BFF 계약 연동 완료 | 단계·목표·다음 행동·도구 실행 요약 표시 |
 | 물질검색 | FE·BE 연동 가능 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
 | 확인 게이트 | FE·BE 구현 완료 | BE 저장은 DB 전까지 process-local, 두 CAS 확인 전 규칙 차단 |
-| 기록 저장 | FE 계약 연동 완료·BE 미구현 | BE 구현 전 오류는 FE 결함이 아니며 성공 응답 뒤에만 초기화 |
+| 기록 저장 | FE 계약 연동 완료·BE 미구현 | 내역 조회는 유지하고 저장은 `준비 중`; 기능 플래그와 성공 응답 뒤에만 초기화 |
 | 좌측 현장 도구 | UI·화면 상태 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
 | 실제 BE/BFF | 3개 경로 연동 가능 | `develop@d1a7391` 기준 사고분석·물질검색·현장확인, movement·record 미구현 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
@@ -59,6 +59,8 @@ VITE_ENABLE_DEMO_MODE=true
 - `VITE_API_TIMEOUT_MS`: BFF 요청 제한 시간. BE의 모델 제한 15초보다 긴 20초 권장
 - `VITE_LOCATION_UPDATE_INTERVAL_MS`: 위치 갱신 최소 간격
 - `VITE_ENABLE_DEMO_MODE`: 명시적 시연 fixture 사용 여부
+- `VITE_ENABLE_MOVEMENT_API`: BE movement 배포가 검증된 환경에서만 `true`
+- `VITE_ENABLE_RECORD_API`: BE record 배포가 검증된 환경에서만 `true`
 
 `VITE_*` 값은 브라우저 번들에 그대로 노출됩니다. 모델 API Key, 길찾기 API Key, 영구 토큰 등 비밀정보를 절대 넣지 않습니다. 브라우저는 모델 API를 직접 호출하지 않으며 모든 운영 요청은 BE/BFF를 거칩니다.
 
@@ -82,7 +84,7 @@ BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`
 | `POST /api/c2guard/v1/incidents/{incidentId}/movement` | BE 미구현 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/record` | BE 미구현 |
 
-현재 FE는 확인 성공 후 동일 사고를 재분석하며 BE 계약과 일치합니다. movement·record의 미구현 응답은 FE 결함으로 분류하지 않습니다.
+현재 FE는 확인 성공 후 동일 사고를 재분석하며 BE 계약과 일치합니다. movement·record는 명시적 기능 플래그가 없으면 Live 요청을 보내지 않고 `준비 중`으로 표시하므로, 미구현 응답을 FE 결함으로 오인하지 않습니다.
 
 상세 계약과 BE 담당 체크리스트는 [BE 연동 요청서](./docs/BE_INTEGRATION_REQUEST.md)를 참고합니다.
 
@@ -99,6 +101,9 @@ corepack pnpm check
 테스트 범위:
 
 - API 응답과 안전 상태 매핑
+- 응답 최상위·확인 gate·규칙 실행을 함께 보는 위험 공개 조건
+- 문장별 RAG 근거와 citation 연결
+- 물질검색 후보의 비자동 현장 확인 연결
 - 시연 접속과 Live 운영 인증 진입 분리
 - 에이전트 phase 표시
 - GPS 최신성·권한 거부·낮은 정확도
@@ -132,4 +137,6 @@ corepack pnpm check
 - 실제 로그인 방식: SSO, 인증 Gateway, 별도 로그인 API
 - 세션 만료·로그아웃 시 이동 경로와 현재 사고 화면 보존 정책
 - 표시명과 분리된 안정적인 `stationId`
-- movement·record 완성 전 UI를 비활성화할지 `준비 중` 상태로 유지할지
+- movement·record는 현재 `준비 중`으로 표시하며, BE 배포 확인 후 환경별 기능 플래그 활성화
+
+팀·인프라 결정과 임시 개발값은 [팀·인프라 결정 목록](./docs/TEAM_INFRA_DECISIONS.md)에서 관리합니다.

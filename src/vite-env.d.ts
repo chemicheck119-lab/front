@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_DISPATCH_CENTER_PHONE?: string;
   readonly VITE_LOCATION_UPDATE_INTERVAL_MS?: string;
   readonly VITE_ENABLE_DEMO_MODE?: string;
+  readonly VITE_ENABLE_MOVEMENT_API?: string;
+  readonly VITE_ENABLE_RECORD_API?: string;
 }
 
 interface ImportMeta {

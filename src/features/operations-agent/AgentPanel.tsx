@@ -21,11 +21,37 @@ const statusText: Record<string, string> = {
   UNAVAILABLE: "사용 불가",
 };
 
+type MilestoneStatus = "COMPLETED" | "IN_PROGRESS" | "BLOCKED" | "WAITING";
+
+export function getAgentMilestones(agent: OperationsAgentSnapshot) {
+  const definitions = [
+    { id: "INCIDENT_PARSING", fallbackId: "INCIDENT_INGESTION", label: "신고 분석" },
+    { id: "SUBSTANCE_RESOLUTION", label: "후보 탐색" },
+    { id: "ON_SITE_CONFIRMATION", label: "현장 확인" },
+    { id: "CONFLICT_SCREENING", label: "충돌 검토" },
+  ];
+
+  return definitions.map((definition) => {
+    const step = agent.workflow.find((item) => item.stepId === definition.id)
+      ?? agent.workflow.find((item) => item.stepId === definition.fallbackId);
+    const status: MilestoneStatus = step?.status === "COMPLETED"
+      ? "COMPLETED"
+      : step?.status === "IN_PROGRESS"
+        ? "IN_PROGRESS"
+        : step?.status === "BLOCKED"
+          ? "BLOCKED"
+          : "WAITING";
+    return { ...definition, status };
+  });
+}
+
 export function AgentPanel({ agent }: { agent: OperationsAgentSnapshot | null | undefined }) {
   const [expanded, setExpanded] = useState(false);
   if (!agent) {
     return <div className="rounded-xl border border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">에이전트 상태를 기다리고 있습니다.</div>;
   }
+
+  const milestones = getAgentMilestones(agent);
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card">
@@ -35,6 +61,18 @@ export function AgentPanel({ agent }: { agent: OperationsAgentSnapshot | null | 
           <span className="rounded-full bg-blue-500/10 px-2 py-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300">절차 조율</span>
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{agent.currentObjective}</p>
+        <ol className="mt-3 grid grid-cols-4 gap-1" aria-label="에이전트 4단계 진행">
+          {milestones.map((milestone, index) => (
+            <li key={milestone.id} className="relative min-w-0 text-center">
+              {index > 0 && <span className={`absolute right-1/2 top-2.5 h-0.5 w-full ${milestone.status === "COMPLETED" ? "bg-emerald-500" : "bg-border"}`} />}
+              <span className={`relative mx-auto grid h-5 w-5 place-items-center rounded-full border ${milestone.status === "COMPLETED" ? "border-emerald-500 bg-emerald-500 text-white" : milestone.status === "IN_PROGRESS" ? "border-blue-500 bg-blue-500 text-white" : milestone.status === "BLOCKED" ? "border-accent bg-accent/10 text-accent" : "border-border bg-card text-muted-foreground"}`}>
+                {milestone.status === "COMPLETED" ? <CircleCheck size={12} /> : <CircleDashed size={11} />}
+              </span>
+              <span className="relative mt-1 block truncate text-[9px] font-semibold">{milestone.label}</span>
+              <span className="relative block text-[8px] text-muted-foreground">{statusText[milestone.status]}</span>
+            </li>
+          ))}
+        </ol>
       </div>
 
       <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">

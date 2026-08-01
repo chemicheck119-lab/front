@@ -40,6 +40,7 @@ interface FieldToolsPanelProps {
   analysisIds: string[];
   confirmationIds: string[];
   canSave: boolean;
+  recordAvailable: boolean;
   onRequestSave: () => void;
   onContactAttempt: () => void;
 }
@@ -156,6 +157,7 @@ export function FieldToolsPanel({
   analysisIds,
   confirmationIds,
   canSave,
+  recordAvailable,
   onRequestSave,
   onContactAttempt,
 }: FieldToolsPanelProps) {
@@ -197,7 +199,7 @@ export function FieldToolsPanel({
         <nav className="space-y-1" aria-label="현장 도구 메뉴">
           <ToolButton icon={<Phone size={16} />} label="상황실 연결" detail={phoneHref ? dispatchContact.phone : "연락처 설정 필요"} onClick={(trigger) => openDialog("contact", trigger)} />
           <ToolButton icon={<BookOpenCheck size={16} />} label="공식 화학자료" detail={officialItems.length ? `CAS 후보 ${officialItems.length}건` : "분석 후 CAS 자료 확인"} badge={officialItems.length ? String(officialItems.length) : undefined} onClick={(trigger) => openDialog("sources", trigger)} />
-          <ToolButton icon={<ClipboardList size={16} />} label="현재 사고 기록" detail={incidentId ? `사고 ${incidentId}` : "신고 접수 대기"} badge={unsavedCount ? String(unsavedCount) : undefined} onClick={(trigger) => openDialog("record", trigger)} />
+          <ToolButton icon={<ClipboardList size={16} />} label="현재 사고 기록" detail={!recordAvailable ? "조회 가능 · 저장 API 준비 중" : incidentId ? `사고 ${incidentId}` : "신고 접수 대기"} badge={unsavedCount ? String(unsavedCount) : undefined} onClick={(trigger) => openDialog("record", trigger)} />
         </nav>
 
         <div className="mt-auto space-y-2 rounded-xl border border-sidebar-border bg-sidebar-accent/55 p-2.5 text-[9px] text-muted-foreground" aria-label="운영 상태">
@@ -277,7 +279,8 @@ export function FieldToolsPanel({
             )) : <div className="rounded-xl border border-dashed border-border p-5 text-center text-[10px] text-muted-foreground">신고를 접수하면 기록이 시작됩니다.</div>}
           </div>
           <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-secondary/45 p-3"><div><p className="text-[9px] text-muted-foreground">저장 상태</p><p className="mt-1 text-xs font-bold">{unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 기록 없음"}</p></div><FileClock size={18} className="text-muted-foreground" /></div>
-          <button disabled={!canSave} onClick={() => { setActiveDialog(null); onRequestSave(); }} className="mt-3 min-h-12 w-full rounded-xl bg-foreground text-xs font-bold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">{canSave ? "현재 대응 기록 저장" : "분석 완료 후 저장 가능"}</button>
+          {!recordAvailable && <p className="mt-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-[10px] leading-relaxed text-blue-700 dark:text-blue-300">현재 대화·분석·확인 내역은 계속 볼 수 있습니다. 서버 기록저장 API가 배포되면 저장 기능을 활성화합니다.</p>}
+          <button disabled={!canSave} onClick={() => { setActiveDialog(null); onRequestSave(); }} className="mt-3 min-h-12 w-full rounded-xl bg-foreground text-xs font-bold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">{!recordAvailable ? "기록 저장 API 준비 중" : canSave ? "현재 대응 기록 저장" : "분석 완료 후 저장 가능"}</button>
         </ToolDialogShell>
       )}
     </>

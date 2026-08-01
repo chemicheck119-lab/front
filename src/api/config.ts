@@ -1,6 +1,7 @@
 import type { DataMode } from "./contracts";
 
 const normalizedBaseUrl = (import.meta.env.VITE_BFF_BASE_URL ?? "").replace(/\/$/, "");
+const demoEnabled = import.meta.env.VITE_ENABLE_DEMO_MODE === "true";
 
 function positiveNumber(value: string | undefined, fallback: number) {
   const parsed = Number(value);
@@ -16,7 +17,9 @@ export const apiConfig = {
   authLoginUrl: import.meta.env.VITE_AUTH_LOGIN_URL?.trim() ?? "",
   dispatchCenterName: import.meta.env.VITE_DISPATCH_CENTER_NAME?.trim() ?? "",
   dispatchCenterPhone: import.meta.env.VITE_DISPATCH_CENTER_PHONE?.trim() ?? "",
-  demoEnabled: import.meta.env.VITE_ENABLE_DEMO_MODE === "true",
+  demoEnabled,
+  movementEnabled: demoEnabled || import.meta.env.VITE_ENABLE_MOVEMENT_API === "true",
+  recordEnabled: demoEnabled || import.meta.env.VITE_ENABLE_RECORD_API === "true",
 };
 
 export const runtimeDataMode: DataMode = apiConfig.demoEnabled ? "DEMO_SIMULATION" : apiConfig.baseUrl ? "LIVE_API" : "UNAVAILABLE";

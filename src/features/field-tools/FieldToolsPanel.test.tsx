@@ -28,6 +28,7 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof FieldToolsPa
     analysisIds: [],
     confirmationIds: [],
     canSave: false,
+    recordAvailable: true,
     onRequestSave: vi.fn(),
     onContactAttempt: vi.fn(),
     ...overrides,
@@ -90,6 +91,14 @@ describe("좌측 현장 도구", () => {
     expect(screen.getAllByText("미저장 2건")).toHaveLength(2);
     fireEvent.click(screen.getByRole("button", { name: "현재 대응 기록 저장" }));
     expect(onRequestSave).toHaveBeenCalledOnce();
+  });
+
+  it("record API가 준비되지 않아도 내역 조회는 유지하고 저장만 명시적으로 막는다", () => {
+    renderPanel({ incidentId: "INC-1", analysisIds: ["ANL-1"], canSave: false, recordAvailable: false });
+    fireEvent.click(screen.getByRole("button", { name: /현재 사고 기록/ }));
+
+    expect(screen.getByText(/서버 기록저장 API가 배포되면/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "기록 저장 API 준비 중" })).toBeDisabled();
   });
 });
 
