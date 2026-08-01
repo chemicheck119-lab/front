@@ -1,16 +1,12 @@
-<<<<<<< HEAD
+# 케미체크119 프론트엔드
 
-  # 소방 대시보드 디자인
+119 화학재난 현장대응을 지원하는 태블릿 대시보드입니다.
 
-  This is a code bundle for 소방 대시보드 디자인. The original project is available at https://www.figma.com/design/APHOgF5QNcsoucHMflVkY8/%EC%86%8C%EB%B0%A9-%EB%8C%80%EC%8B%9C%EB%B3%B4%EB%93%9C-%EB%94%94%EC%9E%90%EC%9D%B8.
+## 실행
 
-  ## Running the code
+```bash
+npm install
+npm run dev
+```
 
-  Run `npm i` to install the dependencies.
-
-  Run `npm run dev` to start the development server.
-  
-=======
-# FE_Repository
-케미가드119 프론트엔드 저장소
->>>>>>> ace66170ea2ebbbd02a7ec62c6d5e32d9ad9e322
+기능 개발은 `develop` 브랜치를 통합 기준으로 사용하며 `main`에는 직접 병합하지 않습니다.
