@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
-  LogIn,
   Moon,
   Save,
   Search,
@@ -36,6 +35,7 @@ import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard"
 import { analysisStateLabel } from "../features/incident/analysisState";
 import { SubstanceResults } from "../features/substance-search/SubstanceResults";
 import { FieldToolsPanel } from "../features/field-tools/FieldToolsPanel";
+import { LoginScreen } from "../features/auth/LoginScreen";
 
 type Mode = "collision" | "substance";
 type MessageRole = "USER" | "ASSISTANT" | "SYSTEM";
@@ -53,26 +53,6 @@ interface ConfirmationTarget {
   casNumber: string;
   displayName: string;
 }
-
-const REGIONS: Array<{ label: string; stations: string[] }> = [
-  { label: "서울", stations: ["종로소방서", "강남소방서", "송파소방서"] },
-  { label: "부산", stations: ["중부소방서", "해운대소방서", "강서소방서"] },
-  { label: "대구", stations: ["중부소방서", "수성소방서", "달서소방서"] },
-  { label: "인천", stations: ["중부소방서", "남동소방서", "서부소방서"] },
-  { label: "광주", stations: ["동부소방서", "서부소방서", "광산소방서"] },
-  { label: "대전", stations: ["동부소방서", "유성소방서", "대덕소방서"] },
-  { label: "울산", stations: ["중부소방서", "남부소방서", "울주소방서"] },
-  { label: "세종", stations: ["세종소방서", "북부소방서"] },
-  { label: "경기", stations: ["수원소방서", "화성소방서", "평택소방서"] },
-  { label: "강원", stations: ["춘천소방서", "원주소방서", "강릉소방서"] },
-  { label: "충북", stations: ["청주소방서", "충주소방서", "제천소방서"] },
-  { label: "충남", stations: ["천안소방서", "아산소방서", "당진소방서"] },
-  { label: "전북", stations: ["전주소방서", "군산소방서", "익산소방서"] },
-  { label: "전남", stations: ["목포소방서", "여수소방서", "순천소방서"] },
-  { label: "경북", stations: ["포항소방서", "경주소방서", "구미소방서"] },
-  { label: "경남", stations: ["창원소방서", "진주소방서", "김해소방서"] },
-  { label: "제주", stations: ["제주소방서", "서귀포소방서", "동부소방서"] },
-];
 
 const CONFIRMATION_OPTIONS: Array<{ value: ConfirmationRequest["confirmationBasis"]; label: string }> = [
   { value: "CONTAINER_LABEL", label: "용기 라벨" },
@@ -101,37 +81,6 @@ function modeLabel(mode: typeof runtimeDataMode) {
 
 function journeyLabel(state: JourneyState) {
   return { DISPATCHED: "출동 지령", EN_ROUTE: "현장 이동 중", ARRIVED: "현장 도착", ON_SCENE: "현장 대응 중" }[state];
-}
-
-function LoginScreen({ isDark, onLogin }: { isDark: boolean; onLogin: (station: string) => void }) {
-  const [region, setRegion] = useState("");
-  const [station, setStation] = useState("");
-  const stations = REGIONS.find((item) => item.label === region)?.stations ?? [];
-
-  return (
-    <main className="grid min-h-[100dvh] place-items-center bg-background p-6" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
-      <section className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 shadow-xl">
-        <ImageWithFallback src={isDark ? darkLogo : lightLogo} alt="케미체크119 화학재난대응지원시스템" className="mx-auto h-14 w-auto object-contain" />
-        <div className="my-6 h-px bg-border" />
-        <div className="space-y-4">
-          <label htmlFor="login-region" className="block text-xs font-semibold text-muted-foreground">지역</label>
-            <select id="login-region" data-testid="login-region" value={region} onChange={(event) => { setRegion(event.target.value); setStation(""); }} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm text-foreground outline-none focus:border-primary">
-              <option value="">지역을 선택하세요</option>
-              {REGIONS.map((item) => <option key={item.label}>{item.label}</option>)}
-            </select>
-          <label htmlFor="login-station" className="block text-xs font-semibold text-muted-foreground">소방서</label>
-            <select id="login-station" data-testid="login-station" value={station} disabled={!region} onChange={(event) => setStation(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm text-foreground outline-none disabled:opacity-50 focus:border-primary">
-              <option value="">소방서를 선택하세요</option>
-              {stations.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          <button disabled={!region || !station} onClick={() => onLogin(`${region} ${station}`)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-40">
-            <LogIn size={16} /> 시스템 접속
-          </button>
-        </div>
-        <p className="mt-5 text-center text-[11px] text-muted-foreground">119 화학재난대응지원시스템 · 케미체크119</p>
-      </section>
-    </main>
-  );
 }
 
 function DialogShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -239,7 +188,7 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [savedRecordId]);
 
-  if (!station) return <LoginScreen isDark={isDark} onLogin={setStation} />;
+  if (!station) return <LoginScreen isDark={isDark} dataMode={runtimeDataMode} authLoginUrl={apiConfig.authLoginUrl} onDemoLogin={setStation} />;
 
   const route = effectiveMapContext?.route;
   const agentPhase = analysis?.agent?.phase;

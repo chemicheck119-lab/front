@@ -13,6 +13,7 @@ export const apiConfig = {
   locationUpdateIntervalMs: positiveNumber(import.meta.env.VITE_LOCATION_UPDATE_INTERVAL_MS, 5000),
   mapStyleUrl: import.meta.env.VITE_MAP_STYLE_URL ?? "",
   mapDarkStyleUrl: import.meta.env.VITE_MAP_DARK_STYLE_URL ?? "",
+  authLoginUrl: import.meta.env.VITE_AUTH_LOGIN_URL?.trim() ?? "",
   dispatchCenterName: import.meta.env.VITE_DISPATCH_CENTER_NAME?.trim() ?? "",
   dispatchCenterPhone: import.meta.env.VITE_DISPATCH_CENTER_PHONE?.trim() ?? "",
   demoEnabled: import.meta.env.VITE_ENABLE_DEMO_MODE === "true",

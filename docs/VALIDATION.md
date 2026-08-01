@@ -8,7 +8,7 @@
 
 ```text
 pnpm typecheck  성공
-pnpm test       성공 — 8 files, 32 tests
+pnpm test       성공 — 9 files, 38 tests
 pnpm build      성공
 pnpm build:demo 성공
 ```
@@ -26,6 +26,8 @@ pnpm build:demo 성공
 - 인증·확인 필요·근거 부족·경로 없음·artifact 미준비 오류 구분
 - BFF 세션 쿠키 기본 전송과 호출부 override 보존
 - `MODEL_TIMEOUT`·일시 장애·사고 참조 충돌·계약 위반 오류 구분
+- 시연 모드에서만 로컬 지역·소방서 접속 허용
+- Live 모드의 로컬 권한 선택 제거와 안전한 인증 URL 검증
 - 사용자 오류 메시지에 안전한 문구와 request ID만 표시
 - 상황실 연락처 유무에 따른 안전한 전화 연결 상태
 - 현장 도구 Dialog의 초기 focus, Escape 종료, 호출 버튼 focus 복귀
@@ -36,7 +38,8 @@ pnpm build:demo 성공
 
 | 화면/동작 | 결과 |
 |---|---|
-| 로그인 | 17개 시·도 선택과 소방서 접속 성공 |
+| 시연 접속 | `시연 데이터` 경고, 17개 시·도 선택, 시연 대시보드 접속 성공 |
+| Live 인증 | 지역·소방서 로컬 선택 없음, 안전한 운영 로그인 링크와 세션 컨텍스트 대기 안내 표시 |
 | 사고 좌표 없음 | 위치 확인 필요 상태, 직선 경로·가짜 ETA 없음 |
 | 시연 신고 | 사고/대원 마커·GeoJSON 경로·ETA 8분·거리 4.0km 표시 |
 | 확인 게이트 | 첫 CAS 확인 후 계속 잠김, 두 번째 확인 후 규칙 결과 표시 |
