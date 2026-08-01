@@ -6,6 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "dev:demo": "vite --mode demo",
+    "build:demo": "vite build --mode demo",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm test && pnpm build"

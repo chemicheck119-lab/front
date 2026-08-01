@@ -31,9 +31,10 @@ export default defineConfig({
     },
   },
 
-  // MapLibre is lazy-loaded as an isolated route/map chunk; keep the main UI bundle small.
+  // MapLibre and its worker are lazy-loaded as an isolated map chunk (~958 kB / ~251 kB gzip).
+  // Keep the main UI bundle small while avoiding a misleading warning for the intentional map chunk.
   build: {
-    chunkSizeWarningLimit: 520,
+    chunkSizeWarningLimit: 1000,
   },
 
   // MapLibre ships its own module worker; Vite's dev pre-bundler must not rewrite it.

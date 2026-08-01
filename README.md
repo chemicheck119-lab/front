@@ -30,7 +30,13 @@ corepack pnpm dev
 
 ### 시연 모드
 
-`.env.local`에서 아래 값을 명시적으로 설정합니다.
+공개 MapLibre 데모 스타일과 fixture를 사용하는 시연 화면은 별도 설정 복사 없이 실행할 수 있습니다.
+
+```bash
+corepack pnpm dev:demo
+```
+
+`.env.demo`는 공개 시연 전용이며 운영 배포에 사용하지 않습니다. 운영과 동일한 로컬 설정이 필요하면 `.env.local`에서 아래 값을 명시적으로 설정합니다.
 
 ```text
 VITE_ENABLE_DEMO_MODE=true
