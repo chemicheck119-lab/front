@@ -1,5 +1,14 @@
 import type { IncidentAnalysisResponse } from "../../api/contracts";
 
+export type ConfirmationWorkflowStatus = "COMPLETED" | "CURRENT" | "LOCKED";
+
+export interface ConfirmationWorkflowStep {
+  id: "INCIDENT" | "FACILITY" | "REVIEW";
+  label: string;
+  status: ConfirmationWorkflowStatus;
+  detail: string;
+}
+
 export function canShowRisk(analysis: IncidentAnalysisResponse | null): boolean {
   return Boolean(
     analysis
@@ -24,4 +33,31 @@ export function analysisStateLabel(state?: IncidentAnalysisResponse["state"]): s
     CAMEO_GROUP_SCREENING_ONLY: "그룹 검토만 가능",
   };
   return state ? labels[state] : "신고 접수 대기";
+}
+
+export function getConfirmationWorkflow(analysis: IncidentAnalysisResponse): ConfirmationWorkflowStep[] {
+  const incidentConfirmed = analysis.confirmationGate.incidentConfirmed;
+  const facilityConfirmed = analysis.confirmationGate.facilityConfirmed;
+  const reviewCompleted = analysis.conflictReview.executed && analysis.conflictReview.status === "SCREENING_COMPLETED";
+
+  return [
+    {
+      id: "INCIDENT",
+      label: "사고물질",
+      status: incidentConfirmed ? "COMPLETED" : "CURRENT",
+      detail: incidentConfirmed ? "현장 확인됨" : "라벨·MSDS 확인",
+    },
+    {
+      id: "FACILITY",
+      label: "시설물질",
+      status: facilityConfirmed ? "COMPLETED" : "CURRENT",
+      detail: facilityConfirmed ? "현장 확인됨" : "현재 존재 확인",
+    },
+    {
+      id: "REVIEW",
+      label: "충돌검토",
+      status: reviewCompleted ? "COMPLETED" : incidentConfirmed && facilityConfirmed ? "CURRENT" : "LOCKED",
+      detail: reviewCompleted ? "공개 규칙 완료" : incidentConfirmed && facilityConfirmed ? "재분석 중" : "두 CAS 확인 후",
+    },
+  ];
 }

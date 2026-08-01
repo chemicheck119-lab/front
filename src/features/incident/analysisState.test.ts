@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { demoAnalysis, getDemoAnalysis, resetDemoSession, makeDemoConfirmation } from "../../fixtures/demo";
-import { analysisStateLabel, canShowRisk } from "./analysisState";
+import { analysisStateLabel, canShowRisk, getConfirmationWorkflow } from "./analysisState";
 
 describe("현장 확인 게이트", () => {
   it("물질 확인 전에는 충돌 위험을 표시하지 않는다", () => {
@@ -26,6 +26,18 @@ describe("현장 확인 게이트", () => {
     response.riskDisplayAllowed = false;
 
     expect(canShowRisk(response)).toBe(false);
+    resetDemoSession();
+  });
+
+  it("사고물질 → 시설물질 → 충돌검토 순서의 현장 체크포인트를 계산한다", () => {
+    resetDemoSession();
+    expect(getConfirmationWorkflow(getDemoAnalysis()).map((step) => step.status)).toEqual(["CURRENT", "CURRENT", "LOCKED"]);
+
+    makeDemoConfirmation("INCIDENT", "7681-52-9");
+    expect(getConfirmationWorkflow(getDemoAnalysis()).map((step) => step.status)).toEqual(["COMPLETED", "CURRENT", "LOCKED"]);
+
+    makeDemoConfirmation("FACILITY", "7647-01-0");
+    expect(getConfirmationWorkflow(getDemoAnalysis()).map((step) => step.status)).toEqual(["COMPLETED", "COMPLETED", "COMPLETED"]);
     resetDemoSession();
   });
 });
