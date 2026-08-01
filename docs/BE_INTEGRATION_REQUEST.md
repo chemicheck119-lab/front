@@ -2,9 +2,23 @@
 
 기준 계약: `chemicheck119-dashboard-bff-v1`
 
+BE 권위 기준: `develop@d1a7391`
+
 AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
-2026-08-01 기준 BE `develop`에는 BFF v1 계약, Model API client, 사고분석, 물질검색, 사용자 세션 검증, 현장확인 구현이 병합됐습니다. 이동갱신·기록저장·세션 발급 어댑터·staging 배포는 아직 후속 범위입니다.
+현재 Live 연결 대상은 사고 분석, 물질 검색, 현장 확인입니다. 이동갱신과 기록저장은 BE 미구현이며 해당 경로의 실패를 FE 결함으로 분류하지 않습니다. AI 계약·client·자동화 테스트는 완료됐지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
+
+## 현재 연동 행렬
+
+| 영역 | 상태 | FE 처리 |
+|---|---|---|
+| 사용자 세션 검증 | BE 구현 | 모든 요청에 `credentials: include`; 실제 로그인 방식과 세션 컨텍스트는 결정 필요 |
+| 사고 분석 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
+| 물질 검색 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
+| 현장 확인 | 연동 가능 | 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 사고 분석 재호출 |
+| movement | BE 미구현 | 현재 오류는 FE 결함 아님; 비활성화/`준비 중` UX 결정 필요 |
+| record | BE 미구현 | 현재 오류는 FE 결함 아님; 비활성화/`준비 중` UX 결정 필요 |
+| AI Live E2E | 증적 없음 | 실제 배포 AI URL·API Key가 준비된 환경에서 별도 검증 필요 |
 
 ## 공통 원칙
 
@@ -69,6 +83,8 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
 `POST /api/c2guard/v1/incidents/analyze`
 
+상태: BE `develop@d1a7391` 기준 연동 가능. 실제 배포 AI 서버까지 이어지는 Live E2E 증적은 아직 없습니다.
+
 필요한 이유: 신고문, 사고 위치, 출동 상태를 구조화하고 안전 게이트·에이전트 단계·근거를 한 DTO로 받기 위해 필요합니다.
 
 요청 핵심:
@@ -121,6 +137,8 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
 `POST /api/c2guard/v1/incidents/{incidentId}/movement`
 
+상태: BE 미구현. 현재 이 경로의 실패는 FE 결함으로 분류하지 않습니다. BE 완성 전 UI를 비활성화할지 명시적 `준비 중`으로 유지할지는 제품 결정이 필요합니다.
+
 필요한 이유: 브라우저 GPS를 검증하고 서버측 길찾기 결과를 GeoJSON·ETA로 전달하기 위해 필요합니다. FE는 Key를 갖지 않습니다.
 
 요청:
@@ -163,6 +181,8 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
 `POST /api/c2guard/v1/substances/discover`
 
+상태: BE `develop@d1a7391` 기준 연동 가능. 실제 배포 AI 서버까지 이어지는 Live E2E 증적은 아직 없습니다.
+
 요청: `{ "query": "무색 투명하고 박하 냄새가 나는 휘발성 액체", "topK": 5, "evidenceTopK": 3 }`
 
 필요한 이유: FE mock 대신 이름·CAS·화학식·관찰 특징 기반 후보와 공식 근거를 받기 위해 필요합니다.
@@ -185,6 +205,8 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
 `POST /api/c2guard/v1/incidents/{incidentId}/confirmations`
 
+상태: BE `develop@d1a7391` 기준 연동 가능. 현재 저장은 영구 DB 전까지 process-local입니다.
+
 요청:
 
 ```json
@@ -201,6 +223,8 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
 응답: `confirmationId`, `role`, `casNumber`, `createdAt`, `reanalyzeRequired=true`.
 
+FE는 성공 응답의 `reanalyzeRequired=true`를 받으면 동일한 `incidentId`와 기존 신고문으로 사고 분석을 다시 호출합니다. 현재 구현은 BE 계약과 일치합니다.
+
 오류 처리: 다른 사고·중복·권한 오류를 구조화하고, 실패 시 FE는 확인된 것으로 표시하지 않습니다.
 
 담당자 체크리스트:
@@ -212,6 +236,8 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 ## 5. 전체 대응 기록 저장
 
 `POST /api/c2guard/v1/incidents/{incidentId}/record`
+
+상태: BE 미구현. 현재 이 경로의 실패는 FE 결함으로 분류하지 않습니다. BE 완성 전 UI를 비활성화할지 명시적 `준비 중`으로 유지할지는 제품 결정이 필요합니다.
 
 요청: `conversationStartedAt`, 순번·역할·시각이 있는 `messages[]`, 중복 없는 `analysisIds[]`, `confirmationIds[]`.
 
@@ -243,6 +269,16 @@ AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 - [ ] 저장 성공 → `recordId` → 초기화
 - [ ] 저장 실패 → 전체 화면 유지
 - [ ] 브라우저 네트워크에 모델 Key·모델 직접 호출 없음
+
+## 연동 전 결정 필요
+
+| 결정 항목 | 필요한 이유 |
+|---|---|
+| 개발·staging·운영 FE exact origin | credential CORS allowlist와 Secure cookie 검증 |
+| SSO·인증 Gateway·별도 로그인 API 중 실제 방식 | `VITE_AUTH_LOGIN_URL`, 복귀 URL, 세션 발급 주체 확정 |
+| 세션 만료·로그아웃 FE 동작 | 진행 중 사고 화면 보존, 재인증, 민감 정보 제거 정책 확정 |
+| 안정적인 `stationId` | 표시명 변경과 무관한 조직 식별·권한·감사 로그 연결 |
+| movement·record 준비 전 UX | 자동 호출·버튼 비활성화 또는 명시적 `준비 중` 중 선택 |
 
 ## 추가 운영 컨텍스트: 상황실 연락처
 

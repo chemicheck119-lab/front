@@ -77,5 +77,6 @@ pnpm build:demo 성공
 ## 검증 한계
 
 - 공개 MapLibre demo style은 `.env.demo`와 `pnpm dev:demo`에서만 사용하며 운영 설정에는 사용하지 않습니다.
-- 실제 BE·길찾기 Provider·차량 GPS는 아직 연결되지 않았으므로 운영 연동 완료가 아닙니다.
+- BE `develop@d1a7391` 기준 사고 분석·물질 검색·현장 확인은 연결 대상이지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
+- movement·record·실제 길찾기 Provider는 BE 미구현이므로 현재 해당 오류를 FE 결함으로 분류하지 않습니다.
 - 실제 장비 위치 권한과 장시간 이동은 staging 태블릿에서 추가 검증해야 합니다.

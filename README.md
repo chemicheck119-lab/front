@@ -10,13 +10,13 @@
 |---|---|---|
 | MapLibre 전국 지도 | UI·계약 연동 완료 | 사고/대원 마커와 BE GeoJSON LineString 표시 |
 | 브라우저 위치 | 구현 완료 | `watchPosition`, 권한 거부·대기·오래됨·낮은 정확도 처리 |
-| 이동 경로·ETA | BFF 계약 연동 완료 | FE는 movement API만 호출하며 가짜 직선 경로를 만들지 않음 |
+| 이동 경로·ETA | FE 계약 연동 완료·BE 미구현 | movement 오류는 현재 FE 결함으로 보지 않으며 가짜 직선 경로를 만들지 않음 |
 | 현장대응 에이전트 | BFF 계약 연동 완료 | 단계·목표·다음 행동·도구 실행 요약 표시 |
-| 물질검색 | BFF 계약 연동 완료 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
+| 물질검색 | FE·BE 연동 가능 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
 | 확인 게이트 | FE·BE 구현 완료 | BE 저장은 DB 전까지 process-local, 두 CAS 확인 전 규칙 차단 |
-| 기록 저장 | BFF 계약 연동 완료 | 성공 응답의 `resetAllowed=true` 뒤에만 초기화 |
+| 기록 저장 | FE 계약 연동 완료·BE 미구현 | BE 구현 전 오류는 FE 결함이 아니며 성공 응답 뒤에만 초기화 |
 | 좌측 현장 도구 | UI·화면 상태 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
-| 실제 BE/BFF | 부분 구현 | 사고분석·물질검색·사용자 인증·현장확인 구현, movement·record 후속 필요 |
+| 실제 BE/BFF | 3개 경로 연동 가능 | `develop@d1a7391` 기준 사고분석·물질검색·현장확인, movement·record 미구현 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
 
@@ -72,15 +72,17 @@ BFF 요청은 인증 세션 쿠키를 전달하기 위해 `credentials: include`
 
 ## BFF 경로
 
-FE는 다음 5개 경로만 사용합니다.
+권위 기준은 BE `develop@d1a7391`입니다. 모든 요청은 `VITE_BFF_BASE_URL`과 인증 쿠키를 사용합니다.
 
-```text
-POST /api/c2guard/v1/incidents/analyze
-POST /api/c2guard/v1/incidents/{incidentId}/movement
-POST /api/c2guard/v1/substances/discover
-POST /api/c2guard/v1/incidents/{incidentId}/confirmations
-POST /api/c2guard/v1/incidents/{incidentId}/record
-```
+| 경로 | 현재 상태 |
+|---|---|
+| `POST /api/c2guard/v1/incidents/analyze` | 연동 가능 |
+| `POST /api/c2guard/v1/substances/discover` | 연동 가능 |
+| `POST /api/c2guard/v1/incidents/{incidentId}/confirmations` | 연동 가능; 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 재분석 |
+| `POST /api/c2guard/v1/incidents/{incidentId}/movement` | BE 미구현 |
+| `POST /api/c2guard/v1/incidents/{incidentId}/record` | BE 미구현 |
+
+현재 FE는 확인 성공 후 동일 사고를 재분석하며 BE 계약과 일치합니다. movement·record의 미구현 응답은 FE 결함으로 분류하지 않습니다.
 
 상세 계약과 BE 담당 체크리스트는 [BE 연동 요청서](./docs/BE_INTEGRATION_REQUEST.md)를 참고합니다.
 
@@ -119,7 +121,15 @@ corepack pnpm check
 
 ## 알려진 한계
 
-- AI PR #31은 `main`에 병합됐고, BE BFF v1 계약·모델 client·사고분석·물질검색은 BE `develop`에 반영됐습니다.
-- 사용자 세션 검증과 현장확인 BFF는 구현됐지만 세션 발급 어댑터·세션 컨텍스트 API·staging E2E는 아직 준비되지 않았습니다.
+- AI 계약·BE client·자동화 테스트는 완료됐지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
+- 사용자 세션 검증과 현장확인 BFF는 구현됐지만 실제 로그인 방식·세션 발급 어댑터·세션 컨텍스트 API는 확정 전입니다.
 - 이동갱신·기록저장 BFF와 실제 길찾기 Provider·영구 DB는 아직 운영 연동 전입니다.
 - 저장소의 기존 로고 이미지에는 `케미가드` 표기가 남아 있습니다. 서비스 표시명 확정 후 별도 디자인 자산 교체가 필요합니다.
+
+## 배포 전 결정 필요
+
+- 개발·staging·운영 FE의 exact origin
+- 실제 로그인 방식: SSO, 인증 Gateway, 별도 로그인 API
+- 세션 만료·로그아웃 시 이동 경로와 현재 사고 화면 보존 정책
+- 표시명과 분리된 안정적인 `stationId`
+- movement·record 완성 전 UI를 비활성화할지 `준비 중` 상태로 유지할지
