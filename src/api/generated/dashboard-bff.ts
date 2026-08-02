@@ -96,7 +96,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 전체 대화·분석·확인 기록 저장 */
+        /** 전체 대응 기록과 분석용 구조화 결과 저장 */
         post: operations["save_record_api_c2guard_v1_incidents__incidentId__record_post"];
         delete?: never;
         options?: never;
@@ -1271,6 +1271,42 @@ export interface components {
             /** Rulepolicy */
             rulePolicy: string;
         };
+        /**
+         * DashboardAdditionalFactor
+         * @enum {string}
+         */
+        DashboardAdditionalFactor: "ACTUAL_MIXING_CONFIRMED" | "ENCLOSED_SPACE" | "HEAT_OR_PRESSURE" | "DRAIN_OR_WATERWAY_CONNECTION" | "LABEL_OR_MSDS_MISMATCH" | "ADDITIONAL_SUBSTANCE_FOUND" | "CASUALTY_OR_EXPOSURE" | "WEATHER_INFLUENCE" | "OTHER";
+        /**
+         * DashboardBriefApplicationStatus
+         * @enum {string}
+         */
+        DashboardBriefApplicationStatus: "NOT_REVIEWED" | "REVIEWED_NOT_APPLIED" | "PARTIALLY_APPLIED" | "APPLIED";
+        /**
+         * DashboardFinalResponseOutcome
+         * @enum {string}
+         */
+        DashboardFinalResponseOutcome: "LEAK_STOPPED" | "SPREAD_CONTAINED" | "EVACUATION_COMPLETED" | "MATERIAL_RECOVERED" | "TRANSFERRED_TO_SPECIALIST" | "FALSE_ALARM" | "MONITORING_CONTINUES" | "OTHER";
+        /**
+         * DashboardPerformedAction
+         * @enum {string}
+         */
+        DashboardPerformedAction: "ZONE_CONTROL" | "EVACUATION" | "LEAK_SOURCE_CONTROL" | "ADSORPTION_OR_RECOVERY" | "WATER_SPRAY_OR_DILUTION" | "VENTILATION" | "DECONTAMINATION" | "RESCUE_OR_EMS" | "OTHER";
+        /**
+         * DashboardStructuredIncidentOutcome
+         * @description 화재조사·사후분석용 현장 결과 입력. 사고물질과 RuleEngine 결과는 BE가 권위 snapshot에서 결합한다.
+         */
+        DashboardStructuredIncidentOutcome: {
+            /** Additionalfactors */
+            additionalFactors: components["schemas"]["DashboardAdditionalFactor"][];
+            briefApplicationStatus: components["schemas"]["DashboardBriefApplicationStatus"];
+            /** Facilityaddress */
+            facilityAddress?: string | null;
+            /** Facilityname */
+            facilityName: string;
+            finalResponseOutcome: components["schemas"]["DashboardFinalResponseOutcome"];
+            /** Performedactions */
+            performedActions: components["schemas"]["DashboardPerformedAction"][];
+        };
         /** DashboardRecordSaveRequest */
         DashboardRecordSaveRequest: {
             /** Analysisids */
@@ -1284,6 +1320,7 @@ export interface components {
             conversationStartedAt: string;
             /** Messages */
             messages: components["schemas"]["DashboardConversationMessage"][];
+            outcomeReport: components["schemas"]["DashboardStructuredIncidentOutcome"];
         };
         /** DashboardRecordSaveResponse */
         DashboardRecordSaveResponse: {

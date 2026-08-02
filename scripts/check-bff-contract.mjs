@@ -70,6 +70,17 @@ for (const field of ["role", "casNumber", "confirmationBasis", "observedAt"]) {
   assertContract(confirmationRequired.has(field), `DashboardConfirmationRequest.${field}가 필수가 아닙니다.`);
 }
 
+const recordRequest = contract.components?.schemas?.DashboardRecordSaveRequest;
+const recordRequired = new Set(recordRequest?.required ?? []);
+assertContract(recordRequired.has("outcomeReport"), "DashboardRecordSaveRequest.outcomeReport가 필수가 아닙니다.");
+const outcome = contract.components?.schemas?.DashboardStructuredIncidentOutcome;
+const outcomeRequired = new Set(outcome?.required ?? []);
+for (const field of ["facilityName", "performedActions", "briefApplicationStatus", "additionalFactors", "finalResponseOutcome"]) {
+  assertContract(outcomeRequired.has(field), `DashboardStructuredIncidentOutcome.${field}가 필수가 아닙니다.`);
+}
+assertContract(outcome?.properties?.performedActions?.uniqueItems === true, "performedActions는 중복될 수 없습니다.");
+assertContract(outcome?.properties?.additionalFactors?.uniqueItems === true, "additionalFactors는 중복될 수 없습니다.");
+
 const generated = `${generatedHeader}${astToString(await openapiTS(pathToFileURL(contractPath)))}`;
 assertContract(generated.trimEnd() === generatedText.trimEnd(), "생성 타입이 OpenAPI와 다릅니다. pnpm contract:generate를 실행하세요.");
 
