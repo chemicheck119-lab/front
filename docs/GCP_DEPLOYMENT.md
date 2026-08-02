@@ -34,8 +34,8 @@ npx firebase-tools deploy --only hosting --project chemi-check
 | `VITE_DEFAULT_STATION_NAME` | `현장대응본부` |
 | `VITE_ENABLE_MOVEMENT_API` | `false` |
 | `VITE_ENABLE_RECORD_API` | `false` |
-| `VITE_MAP_STYLE_URL` | `https://api.maptiler.com/maps/dataviz-light/style.json` |
-| `VITE_MAP_DARK_STYLE_URL` | `https://api.maptiler.com/maps/dataviz-dark/style.json` |
+| `VITE_MAP_STYLE_URL` | `https://api.maptiler.com/maps/streets-v2/style.json` |
+| `VITE_MAP_DARK_STYLE_URL` | `https://api.maptiler.com/maps/streets-v2-dark/style.json` |
 | `VITE_MAP_PUBLIC_TOKEN` | 도메인 제한 공개 키; 저장소 밖의 빌드 환경에서만 주입 |
 
 `pnpm build:staging` 또는 Docker build argument `VITE_BUILD_MODE=staging`으로 Live API 번들을 만들 수 있습니다. `VITE_*` 값은 정적 브라우저 번들에 포함되므로 API Key나 세션 비밀값은 넣지 않습니다.

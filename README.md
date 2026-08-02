@@ -8,7 +8,7 @@
 
 | 기능 | 상태 | 설명 |
 |---|---|---|
-| MapLibre 전국 지도 | 운영 배경지도 연동 완료 | MapTiler Dataviz Light/Dark, 사고/대원 마커와 BE GeoJSON LineString 표시 |
+| MapLibre 전국 지도 | 운영 배경지도 연동 완료 | MapTiler Streets Light/Dark, 사고/대원 마커와 BE GeoJSON LineString 표시 |
 | 브라우저 위치 | 구현 완료 | `watchPosition`, 권한 거부·대기·오래됨·낮은 정확도 처리 |
 | 이동 경로·ETA | FE·BE 구현 완료·활성화 대기 | Live 기본값은 `준비 중`; staging GPS·도로 경로 검증 후 기능 플래그 활성화 |
 | 현장대응 에이전트 | BFF 계약 연동 완료 | 단계·목표·다음 행동·도구 실행 요약 표시 |
@@ -86,7 +86,7 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 
 상황실 전화번호는 비밀키가 아니지만 운영 조직별로 달라질 수 있으므로, 실제 서비스에서는 환경변수보다 인증된 로그인 세션/BFF 응답으로 제공하는 방식을 권장합니다. 좌측 도구의 자세한 동작은 [현장 도구 설계](./docs/FIELD_TOOLS.md)를 참고하세요.
 
-운영 배경지도는 MapTiler Dataviz Light/Dark Style JSON을 MapLibre GL JS로 렌더링합니다. 공개 키는 `chemicheck119.site`·Sites·로컬 개발 origin으로 제한하고 소스에 저장하지 않습니다. MapTiler와 OpenStreetMap 출처는 Style JSON의 공식 attribution을 MapLibre 컨트롤로 그대로 표시합니다. 공개 OSM 표준 타일 서버를 운영 트래픽에 직접 사용하지 않습니다.
+운영 배경지도는 실제 도로·건물·지명이 보이는 MapTiler Streets Light/Dark Style JSON을 MapLibre GL JS로 렌더링합니다. 공개 키는 `chemicheck119.site`·Sites·로컬 개발 origin으로 제한하고 소스에 저장하지 않습니다. MapTiler와 OpenStreetMap 출처는 Style JSON의 공식 attribution을 MapLibre 컨트롤로 그대로 표시합니다. 공개 OSM 표준 타일 서버를 운영 트래픽에 직접 사용하지 않습니다.
 
 ## BFF 경로
 
