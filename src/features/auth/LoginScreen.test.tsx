@@ -1,8 +1,11 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LoginScreen, isPublicPilotAccessUrl, normalizeAuthLoginUrl } from "./LoginScreen";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("접속 모드 분리", () => {
   it("시연 모드에서만 지역·소방서 선택으로 접속한다", () => {
@@ -33,14 +36,41 @@ describe("접속 모드 분리", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("공개 파일럿 URL은 계정 입력 없이 POST 시작 버튼으로 제공한다", () => {
+  it("공개 파일럿 URL은 지역·소방서 선택 후 stationId를 POST한다", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        schemaVersion: "chemicheck119-fire-station-catalog-v1",
+        sourceName: "소방청_전국소방서 좌표현황(XY좌표)",
+        sourceUrl: "https://www.data.go.kr/data/15138232/fileData.do",
+        sourceDate: "2024-09-01",
+        regions: [{
+          regionName: "서울",
+          stations: [{
+            stationId: "nfa-0985",
+            region: "서울",
+            stationName: "강남소방서",
+            address: "서울특별시 강남구 테헤란로 629",
+            latitude: 37.5102929,
+            longitude: 127.06684,
+          }],
+        }],
+      }),
+    }));
     render(<LoginScreen dataMode="LIVE_API" authLoginUrl="https://chemicheck119.site/auth/staging/pilot" onDemoLogin={vi.fn()} />);
 
-    const button = screen.getByRole("button", { name: "파일럿 시작하기" });
+    await waitFor(() => expect(screen.queryByText("전체 소방서 목록을 확인하고 있습니다.")).not.toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText("지역"), { target: { value: "서울" } });
+    fireEvent.change(screen.getByLabelText("소방서"), { target: { value: "nfa-0985" } });
+
+    const button = screen.getByRole("button", { name: "선택한 소방서로 시작" });
     const form = button.closest("form");
     expect(form).toHaveAttribute("method", "post");
     expect(form).toHaveAttribute("action", "https://chemicheck119.site/auth/staging/pilot");
-    expect(screen.getByText(/계정이나 비밀번호를 입력할 필요가 없습니다/)).toBeInTheDocument();
+    expect(screen.getByLabelText("소방서")).toHaveAttribute("name", "stationId");
+    expect(screen.getByLabelText("소방서")).toHaveValue("nfa-0985");
+    expect(button).toBeEnabled();
+    expect(screen.getByText(/소방청 공개 좌표 자료/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /운영 로그인/ })).not.toBeInTheDocument();
   });
 

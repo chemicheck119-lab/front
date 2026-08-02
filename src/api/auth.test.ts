@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { endAuthenticatedSession, getAuthenticatedSession } from "./auth";
+import { endAuthenticatedSession, getAuthenticatedSession, getPublicPilotStations } from "./auth";
 import { apiConfig } from "./config";
 
 const originalConfig = { ...apiConfig };
@@ -81,6 +81,38 @@ describe("사용 종료 인증 연동", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "https://bff.example.test/api/c2guard/v1/session",
       expect.objectContaining({ method: "GET", credentials: "include" }),
+    );
+  });
+
+  it("공개 파일럿의 공식 소방서 목록을 인증 URL 기준으로 조회한다", async () => {
+    const catalog = {
+      schemaVersion: "chemicheck119-fire-station-catalog-v1",
+      sourceName: "소방청_전국소방서 좌표현황(XY좌표)",
+      sourceUrl: "https://www.data.go.kr/data/15138232/fileData.do",
+      sourceDate: "2024-09-01",
+      regions: [{
+        regionName: "서울",
+        stations: [{
+          stationId: "nfa-0985",
+          region: "서울",
+          stationName: "강남소방서",
+          address: "서울특별시 강남구 테헤란로 629",
+          latitude: 37.5102929,
+          longitude: 127.06684,
+        }],
+      }],
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(catalog),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getPublicPilotStations("https://chemicheck119.site/auth/staging/pilot"))
+      .resolves.toEqual(catalog);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://chemicheck119.site/auth/staging/pilot/stations",
+      expect.objectContaining({ method: "GET", credentials: "include", cache: "no-store" }),
     );
   });
 });
