@@ -170,17 +170,17 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
       {mapError && <div className="absolute inset-x-3 bottom-3 z-10 rounded-lg border border-primary/30 bg-card/95 px-3 py-2 text-xs text-primary shadow">{mapError}</div>}
 
       <div className="absolute left-3 right-3 top-3 z-10 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
-        <div className="rounded-xl border border-border bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold">
+        <div className="rounded-xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 text-sm font-semibold">
             <span className={`status-dot ${context?.incidentPosition ? "status-dot--danger" : "status-dot--muted"}`} />
             {context?.incidentPosition ? "사고 위치 확인" : "사고 위치 확인 필요"}
           </div>
-          <p className="mt-1 max-w-[280px] text-[11px] text-muted-foreground">{context?.incidentPosition?.label ?? unavailableMessage}</p>
+          <p className="mt-1 max-w-[320px] text-xs text-muted-foreground">{context?.incidentPosition?.label ?? unavailableMessage}</p>
         </div>
         {(runtimeDataMode === "DEMO_SIMULATION" || syntheticMap) && <span className="rounded-full border border-accent/40 bg-card/95 px-3 py-1.5 text-[11px] font-bold text-accent shadow">공개 합성 지도 · 실제 경로 아님</span>}
       </div>
 
-      <div data-testid="map-route-summary" className="absolute bottom-4 right-16 z-10 w-[230px] max-w-[calc(100%-5rem)] rounded-xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-sm pointer-events-none">
+      <div data-testid="map-route-summary" className="absolute bottom-4 right-16 z-10 w-[270px] max-w-[calc(100%-5rem)] rounded-xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-sm pointer-events-none">
         <div className="grid grid-cols-2 gap-3">
           <div><p className="text-[10px] text-muted-foreground">예상 도착</p><p className="mt-0.5 text-base font-bold">{route?.status === "POSITION_STALE" ? "—" : formatEta(route?.etaSeconds)}</p></div>
           <div><p className="text-[10px] text-muted-foreground">남은 거리</p><p className="mt-0.5 text-base font-bold">{formatDistance(route?.remainingDistanceM)}</p></div>

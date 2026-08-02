@@ -144,6 +144,26 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole, conf
           </span>
         </header>
 
+        {completed && (
+          <section className="border-b border-primary/20 bg-card p-4" aria-label="충돌 검토 결과">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground">공개 CAMEO 규칙 기준 서수 등급</p>
+                <p className={`mt-1 text-2xl font-black ${completed.riskLevel === "HIGH" ? "text-primary" : completed.riskLevel === "MEDIUM" ? "text-accent" : "text-foreground"}`}>{completed.riskLevelKo}</p>
+              </div>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">확률·백분율 아님</span>
+            </div>
+            <p className="mt-3 text-sm font-semibold leading-relaxed">{completed.briefText}</p>
+            <div className="mt-4 rounded-xl border border-border bg-secondary/45 p-3">
+              <p className="text-xs font-bold">다음 현장 확인</p>
+              <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-muted-foreground">{completed.requiredChecks.map((check) => <li key={check}>• {check}</li>)}</ul>
+            </div>
+            {completed.limitations.length > 0 && <details className="mt-3 rounded-lg bg-accent/10"><summary className="cursor-pointer px-3 py-2.5 text-xs font-bold text-accent">제한사항 {completed.limitations.length}건 보기</summary><div className="border-t border-accent/15 px-3 py-2.5 text-xs leading-relaxed text-accent">{completed.limitations.join(" · ")}</div></details>}
+            <div className="mt-3 flex flex-wrap gap-2">{completed.evidenceUrls.flatMap((url, index) => { const safeUrl = resolveOfficialSourceUrl(url); return safeUrl ? [<a key={safeUrl} href={safeUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-border px-3 text-xs font-semibold text-blue-600 hover:bg-muted">공식 근거 {index + 1}<ExternalLink size={12} /></a>] : []; })}</div>
+            <p className="mt-3 text-xs text-muted-foreground">결정 규칙 {completed.ruleId} · {completed.ruleVersion} · {completed.finalDecision}</p>
+          </section>
+        )}
+
         <section className="grid grid-cols-3 gap-1.5 border-b border-border bg-card p-3" aria-label="현장 핵심 정보">
           <div className={`rounded-lg border p-2.5 ${analysis.confirmationGate.incidentConfirmed ? "border-emerald-500/30 bg-emerald-500/10" : "border-amber-500/30 bg-amber-500/10"}`}>
             <p className="text-[9px] font-bold text-muted-foreground">사고물질</p>
@@ -179,7 +199,9 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole, conf
           </div>
         )}
 
-        <section className="space-y-2 p-3" aria-label="신고 물질 후보">
+        <details open={!completed} className="border-b border-border bg-secondary/20" aria-label="신고 물질 후보">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-bold">물질 후보·공식 근거 <span className="ml-1 text-xs font-semibold text-muted-foreground">{analysis.substanceCandidates.length}개 후보</span></summary>
+        <section className="space-y-2 border-t border-border p-4">
           {analysis.substanceCandidates.length === 0 && <p className="rounded-lg bg-card p-3 text-[11px] text-muted-foreground">식별 가능한 물질 후보가 없습니다. 라벨·MSDS·운송 문서를 확인해주세요.</p>}
           {analysis.substanceCandidates.map((item) => {
             const confirmed = item.role === "INCIDENT" ? analysis.confirmationGate.incidentConfirmed : item.role === "FACILITY" ? analysis.confirmationGate.facilityConfirmed : false;
@@ -210,10 +232,12 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole, conf
             );
           })}
         </section>
+        </details>
 
         {analysis.facilityHistory.status !== "NOT_QUERIED" && (
-          <section className="border-t border-border bg-card p-3" aria-label="시설 과거 이력 후보">
-            <p className="flex items-center gap-1.5 text-[11px] font-bold"><History size={13} />{analysis.facilityHistory.label}</p>
+          <details open={!completed} className="border-b border-border bg-card" aria-label="시설 과거 이력 후보">
+            <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-bold"><History size={15} />{analysis.facilityHistory.label}</summary>
+          <section className="border-t border-border p-4">
             <p className="mt-1 rounded-lg bg-accent/10 p-2 text-[10px] leading-relaxed text-accent">{analysis.facilityHistory.warning || "과거 공개 이력 기반 후보 · 현재 재고 확인 필요"}</p>
             {analysis.facilityHistory.candidates.length > 0 ? (
               <div className="mt-2 space-y-2">
@@ -229,19 +253,10 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole, conf
               </div>
             ) : <p className="mt-2 text-[10px] text-muted-foreground">현재 연결된 과거 공개 이력 후보가 없습니다.</p>}
           </section>
+          </details>
         )}
 
-        {completed ? (
-          <section className="border-t border-border bg-card p-3" aria-label="충돌 검토 결과">
-            <div className="flex items-end justify-between gap-2"><div><p className="text-[10px] text-muted-foreground">공개 CAMEO 규칙 기준 서수 등급</p><p className={`mt-1 text-lg font-bold ${completed.riskLevel === "HIGH" ? "text-primary" : completed.riskLevel === "MEDIUM" ? "text-accent" : "text-foreground"}`}>{completed.riskLevelKo}</p></div><span className="text-[10px] text-muted-foreground">확률·백분율 아님</span></div>
-            <p className="mt-2 text-[11px] leading-relaxed">{completed.briefText}</p>
-            <p className="mt-3 text-[10px] font-bold">다음 현장 확인</p>
-            <ul className="mt-1 space-y-1 text-[10px] text-muted-foreground">{completed.requiredChecks.map((check) => <li key={check}>• {check}</li>)}</ul>
-            {completed.limitations.length > 0 && <div className="mt-3 rounded-lg bg-accent/10 p-2 text-[10px] leading-relaxed text-accent">{completed.limitations.join(" · ")}</div>}
-            <div className="mt-3 flex flex-wrap gap-2">{completed.evidenceUrls.flatMap((url, index) => { const safeUrl = resolveOfficialSourceUrl(url); return safeUrl ? [<a key={safeUrl} href={safeUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-border px-2 text-[10px] font-semibold text-blue-600 hover:bg-muted">공식 근거 {index + 1}<ExternalLink size={10} /></a>] : []; })}</div>
-            <p className="mt-3 text-[9px] text-muted-foreground">결정 규칙 {completed.ruleId} · {completed.ruleVersion} · {completed.finalDecision}</p>
-          </section>
-        ) : (
+        {!completed && (
           <section className="border-t border-border px-3 py-2">
             <p className="text-[10px] font-semibold">{confirmationMode === "PUBLIC_SYNTHETIC" ? "합성 QA 다음 단계" : "대원이 해야 할 일"}</p>
             <ul className="mt-1 space-y-1 text-[10px] text-muted-foreground">{(confirmationMode === "PUBLIC_SYNTHETIC" ? syntheticNextSteps : analysis.requiredNextSteps).map((step) => <li key={step}>• {step}</li>)}</ul>

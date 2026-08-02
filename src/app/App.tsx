@@ -135,26 +135,31 @@ function FullDemoProgress({ status, failedAt }: {
   failedAt: FullDemoStatus | null;
 }) {
   const steps = fullDemoSteps(status, failedAt ?? "RECEIVING");
+  const stepDetails = <>
+    <ol className="mt-3 grid grid-cols-5 gap-1.5">
+      {steps.map((step) => (
+        <li key={step.id} className={`min-w-0 rounded-lg border px-2 py-2 ${step.state === "COMPLETED" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : step.state === "ACTIVE" ? "border-violet-500/40 bg-violet-500/10 text-violet-800 dark:text-violet-200" : step.state === "ERROR" ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}>
+          <p className="truncate text-[9px] font-bold">{step.state === "COMPLETED" ? "✓ " : step.state === "ACTIVE" ? "● " : step.state === "ERROR" ? "! " : "○ "}{step.label}</p>
+          <p className="mt-0.5 truncate text-[8px] opacity-80">{step.detail}</p>
+        </li>
+      ))}
+    </ol>
+    <p className="mt-2 text-[9px] leading-relaxed text-violet-800 dark:text-violet-200">지도 위치·경로와 두 확인 단계는 QA용 공개 합성 데이터입니다. 실제 119 지령·대원 확인·도로 ETA가 아니며 운영 판단에 사용할 수 없습니다.</p>
+  </>;
   return (
-    <section className="mt-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-3" aria-label="통합 연결 공개 합성 데모 진행">
+    <section className="mt-3 rounded-xl border border-violet-500/30 bg-violet-500/5 p-4" aria-label="통합 연결 공개 합성 데모 진행">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-[11px] font-black text-violet-800 dark:text-violet-200">통합 연결 공개 합성 데모</p>
+          <p className="text-sm font-black text-violet-800 dark:text-violet-200">통합 연결 공개 합성 데모</p>
           <p className="mt-0.5 text-[9px] text-muted-foreground">서버 분석·CAMEO는 실제 호출 · 신고·확인은 공개 합성</p>
         </div>
         <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${status === "COMPLETED" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : status === "ERROR" ? "bg-primary/10 text-primary" : "bg-violet-500/15 text-violet-800 dark:text-violet-200"}`}>
           {fullDemoStatusLabel(status)}
         </span>
       </div>
-      <ol className="mt-2 grid grid-cols-5 gap-1">
-        {steps.map((step) => (
-          <li key={step.id} className={`min-w-0 rounded-lg border px-2 py-1.5 ${step.state === "COMPLETED" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : step.state === "ACTIVE" ? "border-violet-500/40 bg-violet-500/10 text-violet-800 dark:text-violet-200" : step.state === "ERROR" ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}>
-            <p className="truncate text-[9px] font-bold">{step.state === "COMPLETED" ? "✓ " : step.state === "ACTIVE" ? "● " : step.state === "ERROR" ? "! " : "○ "}{step.label}</p>
-            <p className="mt-0.5 truncate text-[8px] opacity-80">{step.detail}</p>
-          </li>
-        ))}
-      </ol>
-      <p className="mt-2 text-[9px] leading-relaxed text-violet-800 dark:text-violet-200">지도 위치·경로와 두 확인 단계는 QA용 공개 합성 데이터입니다. 실제 119 지령·대원 확인·도로 ETA가 아니며 운영 판단에 사용할 수 없습니다.</p>
+      {status === "COMPLETED"
+        ? <details className="mt-2 rounded-lg border border-violet-500/20 bg-card/60"><summary className="cursor-pointer px-3 py-2 text-xs font-bold text-violet-800 dark:text-violet-200">완료된 5단계 연결 내역 보기</summary><div className="border-t border-violet-500/15 p-2">{stepDetails}</div></details>
+        : stepDetails}
     </section>
   );
 }
@@ -247,6 +252,7 @@ export default function App() {
   const lastMovementSentAt = useRef(0);
   const nextMovementAllowedAt = useRef(0);
   const recordResetTimer = useRef<number | null>(null);
+  const analysisPanelRef = useRef<HTMLDivElement>(null);
   const operationGeneration = useRef(0);
   const operationControllers = useRef(new Set<AbortController>());
   const responderLocation = useResponderLocation(Boolean(station) && useActive && apiConfig.movementEnabled);
@@ -276,6 +282,19 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (analysisPanelRef.current) analysisPanelRef.current.scrollTop = 0;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    analysis?.analysisId,
+    analysis?.state,
+    analysis?.confirmationGate.incidentConfirmed,
+    analysis?.confirmationGate.facilityConfirmed,
+    mode,
+  ]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 30000);
@@ -942,8 +961,8 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-[100dvh] min-w-[1024px] flex-col overflow-hidden bg-background text-foreground" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
+    <div className="readable-shell flex h-[100dvh] min-w-[1180px] flex-col overflow-hidden bg-background text-foreground" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+      <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-5">
         <div className="flex items-center gap-3"><BrandLogo /><span className="hidden rounded-md bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary lg:inline">공개 검증 데모</span></div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${runtimeDataMode === "DEMO_SIMULATION" ? "border-accent/40 bg-accent/10 text-accent" : runtimeDataMode === "LIVE_API" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-muted text-muted-foreground"}`}>{modeLabel(runtimeDataMode)}</span>
@@ -983,32 +1002,32 @@ export default function App() {
           onAcceptDispatch={acceptPresentationIncident}
         />
 
-        <main className="flex min-w-0 flex-1 flex-col gap-2 p-2">
-          <section className="grid h-[72px] shrink-0 grid-cols-4 gap-2" aria-label="현장대응 요약">
+        <main className="flex min-w-0 flex-1 flex-col gap-3 p-3">
+          <section className="grid h-[86px] shrink-0 grid-cols-4 gap-3" aria-label="현장대응 요약">
             <StatusCard label="현재 단계" value={agentPhase ? PHASE_LABELS[agentPhase] : phaseFallback} detail={analysisStateLabel(analysis?.state)} tone="primary" />
             <StatusCard label="출동 상태" value={syntheticScenario ? "합성 출동 경로" : journeyLabel(journeyState)} detail={syntheticScenario ? "QA용 · 실제 출동 아님" : !apiConfig.movementEnabled ? "pilot 연동 전" : journeyState === "ARRIVED" || journeyState === "ON_SCENE" ? "현장 도착 확인" : "위치 갱신 대기"} tone="blue" />
             <StatusCard label="ETA · 남은 거리" value={`${formatEta(route?.etaSeconds)} · ${formatDistance(route?.remainingDistanceM)}`} detail={route?.providerMode === "DEMO_SIMULATION" ? "합성 경로 · 실제 ETA 아님" : route?.provider ?? "도로 경로 없음"} tone="neutral" />
             <StatusCard label="위치 상태" value={displayGpsPresentation.label} detail={displayGpsPresentation.detail} tone={displayGpsPresentation.tone === "bad" ? "danger" : displayGpsPresentation.tone === "good" ? "green" : "neutral"} />
           </section>
 
-          <section className="grid min-h-0 flex-1 grid-cols-[minmax(420px,1.12fr)_minmax(390px,0.88fr)] gap-2">
+          <section className="grid min-h-0 flex-1 grid-cols-[minmax(500px,1.08fr)_minmax(450px,0.92fr)] gap-3">
             <Suspense fallback={<div className="grid min-h-[460px] place-items-center rounded-2xl border border-border bg-card text-xs text-muted-foreground">지도 모듈을 준비하고 있습니다…</div>}>
               <IncidentMap context={effectiveMapContext} isDark={isDark} gps={displayGpsPresentation} />
             </Suspense>
 
             <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="shrink-0 border-b border-border p-3">
+              <div className="shrink-0 border-b border-border p-4">
                 <div className="flex items-center gap-2">
                   <div className="grid flex-1 grid-cols-2 rounded-xl border border-border bg-muted p-1">
-                    <button onClick={() => setMode("collision")} className={`min-h-9 rounded-lg text-xs font-bold transition ${mode === "collision" ? "bg-primary text-white shadow" : "text-muted-foreground"}`}>대응충돌검토</button>
-                    <button onClick={() => setMode("substance")} className={`min-h-9 rounded-lg text-xs font-bold transition ${mode === "substance" ? "bg-primary text-white shadow" : "text-muted-foreground"}`}>물질검색</button>
+                    <button onClick={() => setMode("collision")} className={`min-h-11 rounded-lg text-sm font-bold transition ${mode === "collision" ? "bg-primary text-white shadow" : "text-muted-foreground"}`}>대응충돌검토</button>
+                    <button onClick={() => setMode("substance")} className={`min-h-11 rounded-lg text-sm font-bold transition ${mode === "substance" ? "bg-primary text-white shadow" : "text-muted-foreground"}`}>물질검색</button>
                   </div>
                   <button disabled={recordResetPending || !incidentId || analysisIds.length === 0 || (!apiConfig.recordEnabled && !presentationReplay)} onClick={() => setShowSaveDialog(true)} className="flex min-h-11 items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 text-[11px] font-bold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50">{presentationReplay && !apiConfig.recordEnabled ? <Download size={13} /> : <Save size={13} />}{recordResetPending ? "저장 완료" : presentationReplay && !apiConfig.recordEnabled ? "시연 기록 내보내기" : !apiConfig.recordEnabled ? "운영 저장 미사용" : "기록 저장"}</button>
                 </div>
                 {mode === "collision" && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    <input value={facilityName} onChange={(event) => { clearPresentationReplayForManualEdit(); setFacilityName(event.target.value); }} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="시설명(출동지령 기준)" />
-                    <input value={address} onChange={(event) => { clearPresentationReplayForManualEdit(); setAddress(event.target.value); }} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="사고 주소(좌표는 BE 검증)" />
+                    <input value={facilityName} onChange={(event) => { clearPresentationReplayForManualEdit(); setFacilityName(event.target.value); }} className="min-h-11 rounded-lg border border-border bg-input-background px-3 text-sm outline-none focus:border-primary" placeholder="시설명(출동지령 기준)" />
+                    <input value={address} onChange={(event) => { clearPresentationReplayForManualEdit(); setAddress(event.target.value); }} className="min-h-11 rounded-lg border border-border bg-input-background px-3 text-sm outline-none focus:border-primary" placeholder="사고 주소(좌표는 BE 검증)" />
                   </div>
                 )}
                 {mode === "substance" && (
@@ -1019,7 +1038,7 @@ export default function App() {
                 )}
                 {mode === "collision" && apiConfig.presentationScenarioEnabled && (
                   <div className="mt-2 flex items-center gap-2">
-                    <button type="button" disabled={isFullDemoRunning(fullDemoStatus) || presentationReplayStatus === "WAITING" || loading} onClick={() => { void runFullPresentationDemo(); }} className="min-h-9 rounded-lg bg-violet-600 px-3 text-[10px] font-bold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
+                    <button type="button" disabled={isFullDemoRunning(fullDemoStatus) || presentationReplayStatus === "WAITING" || loading} onClick={() => { void runFullPresentationDemo(); }} className="min-h-11 rounded-lg bg-violet-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
                       {isFullDemoRunning(fullDemoStatus) ? fullDemoStatusLabel(fullDemoStatus) : fullDemoStatus === "COMPLETED" ? "통합 데모 다시 시작" : fullDemoStatus === "ERROR" ? "통합 데모 재시도" : "통합 데모 시작"}
                     </button>
                   </div>
@@ -1038,10 +1057,10 @@ export default function App() {
                 )}
               </div>
 
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-                <section className={`sticky top-0 z-20 rounded-xl border p-3 shadow-sm backdrop-blur-md ${currentTask.complete ? "border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90" : "border-blue-500/30 bg-blue-50/95 dark:bg-blue-950/90"}`} aria-label="현재 해야 할 일">
-                  <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-[9px] font-bold ${currentTask.complete ? "bg-emerald-600 text-white" : "bg-blue-600 text-white"}`}>{currentTask.step}</span><p className="text-xs font-bold">{currentTask.title}</p></div>
-                  <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">{currentTask.detail}</p>
+              <div ref={analysisPanelRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+                <section className={`sticky top-0 z-20 rounded-xl border p-4 shadow-sm backdrop-blur-md ${currentTask.complete ? "border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90" : "border-blue-500/30 bg-blue-50/95 dark:bg-blue-950/90"}`} aria-label="현재 해야 할 일">
+                  <div className="flex items-center gap-2.5"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${currentTask.complete ? "bg-emerald-600 text-white" : "bg-blue-600 text-white"}`}>{currentTask.step}</span><p className="text-sm font-bold">{currentTask.title}</p></div>
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{currentTask.detail}</p>
                 </section>
                 {error && <ErrorNotice error={error} onRetry={error.retryable && (input.trim() || lastIncidentText) ? () => { if (input.trim()) void handleSubmit(); else if (lastIncidentText) void runAnalysis(lastIncidentText, false); } : undefined} />}
                 {movementError && <div className="rounded-lg border border-accent/30 bg-accent/5 p-2 text-[10px] text-accent">경로 갱신: {movementError} 기존 화면은 유지됩니다.</div>}
@@ -1054,7 +1073,7 @@ export default function App() {
                 ) : <SubstanceResults result={materialResult} incidentAvailable={Boolean(incidentId)} onUseCandidate={(candidate) => openConfirmation({ role: "INCIDENT", casNumber: candidate.casNumber, displayName: candidate.displayName })} />}
               </div>
 
-              <div className="shrink-0 border-t border-border p-3">
+              <div className="shrink-0 border-t border-border p-4">
                 <MessageComposer
                   mode={mode}
                   value={input}
@@ -1148,5 +1167,5 @@ function ErrorNotice({ error, onRetry }: { error: UserFacingErrorInfo; onRetry?:
 
 function StatusCard({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "primary" | "blue" | "green" | "danger" | "neutral" }) {
   const dot = { primary: "bg-primary", blue: "bg-blue-500", green: "bg-emerald-500", danger: "bg-primary", neutral: "bg-slate-400" }[tone];
-  return <div className="min-w-0 rounded-xl border border-border bg-card px-3 py-2 shadow-sm"><p className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground"><span className={`h-1.5 w-1.5 rounded-full ${dot}`} />{label}</p><p className="mt-1 truncate text-xs font-bold">{value}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{detail}</p></div>;
+  return <div className="min-w-0 rounded-xl border border-border bg-card px-4 py-3 shadow-sm"><p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"><span className={`h-2 w-2 rounded-full ${dot}`} />{label}</p><p className="mt-1 truncate text-sm font-bold">{value}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p></div>;
 }

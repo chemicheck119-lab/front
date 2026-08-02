@@ -51,8 +51,12 @@ describe("사고 분석 현장 확인 흐름", () => {
     expect(screen.getByText("NOAA CAMEO 충돌 규칙")).toBeInTheDocument();
     expect(screen.queryByText("현장 확인 필요")).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "현장 핵심 정보" })).toHaveTextContent("높음");
-    expect(screen.getByRole("region", { name: "충돌 검토 결과" })).toHaveTextContent("높음");
-    expect(screen.getByRole("region", { name: "충돌 검토 결과" })).toHaveTextContent("현장 지휘관 판단");
+    const completedResult = screen.getByRole("region", { name: "충돌 검토 결과" });
+    const candidateDetails = screen.getByRole("group", { name: "신고 물질 후보" });
+    expect(completedResult).toHaveTextContent("높음");
+    expect(completedResult).toHaveTextContent("현장 지휘관 판단");
+    expect(candidateDetails).not.toHaveAttribute("open");
+    expect(completedResult.compareDocumentPosition(candidateDetails) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("공개 합성 시연 확인을 실제 현장 확인으로 표시하지 않는다", () => {
