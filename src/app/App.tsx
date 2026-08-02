@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
+  Download,
   LogOut,
   Moon,
   Save,
@@ -12,13 +13,17 @@ import {
 import { BrandLogo } from "@/app/components/BrandLogo";
 import { apiConfig, runtimeDataMode } from "../api/config";
 import { endAuthenticatedSession, getAuthenticatedSession } from "../api/auth";
-import { receiveContestIncident, type IncidentReplayEnvelope } from "../api/intake";
+import {
+  confirmSyntheticReplaySubstance,
+  receiveContestIncident,
+  type IncidentReplayEnvelope,
+} from "../api/intake";
 import { analyzeIncident } from "../api/incidents";
 import { updateMovement } from "../api/movement";
 import { discoverSubstances } from "../api/substances";
 import { confirmSubstance } from "../api/confirmations";
 import { saveIncidentRecord, shouldResetAfterSave } from "../api/records";
-import { toUserFacingError, userFacingError, type UserFacingErrorInfo } from "../api/client";
+import { ApiError, toUserFacingError, userFacingError, type UserFacingErrorInfo } from "../api/client";
 import type {
   ConfirmationRequest,
   IncidentAnalysisResponse,
@@ -41,6 +46,14 @@ import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
 import { adaptDirectEntryIssue, resolveInitialStation } from "../features/auth/accessMode";
 import { resetDemoSession as resetDemoDataSession } from "../fixtures/demo";
 import { contestLiveScenario } from "../demo/presentationScenario";
+import { buildPublicSyntheticMapContext } from "../demo/presentationMap";
+import { buildPublicSyntheticRecord, publicSyntheticRecordFileName } from "../demo/syntheticRecord";
+import {
+  fullDemoStatusLabel,
+  fullDemoSteps,
+  isFullDemoRunning,
+  type FullDemoStatus,
+} from "../demo/fullDemoState";
 import { MessageComposer } from "../features/composer/MessageComposer";
 
 type Mode = "collision" | "substance";
@@ -83,7 +96,7 @@ function makeMessage(role: MessageRole, text: string, analysisId?: string | null
 }
 
 function modeLabel(mode: typeof runtimeDataMode) {
-  const labels = { LIVE_API: "실제 API", CACHED_API: "캐시 API", DEMO_SIMULATION: "시연 데이터", UNAVAILABLE: "연결 설정 필요" };
+  const labels = { LIVE_API: "서버 연동", CACHED_API: "캐시 API", DEMO_SIMULATION: "오프라인 시연", UNAVAILABLE: "연결 설정 필요" };
   return labels[mode];
 }
 
@@ -115,6 +128,53 @@ function UseEndedScreen({ station, onRestart }: { station: string; onRestart: ()
       </section>
     </main>
   );
+}
+
+function FullDemoProgress({ status, failedAt }: {
+  status: FullDemoStatus;
+  failedAt: FullDemoStatus | null;
+}) {
+  const steps = fullDemoSteps(status, failedAt ?? "RECEIVING");
+  return (
+    <section className="mt-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-3" aria-label="통합 연결 공개 합성 데모 진행">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-[13px] font-black text-violet-800 dark:text-violet-200">통합 연결 공개 합성 데모</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">서버 분석·CAMEO는 실제 호출 · 신고·확인은 공개 합성</p>
+        </div>
+        <span className={`rounded-full px-2 py-1 text-xs font-bold ${status === "COMPLETED" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : status === "ERROR" ? "bg-primary/10 text-primary" : "bg-violet-500/15 text-violet-800 dark:text-violet-200"}`}>
+          {fullDemoStatusLabel(status)}
+        </span>
+      </div>
+      <ol className="mt-2 grid grid-cols-5 gap-1">
+        {steps.map((step) => (
+          <li key={step.id} className={`min-w-0 rounded-lg border px-2 py-1.5 ${step.state === "COMPLETED" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : step.state === "ACTIVE" ? "border-violet-500/40 bg-violet-500/10 text-violet-800 dark:text-violet-200" : step.state === "ERROR" ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}>
+            <p className="truncate text-xs font-bold">{step.state === "COMPLETED" ? "✓ " : step.state === "ACTIVE" ? "● " : step.state === "ERROR" ? "! " : "○ "}{step.label}</p>
+            <p className="mt-0.5 truncate text-[11px] opacity-80">{step.detail}</p>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-2 text-xs leading-relaxed text-violet-800 dark:text-violet-200">지도 위치·경로와 두 확인 단계는 QA용 공개 합성 데이터입니다. 실제 119 지령·대원 확인·도로 ETA가 아니며 운영 판단에 사용할 수 없습니다.</p>
+    </section>
+  );
+}
+
+function waitForPresentationStep(signal: AbortSignal, delayMs = 500) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 function mergeResponderPosition(context: MapContext | null, position: ReturnType<typeof useResponderLocation>["position"]): MapContext | null {
@@ -155,6 +215,8 @@ export default function App() {
   const [presentationScenarioId, setPresentationScenarioId] = useState<string | null>(null);
   const [presentationReplay, setPresentationReplay] = useState<IncidentReplayEnvelope | null>(null);
   const [presentationReplayStatus, setPresentationReplayStatus] = useState<PresentationReplayStatus>("IDLE");
+  const [fullDemoStatus, setFullDemoStatus] = useState<FullDemoStatus>("IDLE");
+  const [fullDemoFailedAt, setFullDemoFailedAt] = useState<FullDemoStatus | null>(null);
   const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
   const [mapContext, setMapContext] = useState<MapContext | null>(null);
   const [materialResult, setMaterialResult] = useState<MaterialDiscoveryResponse | null>(null);
@@ -187,7 +249,7 @@ export default function App() {
   const recordResetTimer = useRef<number | null>(null);
   const operationGeneration = useRef(0);
   const operationControllers = useRef(new Set<AbortController>());
-  const responderLocation = useResponderLocation(Boolean(station) && useActive);
+  const responderLocation = useResponderLocation(Boolean(station) && useActive && apiConfig.movementEnabled);
 
   useEffect(() => {
     if (!apiConfig.authEnabled) return;
@@ -226,6 +288,13 @@ export default function App() {
     responderLocation.position?.accuracyM,
     nowMs,
   ), [responderLocation, nowMs]);
+
+  const syntheticScenario = Boolean(presentationReplay && presentationScenarioId);
+  const displayGpsPresentation = syntheticScenario
+    ? { label: "합성 출동 위치", detail: "QA용 경로 · 실제 GPS 아님", tone: "demo" as const, usableForRoute: true }
+    : apiConfig.presentationScenarioEnabled && !apiConfig.movementEnabled
+      ? { label: "위치 시연 대기", detail: "통합 데모에서 합성 경로를 표시합니다", tone: "waiting" as const, usableForRoute: false }
+      : gpsPresentation;
 
   const effectiveMapContext = useMemo(() => mergeResponderPosition(
     mapContext ?? analysis?.agent?.mapContext ?? null,
@@ -278,7 +347,7 @@ export default function App() {
   const route = effectiveMapContext?.route;
   const agentPhase = analysis?.agent?.phase;
   const dispatchContact = {
-    name: apiConfig.dispatchCenterName || `${station} 상황실`,
+    name: apiConfig.dispatchCenterName || (station.endsWith("상황실") ? station : `${station} 상황실`),
     phone: apiConfig.dispatchCenterPhone,
   };
   const dispatchPreview = presentationReplay
@@ -305,11 +374,15 @@ export default function App() {
   const currentTask = !analysis
     ? presentationScenarioId
       ? { step: "2/4", title: "신고 내용을 확인하고 분석을 시작하세요", detail: "시설명·주소·신고문을 확인한 뒤 아래의 ‘분석 시작’을 누르세요.", complete: false }
-      : { step: "1/4", title: "상황실 지령을 받거나 신고문을 입력하세요", detail: "왼쪽 ‘상황실 연결’을 누르면 실제 지령망에서 신고를 받을 수 있습니다.", complete: false }
+      : { step: "1/4", title: "상황실 지령을 받거나 신고문을 입력하세요", detail: apiConfig.presentationScenarioEnabled ? "왼쪽 ‘상황실 연결’에서 개인정보 없는 공개 합성 지령을 받거나 신고문을 직접 입력하세요." : "왼쪽 ‘상황실 연결’에서 지령을 받거나 신고문을 직접 입력하세요.", complete: false }
     : !analysis.confirmationGate.incidentConfirmed
-      ? { step: "3/4", title: "사고물질을 현장에서 확인하세요", detail: "후보 카드의 ‘사고물질 현장 확인’을 눌러 라벨·MSDS 근거를 기록하세요.", complete: false }
+      ? syntheticScenario
+        ? { step: "3/4", title: "사고물질 합성 확인을 적용하세요", detail: "후보 카드에서 공개 합성 확인을 적용해 1/2 안전 게이트를 검증하세요. 실제 현장 확인 기록은 아닙니다.", complete: false }
+        : { step: "3/4", title: "사고물질을 현장에서 확인하세요", detail: "후보 카드의 ‘사고물질 현장 확인’을 눌러 라벨·MSDS 근거를 기록하세요.", complete: false }
       : !analysis.confirmationGate.facilityConfirmed
-        ? { step: "4/4", title: "시설물질을 현장에서 확인하세요", detail: "시설물질의 현재 존재와 CAS를 확인해야 충돌 검토가 실행됩니다.", complete: false }
+        ? syntheticScenario
+          ? { step: "4/4", title: "시설물질 합성 확인을 적용하세요", detail: "공개 합성 확인 2/2를 적용하면 실제 staging BE·AI가 충돌 검토를 실행합니다.", complete: false }
+          : { step: "4/4", title: "시설물질을 현장에서 확인하세요", detail: "시설물질의 현재 존재와 CAS를 확인해야 충돌 검토가 실행됩니다.", complete: false }
         : { step: "확인 완료", title: "충돌 검토 결과를 확인하세요", detail: "공개 근거와 제한사항을 확인하고 최종 판단은 현장 지휘관이 수행합니다.", complete: true };
 
   function beginOperation() {
@@ -379,14 +452,19 @@ export default function App() {
     }, signal);
   }
 
-  function applyAnalysisResponse(response: IncidentAnalysisResponse, text: string) {
+  function applyAnalysisResponse(
+    response: IncidentAnalysisResponse,
+    text: string,
+    mapOverride?: MapContext | null,
+  ) {
     setSessionExpired(null);
     setAnalysis(response);
     setIncidentId(response.incidentId);
     setLastIncidentText(text);
     setAnalysisIds((previous) => previous.includes(response.analysisId)
       ? previous : [...previous, response.analysisId]);
-    if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
+    if (mapOverride) setMapContext(mapOverride);
+    else if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
     setMessages((previous) => [...previous, makeMessage(
       "ASSISTANT",
       response.agent?.currentObjective
@@ -406,7 +484,11 @@ export default function App() {
         text, incidentId, presentationReplay, operation.controller.signal,
       );
       if (!isCurrentOperation(operation.generation)) return;
-      applyAnalysisResponse(response, text);
+      applyAnalysisResponse(
+        response,
+        text,
+        presentationReplay ? buildPublicSyntheticMapContext(presentationReplay) : undefined,
+      );
     } catch (caught) {
       if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
       const issue = captureRequestIssue(caught);
@@ -450,22 +532,33 @@ export default function App() {
   async function handleConfirm() {
     if (!confirmationTarget || !incidentId || confirmingRole) return;
     const observedAt = confirmationDateTimeToIso(confirmationObservedAt);
-    if (!observedAt) return;
+    if (!presentationReplay && !observedAt) return;
     const operation = beginOperation();
     setConfirmingRole(confirmationTarget.role);
     setError(null);
     try {
-      const response = await confirmSubstance(incidentId, {
-        role: confirmationTarget.role,
-        casNumber: confirmationTarget.casNumber,
-        displayName: confirmationTarget.displayName,
-        confirmationBasis,
-        observedAt,
-      }, operation.controller.signal);
+      const response = presentationReplay
+        ? await confirmSyntheticReplaySubstance(
+            incidentId,
+            confirmationTarget.role,
+            operation.controller.signal,
+          )
+        : await confirmSubstance(incidentId, {
+            role: confirmationTarget.role,
+            casNumber: confirmationTarget.casNumber,
+            displayName: confirmationTarget.displayName,
+            confirmationBasis,
+            observedAt: observedAt!,
+          }, operation.controller.signal);
       if (!isCurrentOperation(operation.generation)) return;
       setSessionExpired(null);
       setConfirmationIds((previous) => previous.includes(response.confirmationId) ? previous : [...previous, response.confirmationId]);
-      setMessages((previous) => [...previous, makeMessage("SYSTEM", `${confirmationTarget.displayName}(${confirmationTarget.casNumber}) 현장 확인 기록이 저장됐습니다.`)]);
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        presentationReplay
+          ? `${confirmationTarget.role === "INCIDENT" ? "차아염소산나트륨(7681-52-9)" : "염산(7647-01-0)"} 공개 합성 확인을 적용했습니다. 실제 대원 확인 기록이 아닙니다.`
+          : `${confirmationTarget.displayName}(${confirmationTarget.casNumber}) 현장 확인 기록이 저장됐습니다.`,
+      )]);
       setConfirmationTarget(null);
       if (response.reanalyzeRequired && lastIncidentText) await runAnalysis(lastIncidentText, false);
       if (!isCurrentOperation(operation.generation)) return;
@@ -509,6 +602,8 @@ export default function App() {
     setPresentationScenarioId(null);
     setPresentationReplay(null);
     setPresentationReplayStatus("IDLE");
+    setFullDemoStatus("IDLE");
+    setFullDemoFailedAt(null);
     setMode("collision");
     setJourneyState("EN_ROUTE");
     setError(null);
@@ -564,7 +659,29 @@ export default function App() {
   }
 
   async function handleSave() {
-    if (!apiConfig.recordEnabled || !incidentId || analysisIds.length === 0 || saving || recordResetPending) return;
+    if (!incidentId || analysisIds.length === 0 || saving || recordResetPending) return;
+    if (!apiConfig.recordEnabled) {
+      if (!presentationReplay) return;
+      const exported = buildPublicSyntheticRecord(
+        presentationReplay,
+        messages,
+        analysisIds,
+        confirmationIds,
+      );
+      const fileName = publicSyntheticRecordFileName(incidentId);
+      const url = URL.createObjectURL(new Blob(
+        [JSON.stringify(exported, null, 2)],
+        { type: "application/json;charset=utf-8" },
+      ));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setSavedRecordId(fileName);
+      setShowSaveDialog(false);
+      return;
+    }
     const operation = beginOperation();
     setSaving(true);
     setSaveError(null);
@@ -630,32 +747,183 @@ export default function App() {
     }
   }
 
+  function applyPresentationEnvelope(envelope: IncidentReplayEnvelope) {
+    setFacilityName(envelope.facilityName);
+    setAddress(envelope.addressText);
+    setInput(envelope.reportText);
+    setIncidentId(envelope.incidentId);
+    setPresentationScenarioId(contestLiveScenario.scenarioId);
+    setPresentationReplay(envelope);
+    setPresentationReplayStatus("RECEIVED");
+    setMapContext(buildPublicSyntheticMapContext(envelope));
+    setMode("collision");
+  }
+
   function acceptPresentationIncident() {
     if (presentationReplayStatus !== "RECEIVED") return;
     const envelope = presentationReplay;
-    if (analysis || incidentId || analysisIds.length > 0) {
-      resetSession();
-      setPresentationReplay(envelope);
+    if (analysis || incidentId || analysisIds.length > 0) resetSession();
+
+    if (envelope) applyPresentationEnvelope(envelope);
+    else {
+      setFacilityName(contestLiveScenario.facilityName);
+      setAddress(contestLiveScenario.address);
+      setInput(contestLiveScenario.text);
+      setIncidentId(null);
+      setPresentationScenarioId(contestLiveScenario.scenarioId);
       setPresentationReplayStatus("RECEIVED");
+      setMode("collision");
     }
-    setFacilityName(envelope?.facilityName ?? contestLiveScenario.facilityName);
-    setAddress(envelope?.addressText ?? contestLiveScenario.address);
-    setInput(envelope?.reportText ?? contestLiveScenario.text);
-    setIncidentId(envelope?.incidentId ?? null);
-    setPresentationScenarioId(contestLiveScenario.scenarioId);
     setMessages((previous) => [...previous, makeMessage(
       "SYSTEM",
       `대원이 상황실 지령을 확인해 대응화면에 반영했습니다.${envelope?.requestId ? ` (요청 ID: ${envelope.requestId})` : ""} 분석은 별도로 실행해야 합니다.`,
     )]);
-    setMode("collision");
+  }
+
+  async function runFullPresentationDemo() {
+    if (!apiConfig.presentationScenarioEnabled || isFullDemoRunning(fullDemoStatus)) return;
+    resetSession();
+    const operation = beginOperation();
+    let activeStatus: FullDemoStatus = "RECEIVING";
+    const advance = (status: FullDemoStatus) => {
+      activeStatus = status;
+      setFullDemoStatus(status);
+    };
+    advance("RECEIVING");
+    setFullDemoFailedAt(null);
+    setPresentationReplayStatus("WAITING");
+    setLoading(true);
+    setError(null);
+    try {
+      const envelope = await receiveContestIncident(operation.controller.signal);
+      if (!isCurrentOperation(operation.generation)) return;
+      const syntheticMap = buildPublicSyntheticMapContext(envelope);
+      applyPresentationEnvelope(envelope);
+      setInput("");
+      setMessages((previous) => [...previous,
+        makeMessage("SYSTEM", `공개 합성 지령을 BE SSE에서 수신했습니다. ${envelope.disclosure} (요청 ID: ${envelope.requestId})`),
+        makeMessage("USER", envelope.reportText),
+      ]);
+      await waitForPresentationStep(operation.controller.signal, 500);
+
+      advance("INITIAL_ANALYSIS");
+      const initial = await requestAnalysis(
+        envelope.reportText, envelope.incidentId, envelope, operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      if (initial.confirmationGate.incidentConfirmed
+          || initial.confirmationGate.facilityConfirmed
+          || initial.confirmationGate.ruleExecutionAllowed
+          || initial.riskDisplayAllowed) {
+        throw new ApiError("SAFETY", "합성 시연의 0/2 확인 게이트를 검증할 수 없습니다.", initial.requestId);
+      }
+      applyAnalysisResponse(initial, envelope.reportText, syntheticMap);
+      await waitForPresentationStep(operation.controller.signal, 650);
+
+      advance("INCIDENT_CONFIRMATION");
+      setConfirmingRole("INCIDENT");
+      const incidentConfirmation = await confirmSyntheticReplaySubstance(
+        envelope.incidentId, "INCIDENT", operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      setConfirmationIds((previous) => previous.includes(incidentConfirmation.confirmationId)
+        ? previous : [...previous, incidentConfirmation.confirmationId]);
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `합성 사고물질 확인 1/2 · ${incidentConfirmation.displayName}(${incidentConfirmation.casNumber}). ${incidentConfirmation.disclosure}`,
+      )]);
+      await waitForPresentationStep(operation.controller.signal, 450);
+
+      advance("INCIDENT_REANALYSIS");
+      const afterIncident = await requestAnalysis(
+        envelope.reportText, envelope.incidentId, envelope, operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      if (!afterIncident.confirmationGate.incidentConfirmed
+          || afterIncident.confirmationGate.facilityConfirmed
+          || afterIncident.confirmationGate.ruleExecutionAllowed
+          || afterIncident.riskDisplayAllowed) {
+        throw new ApiError("SAFETY", "합성 시연의 1/2 확인 게이트를 검증할 수 없습니다.", afterIncident.requestId);
+      }
+      applyAnalysisResponse(afterIncident, envelope.reportText, syntheticMap);
+      await waitForPresentationStep(operation.controller.signal, 650);
+
+      advance("FACILITY_CONFIRMATION");
+      setConfirmingRole("FACILITY");
+      const facilityConfirmation = await confirmSyntheticReplaySubstance(
+        envelope.incidentId, "FACILITY", operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      setConfirmationIds((previous) => previous.includes(facilityConfirmation.confirmationId)
+        ? previous : [...previous, facilityConfirmation.confirmationId]);
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `합성 시설물질 확인 2/2 · ${facilityConfirmation.displayName}(${facilityConfirmation.casNumber}). ${facilityConfirmation.disclosure}`,
+      )]);
+      await waitForPresentationStep(operation.controller.signal, 450);
+
+      advance("FINAL_ANALYSIS");
+      const completed = await requestAnalysis(
+        envelope.reportText, envelope.incidentId, envelope, operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      const completedRuleId = completed.conflictReview.executed
+        && completed.conflictReview.status === "SCREENING_COMPLETED"
+        && completed.conflictReview.result.kind === "ORDINAL_SCREENING_RESULT"
+        ? completed.conflictReview.result.ruleId
+        : null;
+      const cameoCompleted = completed.state === "SCREENING_COMPLETED"
+        && completed.confirmationGate.incidentConfirmed
+        && completed.confirmationGate.facilityConfirmed
+        && completed.confirmationGate.allRequiredConfirmed
+        && completed.confirmationGate.ruleExecutionAllowed
+        && completed.riskDisplayAllowed
+        && completed.conflictReview.executed
+        && completed.conflictReview.status === "SCREENING_COMPLETED"
+        && completedRuleId === "CAMEO-REACTIVE-GROUP-COMPATIBILITY-MATRIX";
+      if (!cameoCompleted) {
+        throw new ApiError("SAFETY", "확인 2/2 이후 실제 CAMEO 규칙 완료를 검증할 수 없습니다.", completed.requestId);
+      }
+      applyAnalysisResponse(completed, envelope.reportText, syntheticMap);
+      setConfirmingRole(null);
+      await waitForPresentationStep(operation.controller.signal, 650);
+      advance("COMPLETED");
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `실제 CAMEO 규칙 검토가 완료됐습니다. 규칙 ${completedRuleId} · 최종 판단은 현장 지휘관에게 있습니다.`,
+        completed.analysisId,
+      )]);
+    } catch (caught) {
+      if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
+      const issue = captureRequestIssue(caught);
+      setFullDemoFailedAt(activeStatus);
+      setFullDemoStatus("ERROR");
+      setPresentationReplayStatus((current) => current === "WAITING" ? "ERROR" : current);
+      setError(issue.kind === "SESSION_EXPIRED" ? null : issue);
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `통합 데모를 중단했습니다. ${issue.message}${issue.requestId ? ` (요청 ID: ${issue.requestId})` : ""}`,
+      )]);
+    } finally {
+      finishOperation(operation.controller);
+      if (isCurrentOperation(operation.generation)) {
+        setLoading(false);
+        setConfirmingRole(null);
+      }
+    }
   }
   function changeIncidentInput(value: string) {
     const sourceText = presentationReplay?.reportText ?? contestLiveScenario.text;
-    if (presentationScenarioId && value !== sourceText) {
+    if (mode === "collision" && presentationScenarioId && value !== sourceText) {
       setPresentationScenarioId(null);
       setPresentationReplay(null);
       setPresentationReplayStatus("IDLE");
-      if (!analysis) setIncidentId(null);
+      setFullDemoStatus("IDLE");
+      setFullDemoFailedAt(null);
+      if (!analysis) {
+        setIncidentId(null);
+        setMapContext(null);
+      }
     }
     setInput(value);
   }
@@ -665,17 +933,22 @@ export default function App() {
     setPresentationScenarioId(null);
     setPresentationReplay(null);
     setPresentationReplayStatus("IDLE");
-    if (!analysis) setIncidentId(null);
+    setFullDemoStatus("IDLE");
+    setFullDemoFailedAt(null);
+    if (!analysis) {
+      setIncidentId(null);
+      setMapContext(null);
+    }
   }
 
   return (
-    <div className="field-dashboard flex h-[100dvh] min-w-[1100px] flex-col overflow-hidden bg-background text-foreground" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+    <div className="field-dashboard flex h-[100dvh] min-w-[1200px] flex-col overflow-hidden bg-background text-foreground" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
       <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-5">
-        <div className="flex items-center gap-3"><BrandLogo /><span className="hidden rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-bold text-primary lg:inline">전국 현장대응</span></div>
+        <div className="flex items-center gap-3"><BrandLogo /><span className="hidden rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-bold text-primary lg:inline">공개 검증 데모</span></div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full border px-3 py-1.5 text-xs font-bold ${runtimeDataMode === "DEMO_SIMULATION" ? "border-accent/40 bg-accent/10 text-accent" : runtimeDataMode === "LIVE_API" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-muted text-muted-foreground"}`}>{modeLabel(runtimeDataMode)}</span>
           {presentationScenarioId && <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">공개 합성 신고</span>}
-          {runtimeDataMode === "LIVE_API" && !apiConfig.authEnabled && <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-300">인증 미사용</span>}
+          {runtimeDataMode === "LIVE_API" && !apiConfig.authEnabled && <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-300">공개 데모 환경</span>}
           <div className="flex min-h-10 items-center gap-2 rounded-lg border border-border bg-secondary px-3.5 text-sm font-semibold" title={sessionContext ? `${sessionContext.stationId} · ${sessionContext.roles.join(", ")}` : undefined}><User size={15} />{station}</div>
           <button type="button" disabled={endingSession} onClick={() => { setEndSessionError(null); setShowEndSessionDialog(true); }} className="flex min-h-10 items-center gap-2 rounded-lg border border-border px-3.5 text-sm font-bold transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40" aria-label="사용 종료 및 화면 초기화"><LogOut size={16} />사용 종료</button>
           <button onClick={() => setIsDark((value) => !value)} className="grid h-10 w-10 place-items-center rounded-lg hover:bg-muted" aria-label={isDark ? "라이트 모드" : "다크 모드"}>{isDark ? <Sun size={19} /> : <Moon size={19} />}</button>
@@ -689,19 +962,21 @@ export default function App() {
           station={station}
           dispatchContact={dispatchContact}
           dataMode={runtimeDataMode}
-          gpsLabel={gpsPresentation.label}
-          gpsDetail={gpsPresentation.detail}
+          gpsLabel={displayGpsPresentation.label}
+          gpsDetail={displayGpsPresentation.detail}
           analysis={analysis}
           incidentId={incidentId}
           messages={messages}
           analysisIds={analysisIds}
           confirmationIds={confirmationIds}
-          canSave={Boolean(apiConfig.recordEnabled && !recordResetPending && incidentId && analysisIds.length)}
+          canSave={Boolean((apiConfig.recordEnabled || presentationReplay) && !recordResetPending && incidentId && analysisIds.length)}
           recordAvailable={apiConfig.recordEnabled}
           dispatchStreamAvailable={apiConfig.presentationScenarioEnabled || runtimeDataMode === "DEMO_SIMULATION"}
           dispatchStreamStatus={presentationReplayStatus}
           dispatchPreview={dispatchPreview}
           dispatchAccepted={Boolean(presentationScenarioId)}
+          localExportAvailable={syntheticScenario}
+          syntheticMode={syntheticScenario}
           onRequestSave={() => setShowSaveDialog(true)}
           onContactAttempt={() => setMessages((previous) => [...previous, makeMessage("SYSTEM", `${dispatchContact.name} 전화 연결을 시도했습니다.`)])}
           onConnectDispatch={() => { void loadPresentationIncident(); }}
@@ -711,14 +986,14 @@ export default function App() {
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-3">
           <section className="grid h-[88px] shrink-0 grid-cols-4 gap-3" aria-label="현장대응 요약">
             <StatusCard label="현재 단계" value={agentPhase ? PHASE_LABELS[agentPhase] : phaseFallback} detail={analysisStateLabel(analysis?.state)} tone="primary" />
-            <StatusCard label="출동 상태" value={journeyLabel(journeyState)} detail={!apiConfig.movementEnabled ? "이동 API 준비 중" : journeyState === "ARRIVED" || journeyState === "ON_SCENE" ? "현장 도착 확인" : "위치 갱신 대기"} tone="blue" />
-            <StatusCard label="ETA · 남은 거리" value={`${formatEta(route?.etaSeconds)} · ${formatDistance(route?.remainingDistanceM)}`} detail={route?.providerMode === "DEMO_SIMULATION" ? "시연 경로" : route?.provider ?? "도로 경로 없음"} tone="neutral" />
-            <StatusCard label="GPS 상태" value={gpsPresentation.label} detail={gpsPresentation.detail} tone={gpsPresentation.tone === "bad" ? "danger" : gpsPresentation.tone === "good" ? "green" : "neutral"} />
+            <StatusCard label="출동 상태" value={syntheticScenario ? "합성 출동 경로" : journeyLabel(journeyState)} detail={syntheticScenario ? "QA용 · 실제 출동 아님" : !apiConfig.movementEnabled ? "pilot 연동 전" : journeyState === "ARRIVED" || journeyState === "ON_SCENE" ? "현장 도착 확인" : "위치 갱신 대기"} tone="blue" />
+            <StatusCard label="ETA · 남은 거리" value={`${formatEta(route?.etaSeconds)} · ${formatDistance(route?.remainingDistanceM)}`} detail={route?.providerMode === "DEMO_SIMULATION" ? "합성 경로 · 실제 ETA 아님" : route?.provider ?? "도로 경로 없음"} tone="neutral" />
+            <StatusCard label="위치 상태" value={displayGpsPresentation.label} detail={displayGpsPresentation.detail} tone={displayGpsPresentation.tone === "bad" ? "danger" : displayGpsPresentation.tone === "good" ? "green" : "neutral"} />
           </section>
 
           <section className="grid min-h-0 flex-1 grid-cols-[minmax(500px,1.05fr)_minmax(480px,0.95fr)] gap-3">
             <Suspense fallback={<div className="grid min-h-[460px] place-items-center rounded-2xl border border-border bg-card text-xs text-muted-foreground">지도 모듈을 준비하고 있습니다…</div>}>
-              <IncidentMap context={effectiveMapContext} isDark={isDark} gps={gpsPresentation} />
+              <IncidentMap context={effectiveMapContext} isDark={isDark} gps={displayGpsPresentation} />
             </Suspense>
 
             <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
@@ -728,7 +1003,7 @@ export default function App() {
                     <button onClick={() => setMode("collision")} className={`min-h-11 rounded-lg text-sm font-bold transition ${mode === "collision" ? "bg-primary text-white shadow" : "text-muted-foreground"}`}>대응충돌검토</button>
                     <button onClick={() => setMode("substance")} className={`min-h-11 rounded-lg text-sm font-bold transition ${mode === "substance" ? "bg-primary text-white shadow" : "text-muted-foreground"}`}>물질검색</button>
                   </div>
-                  <button disabled={!apiConfig.recordEnabled || recordResetPending || !incidentId || analysisIds.length === 0} onClick={() => setShowSaveDialog(true)} className="flex min-h-11 items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 text-[13px] font-bold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"><Save size={13} />{!apiConfig.recordEnabled ? "기록 저장 준비 중" : recordResetPending ? "저장 완료" : "기록 저장"}</button>
+                  <button disabled={recordResetPending || !incidentId || analysisIds.length === 0 || (!apiConfig.recordEnabled && !presentationReplay)} onClick={() => setShowSaveDialog(true)} className="flex min-h-11 items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 text-[13px] font-bold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50">{presentationReplay && !apiConfig.recordEnabled ? <Download size={13} /> : <Save size={13} />}{recordResetPending ? "저장 완료" : presentationReplay && !apiConfig.recordEnabled ? "시연 기록 내보내기" : !apiConfig.recordEnabled ? "운영 저장 미사용" : "기록 저장"}</button>
                 </div>
                 {mode === "collision" && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
@@ -736,6 +1011,20 @@ export default function App() {
                     <input value={address} onChange={(event) => { clearPresentationReplayForManualEdit(); setAddress(event.target.value); }} className="min-h-11 rounded-lg border border-border bg-input-background px-3.5 text-sm outline-none focus:border-primary" placeholder="사고 주소(좌표는 BE 검증)" />
                   </div>
                 )}
+                {mode === "substance" && (
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/45 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">이름·CAS가 가장 정확합니다. 색상만 입력하면 후보가 없을 수 있습니다.</p>
+                    <button type="button" disabled={loading} onClick={() => { void handleSubmit("7681-52-9"); }} className="min-h-8 shrink-0 rounded-lg border border-border bg-card px-2.5 text-xs font-bold hover:bg-muted disabled:opacity-50">예시 CAS 검색</button>
+                  </div>
+                )}
+                {mode === "collision" && apiConfig.presentationScenarioEnabled && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <button type="button" disabled={isFullDemoRunning(fullDemoStatus) || presentationReplayStatus === "WAITING" || loading} onClick={() => { void runFullPresentationDemo(); }} className="min-h-9 rounded-lg bg-violet-600 px-3 text-xs font-bold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
+                      {isFullDemoRunning(fullDemoStatus) ? fullDemoStatusLabel(fullDemoStatus) : fullDemoStatus === "COMPLETED" ? "통합 데모 다시 시작" : fullDemoStatus === "ERROR" ? "통합 데모 재시도" : "통합 데모 시작"}
+                    </button>
+                  </div>
+                )}
+                {fullDemoStatus !== "IDLE" && <FullDemoProgress status={fullDemoStatus} failedAt={fullDemoFailedAt} />}
                 {presentationReplayStatus === "WAITING" && (
                   <div className="mt-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs leading-relaxed text-blue-800 dark:text-blue-200" role="status">
                     <strong>지령 스트림 연결 중</strong> · BE SSE에서 개인정보 없는 공개 합성 신고가 도착하기를 기다리고 있습니다.
@@ -758,8 +1047,8 @@ export default function App() {
                 {movementError && <div className="rounded-lg border border-accent/30 bg-accent/5 p-2 text-xs text-accent">경로 갱신: {movementError} 기존 화면은 유지됩니다.</div>}
                 {mode === "collision" ? (
                   <>
-                    <IncidentAnalysisCard analysis={analysis} onConfirm={(role, casNumber, displayName) => openConfirmation({ role, casNumber, displayName })} confirmingRole={confirmingRole} />
-                    {analysis?.agent && <details className="overflow-hidden rounded-xl border border-border bg-card"><summary className="cursor-pointer px-3 py-3 text-[13px] font-semibold">상세 대응 절차·에이전트 기록 보기</summary><div className="border-t border-border p-2"><AgentPanel agent={analysis.agent} /></div></details>}
+                    <IncidentAnalysisCard analysis={analysis} onConfirm={(role, casNumber, displayName) => openConfirmation({ role, casNumber, displayName })} confirmingRole={confirmingRole} confirmationMode={syntheticScenario ? "PUBLIC_SYNTHETIC" : "FIELD"} />
+                    {analysis?.agent && <details className="overflow-hidden rounded-xl border border-border bg-card"><summary className="cursor-pointer px-3 py-3 text-[13px] font-semibold">상세 대응 절차·에이전트 기록 보기</summary><div className="border-t border-border p-2"><AgentPanel agent={analysis.agent} syntheticMode={syntheticScenario} /></div></details>}
                     {messages.length > 1 && <details className="rounded-xl border border-border bg-secondary/30"><summary className="cursor-pointer px-3 py-2.5 text-[13px] font-semibold">대화·상태 기록 {messages.length}건</summary><div className="space-y-2 border-t border-border p-3">{messages.slice(-6).map((message) => <div key={message.messageId} className={`rounded-lg p-2 text-xs leading-relaxed ${message.role === "USER" ? "ml-8 bg-primary/10" : "mr-8 bg-card border border-border"}`}><p className="font-semibold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "에이전트" : "시스템"}</p><p className="mt-0.5">{message.text}</p></div>)}</div></details>}
                   </>
                 ) : <SubstanceResults result={materialResult} incidentAvailable={Boolean(incidentId)} onUseCandidate={(candidate) => openConfirmation({ role: "INCIDENT", casNumber: candidate.casNumber, displayName: candidate.displayName })} />}
@@ -782,9 +1071,10 @@ export default function App() {
       </div>
 
       {confirmationTarget && (
-        <DialogShell title="현장 물질 확인 기록" onClose={() => !confirmingRole && setConfirmationTarget(null)}>
+        <DialogShell title={presentationReplay ? "공개 합성 확인 적용" : "현장 물질 확인 기록"} onClose={() => !confirmingRole && setConfirmationTarget(null)}>
           <div className="space-y-4 p-5">
             <div className="rounded-xl bg-secondary p-3"><p className="text-xs text-muted-foreground">확인할 후보</p><p className="mt-1 text-sm font-bold">{confirmationTarget.displayName}</p><p className="mt-0.5 font-mono text-xs text-muted-foreground">CAS {confirmationTarget.casNumber}</p></div>
+            {!presentationReplay && <>
             <label className="block text-xs font-semibold">역할
               <select value={confirmationTarget.role} onChange={(event) => { const role = event.target.value as ConfirmationTarget["role"]; setConfirmationBasis(defaultConfirmationBasis(role)); setConfirmationTarget((current) => current ? { ...current, role } : current); }} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm outline-none focus:border-primary">
                 <option value="INCIDENT">사고물질</option>
@@ -800,20 +1090,21 @@ export default function App() {
               <input type="datetime-local" step={60} max={toConfirmationDateTimeInput()} value={confirmationObservedAt} onChange={(event) => setConfirmationObservedAt(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm outline-none focus:border-primary" required />
               <span className="mt-1 block text-xs font-normal text-muted-foreground">현재 기기 시각을 기본값으로 사용합니다. 실제 확인 시각과 다르면 수정하세요.</span>
             </label>
-            <p className="rounded-xl bg-accent/10 p-3 text-[13px] leading-relaxed text-accent">이 작업은 AI 후보 승인이 아니라 현장 확인 레코드 생성입니다. 직접 확인한 근거와 시각만 기록해주세요.</p>
+            </>}
+            <p className="rounded-xl bg-accent/10 p-3 text-[13px] leading-relaxed text-accent">{presentationReplay ? "고정된 공개 합성 시나리오 확인을 적용하고 서버 재분석을 실행합니다. 실제 대원 확인·운영 기록·기관 지령이 아닙니다." : "이 작업은 AI 후보 승인이 아니라 현장 확인 레코드 생성입니다. 직접 확인한 근거와 시각만 기록해주세요."}</p>
             {error && <ErrorNotice error={error} />}
-            <div className="flex gap-2"><button onClick={() => setConfirmationTarget(null)} disabled={Boolean(confirmingRole)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button onClick={() => void handleConfirm()} disabled={Boolean(confirmingRole) || !confirmationDateTimeToIso(confirmationObservedAt)} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{confirmingRole ? "저장 중…" : "현장 확인 기록 저장"}</button></div>
+            <div className="flex gap-2"><button onClick={() => setConfirmationTarget(null)} disabled={Boolean(confirmingRole)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button onClick={() => void handleConfirm()} disabled={Boolean(confirmingRole) || (!presentationReplay && !confirmationDateTimeToIso(confirmationObservedAt))} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{confirmingRole ? "적용 중…" : presentationReplay ? "합성 확인 적용 후 재분석" : "현장 확인 기록 저장"}</button></div>
           </div>
         </DialogShell>
       )}
 
       {showSaveDialog && (
-        <DialogShell title="대응 기록 저장" onClose={() => !saving && setShowSaveDialog(false)}>
+        <DialogShell title={presentationReplay && !apiConfig.recordEnabled ? "시연 기록 내보내기" : "대응 기록 저장"} onClose={() => !saving && setShowSaveDialog(false)}>
           <div className="p-5">
-            <p className="text-sm leading-relaxed">현재 대화와 현장 확인 내용을 대응 기록으로 저장합니다. 저장 후 새 사고 화면으로 초기화할까요?</p>
+            <p className="text-sm leading-relaxed">{presentationReplay && !apiConfig.recordEnabled ? "현재 공개 합성 데모의 대화·분석·확인 ID를 JSON 파일로 내려받습니다. 서버에는 저장하지 않으며 화면도 유지됩니다." : "현재 대화와 현장 확인 내용을 대응 기록으로 저장합니다. 저장 후 새 사고 화면으로 초기화할까요?"}</p>
             <ul className="mt-3 space-y-1 text-[13px] text-muted-foreground"><li>• 대화와 분석 결과</li><li>• 물질 확인·사고 위치·출동 상태</li><li>• 대응 근거와 모델·데이터·규칙 버전</li></ul>
             {saveError && <p className="mt-3 rounded-lg bg-primary/10 p-2 text-[13px] text-primary">{saveError} 현재 화면과 분석 결과는 유지됩니다.</p>}
-            <div className="mt-5 flex gap-2"><button disabled={saving} onClick={() => setShowSaveDialog(false)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button disabled={saving} onClick={() => void handleSave()} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{saving ? "저장 중…" : "저장 후 초기화"}</button></div>
+            <div className="mt-5 flex gap-2"><button disabled={saving} onClick={() => setShowSaveDialog(false)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button disabled={saving} onClick={() => void handleSave()} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{saving ? "저장 중…" : presentationReplay && !apiConfig.recordEnabled ? "JSON 파일 내려받기" : "저장 후 초기화"}</button></div>
           </div>
         </DialogShell>
       )}
@@ -835,7 +1126,7 @@ export default function App() {
         </DialogShell>
       )}
 
-      {savedRecordId && <div className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-xs font-semibold text-white shadow-2xl"><Check size={15} />저장된 기록은 화학사고 대응에 활용됩니다. <span className="font-mono text-xs text-white/70">{savedRecordId}</span></div>}
+      {savedRecordId && <div className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-xs font-semibold text-white shadow-2xl"><Check size={15} />{savedRecordId.endsWith(".json") ? "공개 합성 QA 기록을 내려받았습니다." : "저장된 기록은 화학사고 대응에 활용됩니다."} <span className="font-mono text-xs text-white/70">{savedRecordId}</span></div>}
     </div>
   );
 }

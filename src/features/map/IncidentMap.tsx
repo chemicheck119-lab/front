@@ -144,6 +144,11 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
   }, [context]);
 
   const route = context?.route;
+  const syntheticMap = Boolean(
+    context?.incidentPosition?.isSimulation
+    || context?.responderPosition?.isSimulation
+    || route?.providerMode === "DEMO_SIMULATION",
+  );
   const unavailableMessage = !context?.incidentPosition
     ? "사고 좌표를 확인해야 지도를 맞출 수 있습니다."
     : route?.message ?? "현재 위치와 도로 경로를 확인하고 있습니다.";
@@ -172,7 +177,7 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
           </div>
           <p className="mt-1.5 max-w-[320px] text-xs font-medium text-muted-foreground">{context?.incidentPosition?.label ?? unavailableMessage}</p>
         </div>
-        {runtimeDataMode === "DEMO_SIMULATION" && <span className="rounded-full border border-accent/40 bg-accent/15 px-3 py-1.5 text-[13px] font-bold text-accent">시연 데이터</span>}
+        {(runtimeDataMode === "DEMO_SIMULATION" || syntheticMap) && <span className="rounded-full border border-accent/40 bg-card/95 px-3 py-1.5 text-[13px] font-bold text-accent shadow">공개 합성 지도 · 실제 경로 아님</span>}
       </div>
 
       <div data-testid="map-route-summary" className="absolute bottom-4 right-16 z-10 w-[260px] max-w-[calc(100%-5rem)] rounded-xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-sm pointer-events-none">
@@ -183,6 +188,7 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
         <div className="mt-3 space-y-2 border-t border-border pt-3 text-xs font-medium">
           <div className="flex items-center gap-2"><LocateFixed size={14} className="text-blue-500" /><span>{gps.label} · {gps.detail}</span></div>
           <div className="flex items-center gap-2"><Route size={14} /><span className="truncate">{route?.message ?? "경로 대기"}</span></div>
+          {route?.attribution && <p className="line-clamp-2 border-t border-border pt-1 text-xs text-muted-foreground">{route.attribution}</p>}
         </div>
       </div>
 

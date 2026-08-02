@@ -34,9 +34,10 @@ const badgePresentation: Record<SourceBadgeKind, {
   },
 };
 
-export function SourceBadges({ kinds, label = "데이터 출처와 판정 경계" }: {
+export function SourceBadges({ kinds, label = "데이터 출처와 판정 경계", fieldConfirmationLabel }: {
   kinds: SourceBadgeKind[];
   label?: string;
+  fieldConfirmationLabel?: string;
 }) {
   const uniqueKinds = [...new Set(kinds)];
   if (uniqueKinds.length === 0) return null;
@@ -49,7 +50,7 @@ export function SourceBadges({ kinds, label = "데이터 출처와 판정 경계
         return (
           <span key={kind} className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-xs font-bold ${presentation.className}`}>
             <Icon size={10} aria-hidden="true" />
-            {presentation.label}
+            {kind === "FIELD_CONFIRMATION" && fieldConfirmationLabel ? fieldConfirmationLabel : presentation.label}
           </span>
         );
       })}

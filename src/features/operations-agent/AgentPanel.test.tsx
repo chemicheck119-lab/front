@@ -22,4 +22,10 @@ describe("현장대응 에이전트 패널", () => {
       ["충돌 검토", "BLOCKED"],
     ]);
   });
+
+  it("공개 시연에서는 완료된 합성 확인을 현장 확인으로 오인시키지 않는다", () => {
+    render(<AgentPanel agent={demoAnalysis.agent} syntheticMode />);
+    expect(screen.getByText("통합 데모 에이전트")).toBeInTheDocument();
+    expect(screen.getByText("합성 확인")).toBeInTheDocument();
+  });
 });
