@@ -27,6 +27,12 @@ export function NaverMapCanvas({ context, onError }: NaverMapCanvasProps) {
   const routeLineRef = useRef<naver.maps.Polyline | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
+  const changeZoom = (delta: number) => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.setZoom(Math.min(19, Math.max(6, map.getZoom() + delta)));
+  };
+
   useEffect(() => {
     let disposed = false;
     if (!containerRef.current || !apiConfig.naverMapClientId) return;
@@ -40,12 +46,7 @@ export function NaverMapCanvas({ context, onError }: NaverMapCanvasProps) {
           zoom: 7,
           minZoom: 6,
           maxZoom: 19,
-          zoomControl: true,
-          zoomControlOptions: {
-            position: naver.maps.Position.BOTTOM_RIGHT,
-            style: naver.maps.ZoomControlStyle.SMALL,
-            legendDisabled: true,
-          },
+          zoomControl: false,
           scaleControl: false,
           mapDataControl: true,
           logoControl: true,
@@ -164,6 +165,10 @@ export function NaverMapCanvas({ context, onError }: NaverMapCanvasProps) {
   return (
     <div className="chemicheck-map-canvas absolute inset-0" data-map-provider="naver">
       <div ref={containerRef} className="h-full w-full" />
+      <div data-testid="naver-map-zoom-controls" className="pointer-events-auto absolute bottom-12 right-3 z-20 flex flex-col overflow-hidden rounded-md border border-slate-400 bg-white shadow-md">
+        <button type="button" aria-label="지도 확대" disabled={!mapReady} onClick={() => changeZoom(1)} className="grid size-8 place-items-center text-xl leading-none text-slate-800 hover:bg-slate-100 disabled:opacity-50">+</button>
+        <button type="button" aria-label="지도 축소" disabled={!mapReady} onClick={() => changeZoom(-1)} className="grid size-8 place-items-center border-t border-slate-300 text-xl leading-none text-slate-800 hover:bg-slate-100 disabled:opacity-50">−</button>
+      </div>
     </div>
   );
 }
