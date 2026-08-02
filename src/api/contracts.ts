@@ -1,6 +1,6 @@
 /**
  * chemicheck119-dashboard-bff-v1 화면 사용 타입.
- * 권위 원본: BE_Repository develop@9685a8c2 / contracts/dashboard-bff-v1.openapi.json
+ * 권위 원본: BE_Repository bf9e7281 / contracts/dashboard-bff-v1.openapi.json
  * FE는 이 계약을 표시용으로만 사용하고 모델 API를 직접 호출하지 않는다.
  */
 import type { components as DashboardBffComponents } from "./generated/dashboard-bff";
