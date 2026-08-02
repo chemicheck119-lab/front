@@ -47,7 +47,7 @@ export function SourceBadges({ kinds, label = "데이터 출처와 판정 경계
         const presentation = badgePresentation[kind];
         const Icon = presentation.icon;
         return (
-          <span key={kind} className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-bold ${presentation.className}`}>
+          <span key={kind} className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-xs font-bold ${presentation.className}`}>
             <Icon size={10} aria-hidden="true" />
             {presentation.label}
           </span>

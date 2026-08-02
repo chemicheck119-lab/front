@@ -22,7 +22,7 @@ export function BrandLogo({ variant = "header", className = "" }: BrandLogoProps
         <span className={`${isLogin ? "text-2xl" : "text-lg"} block whitespace-nowrap font-black tracking-[-0.055em] text-foreground`}>
           케미체크<span className="text-primary">119</span>
         </span>
-        <span className={`${isLogin ? "mt-1.5 text-[11px]" : "mt-1 text-[9px]"} block whitespace-nowrap font-semibold tracking-[-0.025em] text-muted-foreground`}>
+        <span className={`${isLogin ? "mt-1.5 text-[13px]" : "mt-1 text-xs"} block whitespace-nowrap font-semibold tracking-[-0.025em] text-muted-foreground`}>
           화학재난대응지원시스템
         </span>
       </span>

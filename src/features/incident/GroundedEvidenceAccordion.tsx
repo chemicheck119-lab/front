@@ -39,7 +39,7 @@ function StatementSources({ sourceIds, rag }: { sourceIds: string[]; rag: Ground
   });
 
   if (citations.length === 0) {
-    return <p className="mt-2 text-[10px] text-accent">이 문장에 연결된 원문 링크가 없습니다.</p>;
+    return <p className="mt-2 text-xs text-accent">이 문장에 연결된 원문 링크가 없습니다.</p>;
   }
 
   return (
@@ -50,7 +50,7 @@ function StatementSources({ sourceIds, rag }: { sourceIds: string[]; rag: Ground
           href={citation.url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-border bg-card px-2 text-[10px] font-semibold text-blue-600 hover:bg-muted"
+          className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-blue-600 hover:bg-muted"
         >
           {citation.title || `출처 ${index + 1}`}<ExternalLink size={9} />
         </a>
@@ -63,8 +63,8 @@ export function GroundedEvidenceAccordion({ rag }: { rag: GroundedRagResult | nu
   if (!rag) {
     return (
       <section className="rounded-xl border border-dashed border-border bg-secondary/30 p-3">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold"><FileWarning size={13} /> 대응 근거 응답 없음</p>
-        <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">현재 분석 응답에 groundedRag가 없습니다. 원문 MSDS를 직접 확인해주세요.</p>
+        <p className="flex items-center gap-1.5 text-[13px] font-semibold"><FileWarning size={13} /> 대응 근거 응답 없음</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">현재 분석 응답에 groundedRag가 없습니다. 원문 MSDS를 직접 확인해주세요.</p>
       </section>
     );
   }
@@ -77,21 +77,21 @@ export function GroundedEvidenceAccordion({ rag }: { rag: GroundedRagResult | nu
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
           <BookOpenCheck size={14} className="text-blue-600" />
-          <span><span className="block text-[11px] font-bold">대응 근거</span><span className="block text-[9px] text-muted-foreground">{presentation.title}</span></span>
+          <span><span className="block text-[13px] font-bold">대응 근거</span><span className="block text-xs text-muted-foreground">{presentation.title}</span></span>
         </span>
-        <span className="rounded-full bg-blue-500/10 px-2 py-1 text-[9px] font-semibold text-blue-700 dark:text-blue-300">{rag.status}</span>
+        <span className="rounded-full bg-blue-500/10 px-2 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">{rag.status}</span>
       </summary>
       <div className="space-y-2 border-t border-border p-3">
-        <p className="text-[10px] leading-relaxed text-muted-foreground">{presentation.detail}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">{presentation.detail}</p>
         {hasStatements ? rag.statements.map((statement, index) => (
           <article key={`${index}-${statement.text}`} className="rounded-lg border border-border bg-card p-3">
-            <p className="text-[11px] leading-relaxed">{statement.text}</p>
+            <p className="text-[13px] leading-relaxed">{statement.text}</p>
             <StatementSources sourceIds={statement.sourceIds} rag={rag} />
           </article>
         )) : (
-          <div className="rounded-lg bg-card p-3 text-[10px] leading-relaxed text-muted-foreground">{presentation.detail}</div>
+          <div className="rounded-lg bg-card p-3 text-xs leading-relaxed text-muted-foreground">{presentation.detail}</div>
         )}
-        <div className="rounded-lg bg-muted/70 p-2 text-[9px] leading-relaxed text-muted-foreground">
+        <div className="rounded-lg bg-muted/70 p-2 text-xs leading-relaxed text-muted-foreground">
           위험등급은 대응 근거 요약이 아니라 결정 규칙 결과에서만 표시합니다.
           {rag.usedLlm === false ? " 이 내용은 공식 근거 발췌 요약입니다." : ""}
         </div>
