@@ -10,17 +10,17 @@
 |---|---|---|
 | 전국 현장지도 | 네이버 지도 연동 완료 | 네이버 Web Dynamic Map 우선, MapTiler fallback, 사고/대원 마커와 BE GeoJSON LineString 표시 |
 | 브라우저 위치 | 구현 완료 | `watchPosition`, 권한 거부·대기·오래됨·낮은 정확도 처리 |
-| 이동 경로·ETA | FE·BE 구현 완료·활성화 대기 | Live 기본값은 `준비 중`; staging GPS·도로 경로 검증 후 기능 플래그 활성화 |
+| 이동 경로·ETA | 운영 연동 대기·공개 데모 QA 가능 | staging은 실제 길찾기 대신 명시적인 공개 합성 경로·ETA를 표시 |
 | 현장대응 에이전트 | BFF 계약 연동 완료 | 단계·목표·다음 행동·도구 실행 요약 표시 |
 | 물질검색 | FE·BE 연동 가능 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
 | 확인 게이트 | FE·BE 구현 완료 | 두 CAS 확인 전 규칙 차단, `0/2→2/2` 현장 체크포인트와 역할·근거·확인 시각 기록 |
-| 기록 저장 | FE·BE 구현 완료·활성화 대기 | 저장은 staging 영속성 검증 전까지 `준비 중`; 성공 응답 뒤에만 초기화 |
+| 기록 저장 | 운영 연동 대기·공개 데모 QA 가능 | 공개 합성 데모는 서버 저장 대신 감사 ID가 포함된 JSON을 로컬로 내보냄 |
 | 좌측 현장 도구 | UI·화면 상태 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
 | 실제 BE/BFF | 7개 operation 계약 동기화 | `develop@9685a8c2` 기준 세션·로그아웃·분석·검색·확인·movement·record |
 | BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·7개 operation·세션 보안·생성 타입을 `pnpm check`에서 검증 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
-| 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
-| 공모전 Live 시나리오 | 단계형 현장 흐름 구현 | 상황실 SSE 연결 → 대원 지령 확인 → 실제 AI 분석 → 현장 확인 1/2·2/2 → CAMEO 규칙 검증 |
+| 시연 모드 | 구현 완료 | 모든 화면에 `오프라인 시연` 배지를 고정 표시 |
+| 공모전 Live 시나리오 | 단계형·자동 QA 흐름 구현 | 상황실 SSE → 대원 지령 확인 또는 자동 QA → 실제 AI → 합성 확인 1/2·2/2 → CAMEO → QA JSON |
 
 ## 실행
 
@@ -50,9 +50,11 @@ VITE_ENABLE_DEMO_MODE=true
 
 공모전의 주 시연에는 이 offline 시연 모드를 사용하지 않습니다. `https://chemicheck119.site`의
 좌측 `상황실 연결`에서 지령망에 연결해 BE SSE의 개인정보 없는 IncidentEnvelope를 받은 뒤,
-대원이 지령을 확인해 대응화면에 반영합니다. 이후 사고 분석과 두 CAS 확인은 각각 별도 행동으로
-진행하며 실제 BFF·AI 응답을 보여줍니다. 화면의
-`실제 API`는 처리 경로를, `공개 합성 신고`는 입력 데이터 성격을 뜻합니다. 자세한 경계와 실제
+대원이 내용을 확인해 대응화면에 반영하는 단계형 흐름이 주 시연입니다. `통합 데모 시작`은 같은
+서버 계약을 자동 완주하는 사전 QA·백업 경로입니다. 사고·시설 CAS 확인은 두 경로 모두 서버 고정
+`SYNTHETIC_DEMO_CONFIRMATION`이며 실제 대원 확인이 아닙니다. 화면의
+`서버 연동`은 처리 경로를, `공개 합성 신고`는 입력 데이터 성격을 뜻합니다. 지도·ETA는
+명시적인 공개 합성 경로이며 운영 기록 대신 QA JSON을 로컬로 내보냅니다. 자세한 경계와 실제
 119 지령 연계 계획은 [신고 입력·시연·실운영 전략](./docs/INCIDENT_INTAKE_STRATEGY.md)을 참고합니다.
 
 ### BE staging 연동 빌드
@@ -63,7 +65,7 @@ BE가 전달한 staging 설정은 `.env.staging`에 비밀값 없이 고정합�
 corepack pnpm build:staging
 ```
 
-현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. 공모전 staging은 `VITE_ENABLE_AUTH=false`로 로그인·세션 없이 `현장대응본부` 화면에 바로 진입합니다. 상단 `사용 종료`는 사고·대화·분석·입력값을 로컬에서 초기화하며, 인증 모드에서는 BE `POST /api/c2guard/v1/logout`을 먼저 호출합니다. AI 분석을 포함한 모든 서비스 요청은 모델 서버가 아니라 이 BFF만 호출합니다. 공개 물질검색·사고분석은 인증 없이 Live E2E가 가능하며 confirmation·movement·record는 운영 인증 범위를 유지합니다.
+현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 운영 movement·record는 비활성화합니다. 공모전 staging은 `VITE_ENABLE_AUTH=false`로 로그인·세션 없이 `케미체크119 데모 상황실` 화면에 바로 진입합니다. 상단 `사용 종료`는 사고·대화·분석·입력값을 로컬에서 초기화하며, 인증 모드에서는 BE `POST /api/c2guard/v1/logout`을 먼저 호출합니다. AI 분석을 포함한 모든 서비스 요청은 모델 서버가 아니라 이 BFF만 호출합니다. 공개 물질검색·사고분석과 고정 합성 확인은 인증 없이 Live E2E가 가능하며 운영 confirmation·movement·record는 인증 범위를 유지합니다.
 
 ## 환경변수와 보안
 
@@ -114,7 +116,7 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 | `POST /api/c2guard/v1/incidents/{incidentId}/movement` | FE·BE 구현 완료; staging 활성화 검증 대기 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/record` | FE·BE 구현 완료; staging 영속성 검증 대기 |
 
-현재 FE는 확인 성공 후 동일 사고를 재분석하며 BE 계약과 일치합니다. movement·record는 명시적 기능 플래그가 없으면 Live 요청을 보내지 않고 `준비 중`으로 표시하며, staging E2E가 통과된 환경에서만 활성화합니다.
+현재 FE는 확인 성공 후 동일 사고를 재분석하며 BE 계약과 일치합니다. 운영 movement·record는 명시적 기능 플래그가 없으면 Live 요청을 보내지 않습니다. 공개 합성 데모에서는 실제 연동을 사칭하지 않는 합성 경로·ETA와 로컬 QA JSON으로 화면 동작을 검증합니다.
 
 상세 계약과 BE 담당 체크리스트는 [BE 연동 요청서](./docs/BE_INTEGRATION_REQUEST.md)를 참고합니다.
 
@@ -145,7 +147,8 @@ corepack pnpm check
 - GeoJSON 경로 표시 조건
 - 두 CAS 현장 확인 게이트
 - 기록 저장 성공 후 초기화 조건
-- 시연 데이터와 실제 API 구분
+- 공개 합성 데이터와 서버 처리 경로 구분
+- 합성 지도·ETA, QA JSON 내보내기, 유효한 공식 근거 URL
 
 브라우저 검증 결과와 스크린샷은 [검증 기록](./docs/VALIDATION.md)에 있습니다.
 `develop` 대상 PR과 `develop` push에서는 GitHub Actions가 같은 `pnpm check`를 실행하며 BE staging 연동 번들과 Sites 시연 배포 번들까지 검증합니다.
@@ -174,7 +177,7 @@ corepack pnpm build:sites:staging
 ## 알려진 한계
 
 - 실제 배포 AI 서버와 API Key를 사용한 공개 물질검색·사고분석 Live E2E는 검증됐지만, 기관 사용자·지령 시스템 연계는 아직 없습니다.
-- 현재 공모전 staging은 공개 물질검색·사고분석만 인증 없이 허용하며 confirmation·movement·record는 보호됩니다.
+- 현재 공모전 staging은 공개 물질검색·사고분석과 replay incident의 고정 합성 confirmation만 인증 없이 허용하며 운영 confirmation·movement·record는 보호됩니다.
 - Cloud SQL 영속화는 배포됐지만 보호된 confirmation·movement·record 전체 E2E와 실제 길찾기 Provider는 아직 운영 연동 전입니다.
 - 저장소의 기존 로고 이미지에는 `케미가드` 표기가 남아 있습니다. 서비스 표시명 확정 후 별도 디자인 자산 교체가 필요합니다.
 

@@ -33,6 +33,8 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof FieldToolsPa
     dispatchStreamStatus: "IDLE",
     dispatchPreview: null,
     dispatchAccepted: false,
+    localExportAvailable: false,
+    syntheticMode: false,
     onRequestSave: vi.fn(),
     onContactAttempt: vi.fn(),
     onConnectDispatch: vi.fn(),
@@ -139,8 +141,33 @@ describe("좌측 현장 도구", () => {
     renderPanel({ incidentId: "INC-1", analysisIds: ["ANL-1"], canSave: false, recordAvailable: false });
     fireEvent.click(screen.getByRole("button", { name: /현재 사고 기록/ }));
 
-    expect(screen.getByText(/서버 기록저장 API가 배포되면/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "기록 저장 API 준비 중" })).toBeDisabled();
+    expect(screen.getByText(/운영 기록 저장은 인증된 pilot 환경/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "시연 완료 후 내보내기 가능" })).toBeDisabled();
+  });
+
+  it("공개 합성 시연은 현장 확인을 사칭하지 않고 JSON QA 증적을 내보낼 수 있다", () => {
+    const onRequestSave = vi.fn();
+    const confirmed = structuredClone(demoAnalysis);
+    confirmed.confirmationGate.incidentConfirmed = true;
+    confirmed.confirmationGate.facilityConfirmed = true;
+    renderPanel({
+      analysis: confirmed,
+      incidentId: "INC-SYNTHETIC",
+      analysisIds: ["ANL-1"],
+      confirmationIds: ["CONF-1", "CONF-2"],
+      canSave: true,
+      recordAvailable: false,
+      localExportAvailable: true,
+      syntheticMode: true,
+      onRequestSave,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /공식 화학자료/ }));
+    expect(screen.getAllByText("합성 확인 완료")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+    fireEvent.click(screen.getByRole("button", { name: /현재 사고 기록/ }));
+    fireEvent.click(screen.getByRole("button", { name: "시연 기록 JSON 내보내기" }));
+    expect(onRequestSave).toHaveBeenCalledOnce();
   });
 });
 

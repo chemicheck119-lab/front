@@ -35,23 +35,27 @@ export function analysisStateLabel(state?: IncidentAnalysisResponse["state"]): s
   return state ? labels[state] : "신고 접수 대기";
 }
 
-export function getConfirmationWorkflow(analysis: IncidentAnalysisResponse): ConfirmationWorkflowStep[] {
+export function getConfirmationWorkflow(
+  analysis: IncidentAnalysisResponse,
+  confirmationMode: "FIELD" | "PUBLIC_SYNTHETIC" = "FIELD",
+): ConfirmationWorkflowStep[] {
   const incidentConfirmed = analysis.confirmationGate.incidentConfirmed;
   const facilityConfirmed = analysis.confirmationGate.facilityConfirmed;
   const reviewCompleted = analysis.conflictReview.executed && analysis.conflictReview.status === "SCREENING_COMPLETED";
+  const completedDetail = confirmationMode === "PUBLIC_SYNTHETIC" ? "합성 확인 완료" : "현장 확인됨";
 
   return [
     {
       id: "INCIDENT",
       label: "사고물질",
       status: incidentConfirmed ? "COMPLETED" : "CURRENT",
-      detail: incidentConfirmed ? "현장 확인됨" : "라벨·MSDS 확인",
+      detail: incidentConfirmed ? completedDetail : confirmationMode === "PUBLIC_SYNTHETIC" ? "합성 확인 대기" : "라벨·MSDS 확인",
     },
     {
       id: "FACILITY",
       label: "시설물질",
       status: facilityConfirmed ? "COMPLETED" : "CURRENT",
-      detail: facilityConfirmed ? "현장 확인됨" : "현재 존재 확인",
+      detail: facilityConfirmed ? completedDetail : confirmationMode === "PUBLIC_SYNTHETIC" ? "합성 확인 대기" : "현재 존재 확인",
     },
     {
       id: "REVIEW",

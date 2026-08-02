@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, ExternalLink, History, LockKeyhole, ShieldCheck } from "lucide-react";
 import type { EvidenceCard, IncidentAnalysisResponse } from "../../api/contracts";
 import { SourceBadges, type SourceBadgeKind } from "../evidence/SourceBadges";
+import { resolveOfficialSourceUrl } from "../evidence/sourceLinks";
 import { GroundedEvidenceAccordion } from "./GroundedEvidenceAccordion";
 import { analysisStateLabel, canShowRisk, getConfirmationWorkflow, type ConfirmationWorkflowStatus } from "./analysisState";
 
@@ -8,6 +9,7 @@ interface IncidentAnalysisCardProps {
   analysis: IncidentAnalysisResponse | null;
   onConfirm: (role: "INCIDENT" | "FACILITY", casNumber: string, displayName: string) => void;
   confirmingRole: "INCIDENT" | "FACILITY" | null;
+  confirmationMode?: "FIELD" | "PUBLIC_SYNTHETIC";
 }
 
 const roleLabel = (role: "INCIDENT" | "FACILITY" | "UNKNOWN") => role === "INCIDENT" ? "사고물질" : role === "FACILITY" ? "시설물질" : "물질 후보";
@@ -30,15 +32,16 @@ function EvidenceLinks({ evidence }: { evidence: EvidenceCard[] }) {
   }
 
   return (
-    <details className="mt-2 overflow-hidden rounded-lg border border-border bg-secondary/30">
-      <summary className="cursor-pointer px-2.5 py-2 text-[10px] font-semibold text-muted-foreground">공식 근거 {evidence.length}건 보기</summary>
+    <details className="mt-2 rounded-lg border border-border bg-secondary/45">
+      <summary className="cursor-pointer list-none px-2.5 py-2 text-[10px] font-semibold [&::-webkit-details-marker]:hidden">공식 근거 {evidence.length}건 보기</summary>
       <div className="space-y-1.5 border-t border-border p-2">
-        {evidence.map((item) => (
-          <a key={item.evidenceId} href={item.sourceUrl} target="_blank" rel="noreferrer" className="block rounded-lg border border-border bg-card p-2 hover:bg-muted">
-            <span className="flex items-center justify-between gap-2 text-[10px] font-semibold"><span className="truncate">{item.title}</span><ExternalLink size={10} className="shrink-0" /></span>
-            <span className="mt-1 line-clamp-2 block text-[9px] leading-relaxed text-muted-foreground">{item.bodyPreview}</span>
-          </a>
-        ))}
+        {evidence.map((item) => {
+          const sourceUrl = resolveOfficialSourceUrl(item.sourceUrl, item.source);
+          const content = <><span className="flex items-center justify-between gap-2 text-[10px] font-semibold"><span className="truncate">{item.title}</span>{sourceUrl && <ExternalLink size={10} className="shrink-0" />}</span><span className="mt-1 line-clamp-2 block text-[9px] leading-relaxed text-muted-foreground">{item.bodyPreview}</span></>;
+          return sourceUrl
+            ? <a key={item.evidenceId} href={sourceUrl} target="_blank" rel="noreferrer" className="block rounded-lg border border-border bg-card p-2 hover:bg-muted">{content}</a>
+            : <div key={item.evidenceId} className="rounded-lg border border-border bg-card p-2">{content}<span className="mt-1 block text-[9px] text-accent">원문 URL 확인 필요</span></div>;
+        })}
       </div>
     </details>
   );
@@ -70,15 +73,18 @@ const confirmationStepStyle: Record<ConfirmationWorkflowStatus, string> = {
   LOCKED: "border-border bg-muted/45 text-muted-foreground",
 };
 
-function ConfirmationWorkflow({ analysis }: { analysis: IncidentAnalysisResponse }) {
-  const steps = getConfirmationWorkflow(analysis);
+function ConfirmationWorkflow({ analysis, confirmationMode }: {
+  analysis: IncidentAnalysisResponse;
+  confirmationMode: "FIELD" | "PUBLIC_SYNTHETIC";
+}) {
+  const steps = getConfirmationWorkflow(analysis, confirmationMode);
   const confirmedCount = Number(analysis.confirmationGate.incidentConfirmed) + Number(analysis.confirmationGate.facilityConfirmed);
 
   return (
     <section className="border-b border-border bg-card px-3 py-2.5" aria-label="현장 확인 3단계">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-bold">현장 확인 진행</p>
-        <p className="text-[10px] font-semibold text-muted-foreground">필수 CAS {confirmedCount}/2 확인</p>
+        <p className="text-[10px] font-bold">{confirmationMode === "PUBLIC_SYNTHETIC" ? "공개 합성 확인 게이트" : "현장 확인 진행"}</p>
+        <p className="text-[10px] font-semibold text-muted-foreground">필수 CAS {confirmedCount}/2 {confirmationMode === "PUBLIC_SYNTHETIC" ? "합성 확인" : "확인"}</p>
       </div>
       <ol className="grid grid-cols-3 gap-1.5">
         {steps.map((step, index) => (
@@ -95,7 +101,7 @@ function ConfirmationWorkflow({ analysis }: { analysis: IncidentAnalysisResponse
   );
 }
 
-export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: IncidentAnalysisCardProps) {
+export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole, confirmationMode = "FIELD" }: IncidentAnalysisCardProps) {
   if (!analysis) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-secondary/40 p-4 text-center">
@@ -127,7 +133,7 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
         <header className="flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2.5">
           <div className="flex items-center gap-2">
             {riskVisible ? <CheckCircle2 size={15} className="text-emerald-600" /> : <LockKeyhole size={14} className="text-accent" />}
-            <div><p className="text-xs font-semibold">{analysisStateLabel(analysis.state)}</p><p className="text-[10px] text-muted-foreground">현장 확인 {confirmedCount}/2</p></div>
+            <div><p className="text-xs font-semibold">{analysisStateLabel(analysis.state)}</p><p className="text-[10px] text-muted-foreground">{confirmationMode === "PUBLIC_SYNTHETIC" ? "합성 확인" : "현장 확인"} {confirmedCount}/2</p></div>
           </div>
           <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${riskVisible ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-accent/10 text-accent"}`}>
             충돌 규칙 {analysis.conflictReview.executed ? "실행됨" : "잠김"}
@@ -139,13 +145,13 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
             <p className="text-[9px] font-bold text-muted-foreground">사고물질</p>
             <p className="mt-1 truncate text-[11px] font-bold">{incidentCandidate?.surfaceText ?? "후보 없음"}</p>
             <p className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">{incidentCandidate?.candidates[0]?.casNumber ? `CAS ${incidentCandidate.candidates[0].casNumber}` : "라벨 확인 필요"}</p>
-            <p className="mt-1 text-[9px] font-bold">{analysis.confirmationGate.incidentConfirmed ? "✓ 현장 확인됨" : "확인 필요"}</p>
+            <p className="mt-1 text-[9px] font-bold">{analysis.confirmationGate.incidentConfirmed ? (confirmationMode === "PUBLIC_SYNTHETIC" ? "✓ 합성 확인 완료" : "✓ 현장 확인됨") : "확인 필요"}</p>
           </div>
           <div className={`rounded-lg border p-2.5 ${analysis.confirmationGate.facilityConfirmed ? "border-emerald-500/30 bg-emerald-500/10" : "border-amber-500/30 bg-amber-500/10"}`}>
             <p className="text-[9px] font-bold text-muted-foreground">시설물질</p>
             <p className="mt-1 truncate text-[11px] font-bold">{facilityCandidate?.surfaceText ?? "현재 존재 미확인"}</p>
             <p className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">{facilityCandidate?.candidates[0]?.casNumber ? `CAS ${facilityCandidate.candidates[0].casNumber}` : "현장 확인 필요"}</p>
-            <p className="mt-1 text-[9px] font-bold">{analysis.confirmationGate.facilityConfirmed ? "✓ 현장 확인됨" : "확인 필요"}</p>
+            <p className="mt-1 text-[9px] font-bold">{analysis.confirmationGate.facilityConfirmed ? (confirmationMode === "PUBLIC_SYNTHETIC" ? "✓ 합성 확인 완료" : "✓ 현장 확인됨") : "확인 필요"}</p>
           </div>
           <div className={`rounded-lg border p-2.5 ${completed ? completed.riskLevel === "HIGH" ? "border-primary/40 bg-primary/10" : "border-emerald-500/30 bg-emerald-500/10" : "border-border bg-muted/55"}`}>
             <p className="text-[9px] font-bold text-muted-foreground">충돌 위험</p>
@@ -157,10 +163,10 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
 
         <details className="border-b border-border bg-card" aria-label="분석 데이터 출처">
           <summary className="cursor-pointer px-3 py-2.5 text-[10px] font-semibold text-muted-foreground">데이터 출처 {sourceBadges.length}개 보기</summary>
-          <div className="border-t border-border px-3 py-2.5"><SourceBadges kinds={sourceBadges} /></div>
+          <div className="border-t border-border px-3 py-2.5"><SourceBadges kinds={sourceBadges} fieldConfirmationLabel={confirmationMode === "PUBLIC_SYNTHETIC" ? "공개 합성 확인 게이트" : undefined} /></div>
         </details>
 
-        <ConfirmationWorkflow analysis={analysis} />
+        <ConfirmationWorkflow analysis={analysis} confirmationMode={confirmationMode} />
 
         {!riskVisible && (
           <div className="border-b border-border bg-accent/5 px-3 py-3">
@@ -180,7 +186,7 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
                     <div className="flex flex-wrap items-center gap-1.5"><p className="text-[10px] text-muted-foreground">{roleLabel(item.role)} · {resolverLabel(item.resolverStatus)}</p><span className="rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-bold text-accent">AI 확정 아님</span></div>
                     <p className="mt-1 text-xs font-semibold">{item.surfaceText}</p>
                   </div>
-                  {confirmed && <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"><CheckCircle2 size={10} /> 현장 확인됨</span>}
+                  {confirmed && <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"><CheckCircle2 size={10} /> {confirmationMode === "PUBLIC_SYNTHETIC" ? "합성 확인 완료" : "현장 확인됨"}</span>}
                 </div>
                 <div className="mt-2 space-y-2">
                   {item.candidates.map((candidate) => {
@@ -189,7 +195,7 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
                       <div key={candidate.casNumber} className="rounded-lg border border-border bg-secondary/35 p-2.5">
                         <div className="flex items-center justify-between gap-2">
                           <div><p className="font-mono text-[11px] font-semibold">CAS {candidate.casNumber}</p><p className="mt-0.5 text-[9px] text-muted-foreground">후보 점수는 확률·신뢰도가 아닙니다.</p></div>
-                          {!confirmed && item.role !== "UNKNOWN" && <ConfirmationButton role={item.role} casNumber={candidate.casNumber} displayName={item.surfaceText} confirmingRole={confirmingRole} onConfirm={onConfirm} />}
+                          {!confirmed && item.role !== "UNKNOWN" && <ConfirmationButton role={item.role} casNumber={candidate.casNumber} displayName={item.surfaceText} confirmingRole={confirmingRole} onConfirm={onConfirm} label={confirmationMode === "PUBLIC_SYNTHETIC" ? `${roleLabel(item.role)} 합성 확인` : undefined} />}
                         </div>
                         <EvidenceLinks evidence={evidence} />
                       </div>
@@ -228,7 +234,7 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole }: In
             <p className="mt-3 text-[10px] font-bold">다음 현장 확인</p>
             <ul className="mt-1 space-y-1 text-[10px] text-muted-foreground">{completed.requiredChecks.map((check) => <li key={check}>• {check}</li>)}</ul>
             {completed.limitations.length > 0 && <div className="mt-3 rounded-lg bg-accent/10 p-2 text-[10px] leading-relaxed text-accent">{completed.limitations.join(" · ")}</div>}
-            <div className="mt-3 flex flex-wrap gap-2">{completed.evidenceUrls.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-border px-2 text-[10px] font-semibold text-blue-600 hover:bg-muted">공식 근거 {index + 1}<ExternalLink size={10} /></a>)}</div>
+            <div className="mt-3 flex flex-wrap gap-2">{completed.evidenceUrls.flatMap((url, index) => { const safeUrl = resolveOfficialSourceUrl(url); return safeUrl ? [<a key={safeUrl} href={safeUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-border px-2 text-[10px] font-semibold text-blue-600 hover:bg-muted">공식 근거 {index + 1}<ExternalLink size={10} /></a>] : []; })}</div>
             <p className="mt-3 text-[9px] text-muted-foreground">결정 규칙 {completed.ruleId} · {completed.ruleVersion} · {completed.finalDecision}</p>
           </section>
         ) : (
