@@ -750,7 +750,7 @@ export default function App() {
               </div>
 
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-                <section className={`rounded-xl border p-3 ${currentTask.complete ? "border-emerald-500/30 bg-emerald-500/10" : "border-blue-500/30 bg-blue-500/10"}`} aria-label="현재 해야 할 일">
+                <section className={`sticky top-0 z-20 rounded-xl border p-3 shadow-sm backdrop-blur-md ${currentTask.complete ? "border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90" : "border-blue-500/30 bg-blue-50/95 dark:bg-blue-950/90"}`} aria-label="현재 해야 할 일">
                   <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-[9px] font-bold ${currentTask.complete ? "bg-emerald-600 text-white" : "bg-blue-600 text-white"}`}>{currentTask.step}</span><p className="text-xs font-bold">{currentTask.title}</p></div>
                   <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">{currentTask.detail}</p>
                 </section>

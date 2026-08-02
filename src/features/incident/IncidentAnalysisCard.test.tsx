@@ -15,6 +15,11 @@ describe("사고 분석 현장 확인 흐름", () => {
     expect(workflow).toHaveTextContent("사고물질");
     expect(workflow).toHaveTextContent("시설물질");
     expect(workflow).toHaveTextContent("충돌검토");
+    const fieldSummary = screen.getByRole("region", { name: "현장 핵심 정보" });
+    expect(fieldSummary).toHaveTextContent("차아염소산나트륨");
+    expect(fieldSummary).toHaveTextContent("염산");
+    expect(fieldSummary).toHaveTextContent("검토 잠김");
+    expect(fieldSummary).toHaveTextContent("임의 판단 금지");
     expect(screen.getByRole("button", { name: "사고물질 현장 확인" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "시설물질 현장 확인" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "시설 이력 현장 확인" })).toBeEnabled();
@@ -45,6 +50,7 @@ describe("사고 분석 현장 확인 흐름", () => {
     expect(workflow).toHaveTextContent("필수 CAS 2/2 확인");
     expect(screen.getByText("NOAA CAMEO 충돌 규칙")).toBeInTheDocument();
     expect(screen.queryByText("현장 확인 필요")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "현장 핵심 정보" })).toHaveTextContent("높음");
     expect(screen.getByRole("region", { name: "충돌 검토 결과" })).toHaveTextContent("높음");
     expect(screen.getByRole("region", { name: "충돌 검토 결과" })).toHaveTextContent("현장 지휘관 판단");
   });
