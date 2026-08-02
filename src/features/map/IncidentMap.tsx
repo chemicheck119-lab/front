@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { MapContext } from "../../api/contracts";
 import { apiConfig, runtimeDataMode } from "../../api/config";
 import { canRenderRoute, formatDistance, formatEta, type LocationPresentation } from "./mapState";
+import { resolveOperationalMapStyle } from "./mapStyle";
 import { AlertTriangle, Crosshair, LocateFixed, MapPinned, Route } from "lucide-react";
 
 interface IncidentMapProps {
@@ -53,7 +54,7 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
       setMapError(null);
       const map = new maplibregl.Map({
         container: containerRef.current,
-        style: styleUrl,
+        style: resolveOperationalMapStyle(styleUrl),
         center: [127.7, 36.3],
         zoom: 6,
         attributionControl: false,

@@ -18,7 +18,7 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 ## 확정된 FE 경계
 
 - 공개 develop FE origin은 `https://chemicheck119.site`입니다. BE staging credential CORS allowlist에 이 exact origin만 등록했으며 허용 preflight `200`, 미인증 `401`, 외부 origin `403`을 확인했습니다.
-- 운영 배경지도는 실제 도로·건물·지명이 표시되는 MapTiler Streets Light/Dark로 확정했습니다. 공개 키는 허용 origin으로 제한하고 Git에 저장하지 않으며, MapTiler·OpenStreetMap attribution은 Style JSON 원문을 표시합니다.
+- 운영 배경지도는 실제 도로·건물·지명이 표시되는 MapTiler Streets Light/Dark Raster XYZ로 확정했습니다. 공개 키는 허용 origin으로 제한하고 Git에 저장하지 않으며, MapTiler·OpenStreetMap attribution을 표시합니다.
 - 모든 서비스 요청은 `VITE_BFF_BASE_URL`을 사용합니다. 현재 공모전 staging은 `VITE_ENABLE_AUTH=false`로 인증 쿠키를 포함하지 않고 현장 화면에 바로 진입합니다.
 - FE는 모델 API와 길찾기 Provider를 직접 호출하거나 API Key를 보관하지 않습니다.
 - 세션·로그아웃·사고 분석·물질 검색·현장 확인·movement·record는 BE `develop@9685a8c2` 고정 계약 기준 연결 대상입니다.
