@@ -114,43 +114,43 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
   }, [pilotCatalogAttempt, publicPilotAccess, safeAuthLoginUrl, sessionChecking]);
 
   return (
-    <main className="grid min-h-[100dvh] place-items-center bg-background p-6" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
-      <section className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 shadow-xl">
+    <main className="grid min-h-[100dvh] place-items-center bg-background px-4 py-10 sm:p-8" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+      <section className="w-full max-w-lg rounded-[2rem] border border-border bg-card p-6 shadow-xl sm:p-10">
         <BrandLogo variant="login" className="mx-auto" />
-        <div className="my-6 h-px bg-border" />
+        <div className="my-8 h-px bg-border" />
 
         {isDemo ? (
           <>
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[13px] text-amber-800 dark:text-amber-200">
-              <AlertTriangle size={14} className="shrink-0" />
+            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-6 text-amber-800 dark:text-amber-200">
+              <AlertTriangle size={18} className="shrink-0" />
               <span><strong>시연 데이터</strong> · 실제 사용자 인증과 GPS가 아닙니다.</span>
             </div>
-            <div className="space-y-4">
-              <label htmlFor="login-region" className="block text-xs font-semibold text-muted-foreground">지역
-                <select id="login-region" value={region} onChange={(event) => { setRegion(event.target.value); setStation(""); }} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm text-foreground outline-none focus:border-primary">
+            <div className="space-y-5">
+              <label htmlFor="login-region" className="block text-sm font-semibold text-foreground">지역
+                <select id="login-region" value={region} onChange={(event) => { setRegion(event.target.value); setStation(""); }} className="mt-2 min-h-[52px] w-full rounded-xl border border-border bg-input-background px-4 text-base text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15">
                   <option value="">지역을 선택하세요</option>
                   {REGIONS.map((item) => <option key={item.label}>{item.label}</option>)}
                 </select>
               </label>
-              <label htmlFor="login-station" className="block text-xs font-semibold text-muted-foreground">소방서
-                <select id="login-station" value={station} disabled={!region} onChange={(event) => setStation(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm text-foreground outline-none disabled:opacity-50 focus:border-primary">
+              <label htmlFor="login-station" className="block text-sm font-semibold text-foreground">소방서
+                <select id="login-station" value={station} disabled={!region} onChange={(event) => setStation(event.target.value)} className="mt-2 min-h-[52px] w-full rounded-xl border border-border bg-input-background px-4 text-base text-foreground outline-none disabled:opacity-50 focus:border-primary focus:ring-2 focus:ring-primary/15">
                   <option value="">소방서를 선택하세요</option>
                   {stations.map((item) => <option key={item}>{item}</option>)}
                 </select>
               </label>
-              <button disabled={!region || !station} onClick={() => onDemoLogin(`${region} ${station}`)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-40">
-                <LogIn size={16} />시연 시스템 접속
+              <button disabled={!region || !station} onClick={() => onDemoLogin(`${region} ${station}`)} className="flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl bg-primary text-base font-bold text-white transition hover:bg-primary/90 disabled:opacity-40">
+                <LogIn size={18} />시연 시스템 접속
               </button>
             </div>
           </>
         ) : (
           <div>
-            <div className="rounded-2xl border border-border bg-secondary/55 p-4">
-              <div className="flex items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-foreground text-background">{sessionChecking ? <LoaderCircle size={18} className="animate-spin" /> : <ShieldCheck size={18} />}</span>
+            <div className="rounded-2xl border border-border bg-secondary/55 p-5 sm:p-6">
+              <div className="flex items-start gap-4">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-foreground text-background">{sessionChecking ? <LoaderCircle size={20} className="animate-spin" /> : <ShieldCheck size={20} />}</span>
                 <div>
-                  <h1 className="text-sm font-bold">{sessionChecking ? "접속 정보를 확인하고 있습니다" : isLive && publicPilotAccess ? "지역과 관할 소방서를 선택하세요" : isLive ? "운영 인증이 필요합니다" : "서비스 연결 설정이 필요합니다"}</h1>
-                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                  <h1 className="text-base font-bold sm:text-lg">{sessionChecking ? "접속 정보를 확인하고 있습니다" : isLive && publicPilotAccess ? "지역과 관할 소방서를 선택하세요" : isLive ? "운영 인증이 필요합니다" : "서비스 연결 설정이 필요합니다"}</h1>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     {sessionChecking
                       ? "BE가 검증한 사용자·역할·소방서 정보를 불러온 뒤 대시보드에 진입합니다."
                       : isLive && publicPilotAccess
@@ -163,52 +163,52 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
               </div>
             </div>
 
-            {sessionError && <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-[13px] leading-relaxed text-primary" role="alert">{sessionError.message}{sessionError.requestId ? ` (요청 ID: ${sessionError.requestId})` : ""}</div>}
+            {sessionError && <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-6 text-primary" role="alert">{sessionError.message}{sessionError.requestId ? ` (요청 ID: ${sessionError.requestId})` : ""}</div>}
 
             {!sessionChecking && isLive && safeAuthLoginUrl && publicPilotAccess ? (
-              <form method="post" action={safeAuthLoginUrl} className="mt-4 space-y-4">
-                <label htmlFor="pilot-region" className="block text-xs font-semibold text-muted-foreground">지역
-                  <select id="pilot-region" value={pilotRegion} onChange={(event) => { setPilotRegion(event.target.value); setPilotStationId(""); }} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm text-foreground outline-none focus:border-primary">
+              <form method="post" action={safeAuthLoginUrl} className="mt-6 space-y-5">
+                <label htmlFor="pilot-region" className="block text-sm font-semibold text-foreground">지역
+                  <select id="pilot-region" value={pilotRegion} onChange={(event) => { setPilotRegion(event.target.value); setPilotStationId(""); }} className="mt-2 min-h-[52px] w-full rounded-xl border border-border bg-input-background px-4 text-base text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15">
                     <option value="">지역을 선택하세요</option>
                     {availablePilotRegions.map((item) => <option key={item.regionName}>{item.regionName}</option>)}
                   </select>
                 </label>
-                <label htmlFor="pilot-station" className="block text-xs font-semibold text-muted-foreground">소방서
-                  <select id="pilot-station" name="stationId" value={pilotStationId} required disabled={!pilotRegion} onChange={(event) => setPilotStationId(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm text-foreground outline-none disabled:opacity-50 focus:border-primary">
+                <label htmlFor="pilot-station" className="block text-sm font-semibold text-foreground">소방서
+                  <select id="pilot-station" name="stationId" value={pilotStationId} required disabled={!pilotRegion} onChange={(event) => setPilotStationId(event.target.value)} className="mt-2 min-h-[52px] w-full rounded-xl border border-border bg-input-background px-4 text-base text-foreground outline-none disabled:opacity-50 focus:border-primary focus:ring-2 focus:ring-primary/15">
                     <option value="">소방서를 선택하세요</option>
                     {pilotStations.map((item) => <option key={item.stationId} value={item.stationId}>{item.stationName}</option>)}
                   </select>
                 </label>
-                {pilotCatalogStatus === "LOADING" && <p className="flex items-center gap-2 text-xs text-muted-foreground"><LoaderCircle size={13} className="animate-spin" />전체 소방서 목록을 확인하고 있습니다.</p>}
+                {pilotCatalogStatus === "LOADING" && <p className="flex items-center gap-2.5 rounded-xl bg-secondary/60 px-4 py-3 text-sm text-muted-foreground"><LoaderCircle size={16} className="animate-spin" />전체 소방서 목록을 확인하고 있습니다.</p>}
                 {pilotCatalogStatus === "FALLBACK" && (
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200" role="status">
-                    기본 관할 목록을 표시하고 있습니다. 서버의 전체 목록 연동 전에는 기본 파일럿 관할로 연결될 수 있습니다.
-                    <button type="button" onClick={() => setPilotCatalogAttempt((attempt) => attempt + 1)} className="ml-2 font-bold underline underline-offset-2">다시 불러오기</button>
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-6 text-amber-800 dark:text-amber-200" role="status">
+                    <p>전체 목록 연동 전이라 기본 파일럿 관할로 연결될 수 있습니다.</p>
+                    <button type="button" onClick={() => setPilotCatalogAttempt((attempt) => attempt + 1)} className="mt-3 min-h-9 rounded-lg border border-amber-600/25 bg-background/70 px-3 font-bold">목록 다시 불러오기</button>
                   </div>
                 )}
-                <button type="submit" disabled={!pilotRegion || !pilotStationId} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-40">
-                  <LogIn size={16} />선택한 소방서로 시작
+                <button type="submit" disabled={!pilotRegion || !pilotStationId} className="flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl bg-primary text-base font-bold text-white transition hover:bg-primary/90 disabled:opacity-40">
+                  <LogIn size={18} />선택한 소방서로 시작
                 </button>
               </form>
             ) : !sessionChecking && isLive && safeAuthLoginUrl ? (
-              <a href={safeAuthLoginUrl} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-foreground text-sm font-bold text-background transition hover:opacity-90">
+              <a href={safeAuthLoginUrl} className="mt-6 flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl bg-foreground text-base font-bold text-background transition hover:opacity-90">
                 운영 로그인 페이지로 이동<ExternalLink size={15} />
               </a>
             ) : !sessionChecking ? (
-              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[13px] leading-relaxed text-amber-800 dark:text-amber-200">
+              <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-6 text-amber-800 dark:text-amber-200">
                 {isLive ? "운영 인증 URL이 설정되지 않았습니다. VITE_AUTH_LOGIN_URL과 신뢰된 인증 어댑터가 필요합니다." : "VITE_BFF_BASE_URL을 먼저 설정해주세요."}
               </div>
             ) : null}
 
-            {!sessionChecking && isLive && onRetrySession && <button type="button" onClick={onRetrySession} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-xs font-bold transition hover:bg-muted"><RefreshCw size={14} />세션 다시 확인</button>}
+            {!sessionChecking && isLive && onRetrySession && <button type="button" onClick={onRetrySession} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-bold transition hover:bg-muted"><RefreshCw size={16} />세션 다시 확인</button>}
 
             {!sessionChecking && isLive && safeAuthLoginUrl && (
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{publicPilotAccess ? "소방청 공개 좌표 자료의 소방서 위치를 출동 기준점으로 사용합니다. 실제 기관 사용자 인증이나 실제 119 지령 계정은 아닙니다." : "로그인 후 사용자·소방서 세션 컨텍스트가 확인돼야 대시보드 진입이 활성화됩니다."}</p>
+              <p className="mt-6 border-t border-border pt-5 text-[13px] leading-6 text-muted-foreground">{publicPilotAccess ? "소방청 공개 좌표 자료의 소방서 위치를 출동 기준점으로 사용합니다. 실제 기관 사용자 인증이나 실제 119 지령 계정은 아닙니다." : "로그인 후 사용자·소방서 세션 컨텍스트가 확인돼야 대시보드 진입이 활성화됩니다."}</p>
             )}
           </div>
         )}
 
-        <p className="mt-5 text-center text-[13px] text-muted-foreground">119 화학재난대응지원시스템 · 케미체크119</p>
+        <p className="mt-8 text-center text-[13px] text-muted-foreground">119 화학재난대응지원시스템 · 케미체크119</p>
       </section>
     </main>
   );
