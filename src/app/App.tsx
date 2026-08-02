@@ -146,6 +146,19 @@ function FullDemoProgress({ status, failedAt }: {
     </ol>
     <p className="mt-2 text-[9px] leading-relaxed text-violet-800 dark:text-violet-200">지도 위치·경로와 두 확인 단계는 QA용 공개 합성 데이터입니다. 실제 119 지령·대원 확인·도로 ETA가 아니며 운영 판단에 사용할 수 없습니다.</p>
   </>;
+
+  if (status === "COMPLETED") {
+    return (
+      <details className="mt-2 rounded-xl border border-violet-500/30 bg-violet-500/5" aria-label="통합 연결 공개 합성 데모 진행">
+        <summary className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-xs font-bold text-violet-800 dark:text-violet-200">
+          <span>통합 연결 공개 합성 데모 · 완료</span>
+          <span className="text-muted-foreground">5단계 내역 보기</span>
+        </summary>
+        <div className="border-t border-violet-500/15 p-3">{stepDetails}</div>
+      </details>
+    );
+  }
+
   return (
     <section className="mt-3 rounded-xl border border-violet-500/30 bg-violet-500/5 p-4" aria-label="통합 연결 공개 합성 데모 진행">
       <div className="flex items-center justify-between gap-2">
@@ -153,13 +166,11 @@ function FullDemoProgress({ status, failedAt }: {
           <p className="text-sm font-black text-violet-800 dark:text-violet-200">통합 연결 공개 합성 데모</p>
           <p className="mt-0.5 text-[9px] text-muted-foreground">서버 분석·CAMEO는 실제 호출 · 신고·확인은 공개 합성</p>
         </div>
-        <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${status === "COMPLETED" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : status === "ERROR" ? "bg-primary/10 text-primary" : "bg-violet-500/15 text-violet-800 dark:text-violet-200"}`}>
+        <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${status === "ERROR" ? "bg-primary/10 text-primary" : "bg-violet-500/15 text-violet-800 dark:text-violet-200"}`}>
           {fullDemoStatusLabel(status)}
         </span>
       </div>
-      {status === "COMPLETED"
-        ? <details className="mt-2 rounded-lg border border-violet-500/20 bg-card/60"><summary className="cursor-pointer px-3 py-2 text-xs font-bold text-violet-800 dark:text-violet-200">완료된 5단계 연결 내역 보기</summary><div className="border-t border-violet-500/15 p-2">{stepDetails}</div></details>
-        : stepDetails}
+      {stepDetails}
     </section>
   );
 }
@@ -1049,7 +1060,7 @@ export default function App() {
                     <strong>지령 스트림 연결 중</strong> · BE SSE에서 개인정보 없는 공개 합성 신고가 도착하기를 기다리고 있습니다.
                   </div>
                 )}
-                {presentationScenarioId && (
+                {presentationScenarioId && !analysis && (
                   <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] leading-relaxed text-amber-800 dark:text-amber-200" role="status">
                     <strong>지령 반영 완료</strong> · 신고 내용을 확인한 뒤 아래에서 분석을 시작하세요.
                     {presentationReplay && <details className="mt-1"><summary className="cursor-pointer font-semibold">통신 정보 보기</summary><p className="mt-1 break-all text-[9px] opacity-85">공개 합성 신고 · SSE event {presentationReplay.sourceEventId} · 요청 ID {presentationReplay.requestId} · 실제 staging BE·AI 사용</p></details>}
