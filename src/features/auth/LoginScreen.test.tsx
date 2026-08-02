@@ -6,7 +6,6 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-
 const pilotCatalog = {
   schemaVersion: "chemicheck119-fire-station-catalog-v1",
   sourceName: "소방청_전국소방서 좌표현황(XY좌표)",

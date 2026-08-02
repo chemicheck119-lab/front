@@ -93,7 +93,7 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 
 인증 미사용 환경에서 받은 401은 로그인 화면을 띄우지 않고 `BFF가 아직 인증 없는 직접 요청을 허용하지 않습니다`로 안내합니다. 향후 `VITE_ENABLE_AUTH=true`로 전환하면 401 세션 만료와 403 권한 거부를 분리하고 기존 재인증 UI를 다시 사용합니다.
 
-시연 모드에서는 기존 지역·소방서 선택 화면을 유지합니다. 인증 미사용 Live staging은 `VITE_DEFAULT_STATION_NAME`으로 바로 진입하며 이 표시명을 권한·감사 식별자로 사용하지 않습니다. 인증 모드는 `GET /api/c2guard/v1/session` 성공 후 받은 `stationId`·역할·표시명으로만 진입하며 안전한 `VITE_AUTH_LOGIN_URL`이 함께 준비된 환경에서 활성화합니다.
+시연 모드에서는 기존 지역·소방서 선택 화면을 유지합니다. 공개 파일럿 인증 URL에서는 `GET /auth/staging/pilot/stations`로 전국 소방서 목록을 받아 지역과 관할 소방서를 선택하고, 안정적인 `stationId`를 `POST /auth/staging/pilot`에 전송합니다. 목록 API가 아직 배포되지 않은 환경에서는 소방청 공개 자료 기반 기본 목록과 연동 대기 안내를 표시합니다. 인증 미사용 Live staging은 `VITE_DEFAULT_STATION_NAME`으로 바로 진입하며 이 표시명을 권한·감사 식별자로 사용하지 않습니다. 인증 모드는 `GET /api/c2guard/v1/session` 성공 후 받은 `stationId`·역할·표시명으로만 진입합니다.
 
 상황실 전화번호는 비밀키가 아니지만 운영 조직별로 달라질 수 있으므로, 실제 서비스에서는 환경변수보다 인증된 로그인 세션/BFF 응답으로 제공하는 방식을 권장합니다. 좌측 도구의 자세한 동작은 [현장 도구 설계](./docs/FIELD_TOOLS.md)를 참고하세요.
 
@@ -107,6 +107,8 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 
 | 경로 | 현재 상태 |
 |---|---|
+| `GET /auth/staging/pilot/stations` | 지역·소방서 선택 목록 연동 완료; BE 배포 전에는 FE 기본 목록 사용 |
+| `POST /auth/staging/pilot` | 선택한 안정적 `stationId`로 공개 파일럿 세션 발급 요청 |
 | `GET /api/c2guard/v1/session` | 인증 모드 진입 게이트와 사용자·소방서 컨텍스트 연동 완료 |
 | `POST /api/c2guard/v1/logout` | 인증 모드 사용 종료 연동 완료 |
 | `POST /api/c2guard/v1/incidents/analyze` | 연동 가능 |
