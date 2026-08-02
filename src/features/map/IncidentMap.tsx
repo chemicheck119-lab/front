@@ -175,7 +175,7 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
         {runtimeDataMode === "DEMO_SIMULATION" && <span className="rounded-full border border-accent/40 bg-accent/15 px-3 py-1.5 text-[11px] font-bold text-accent">시연 데이터</span>}
       </div>
 
-      <div className="absolute bottom-4 right-14 z-10 w-[250px] rounded-xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-sm pointer-events-none">
+      <div data-testid="map-route-summary" className="absolute bottom-4 right-20 z-10 w-[230px] max-w-[calc(100%-6rem)] rounded-xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-sm pointer-events-none">
         <div className="grid grid-cols-2 gap-3">
           <div><p className="text-[10px] text-muted-foreground">예상 도착</p><p className="mt-0.5 text-base font-bold">{route?.status === "POSITION_STALE" ? "—" : formatEta(route?.etaSeconds)}</p></div>
           <div><p className="text-[10px] text-muted-foreground">남은 거리</p><p className="mt-0.5 text-base font-bold">{formatDistance(route?.remainingDistanceM)}</p></div>
