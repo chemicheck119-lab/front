@@ -20,6 +20,7 @@
 | BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·7개 operation·세션 보안·생성 타입을 `pnpm check`에서 검증 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
+| 공모전 Live 시나리오 | 실제 BFF·AI 사용 | 공개 합성 신고임을 표시하고 실제 staging 분석 경로로 전송 |
 
 ## 실행
 
@@ -47,6 +48,11 @@ VITE_ENABLE_DEMO_MODE=true
 
 시연 fixture는 `src/fixtures/demo.ts`에만 있으며 실제 API 장애 시 자동 fallback으로 사용되지 않습니다. 운영에서는 `false`로 두고, API 장애를 “연결할 수 없음” 상태로 표시합니다.
 
+공모전의 주 시연에는 이 offline 시연 모드를 사용하지 않습니다. `https://chemicheck119.site`의
+`공개 합성 신고 불러오기`로 개인정보 없는 입력을 채우고 실제 BFF·AI 응답을 보여줍니다. 화면의
+`실제 API`는 처리 경로를, `공개 합성 신고`는 입력 데이터 성격을 뜻합니다. 자세한 경계와 실제
+119 지령 연계 계획은 [신고 입력·시연·실운영 전략](./docs/INCIDENT_INTAKE_STRATEGY.md)을 참고합니다.
+
 ### BE staging 연동 빌드
 
 BE가 전달한 staging 설정은 `.env.staging`에 비밀값 없이 고정합니다.
@@ -55,7 +61,7 @@ BE가 전달한 staging 설정은 `.env.staging`에 비밀값 없이 고정합�
 corepack pnpm build:staging
 ```
 
-현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. 공모전 staging은 `VITE_ENABLE_AUTH=false`로 로그인·세션 없이 `현장대응본부` 화면에 바로 진입합니다. 상단 `사용 종료`는 사고·대화·분석·입력값을 로컬에서 초기화하며, 인증 모드에서는 BE `POST /api/c2guard/v1/logout`을 먼저 호출합니다. AI 분석을 포함한 모든 서비스 요청은 모델 서버가 아니라 이 BFF만 호출합니다. 2026-08-01 실측 시 BFF가 무인증 요청에 아직 `401 AUTH_REQUIRED`를 반환하므로 실제 분석 E2E에는 BE의 인증 필터 비활성화 배포가 추가로 필요합니다.
+현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. 공모전 staging은 `VITE_ENABLE_AUTH=false`로 로그인·세션 없이 `현장대응본부` 화면에 바로 진입합니다. 상단 `사용 종료`는 사고·대화·분석·입력값을 로컬에서 초기화하며, 인증 모드에서는 BE `POST /api/c2guard/v1/logout`을 먼저 호출합니다. AI 분석을 포함한 모든 서비스 요청은 모델 서버가 아니라 이 BFF만 호출합니다. 공개 물질검색·사고분석은 인증 없이 Live E2E가 가능하며 confirmation·movement·record는 운영 인증 범위를 유지합니다.
 
 ## 환경변수와 보안
 
@@ -73,6 +79,7 @@ corepack pnpm build:staging
 - `VITE_API_TIMEOUT_MS`: BFF 요청 제한 시간. BE의 모델 제한 15초보다 긴 20초 권장
 - `VITE_LOCATION_UPDATE_INTERVAL_MS`: 위치 갱신 최소 간격
 - `VITE_ENABLE_DEMO_MODE`: 명시적 시연 fixture 사용 여부
+- `VITE_ENABLE_PRESENTATION_SCENARIO`: 공개 합성 신고 입력 도우미. `VITE_ENABLE_DEMO_MODE=false`이고 BFF URL이 있을 때만 활성화
 - `VITE_ENABLE_MOVEMENT_API`: BE movement 배포가 검증된 환경에서만 `true`
 - `VITE_ENABLE_RECORD_API`: BE record 배포가 검증된 환경에서만 `true`
 
@@ -150,7 +157,7 @@ corepack pnpm build:sites:staging
 
 배포 패키지는 정적 SPA fallback과 보안 응답 헤더를 제공하는 Worker를 포함합니다. Sites 프로젝트 식별자만 `.openai/hosting.json`에 보관하고 비밀값은 저장소에 기록하지 않습니다.
 
-팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. 현재 두 배포는 인증 미사용 staging 번들을 사용하며, BFF가 무인증 요청을 허용하도록 배포되기 전까지 분석 요청은 명시적인 준비 상태 오류를 표시합니다.
+팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. 현재 두 배포는 인증 미사용 staging 번들을 사용하며, 공개 물질검색·사고분석은 BFF·AI Live 경로를 호출합니다.
 
 ## 데이터 의미와 안전 경계
 
@@ -163,9 +170,9 @@ corepack pnpm build:sites:staging
 
 ## 알려진 한계
 
-- AI 계약·BE client·자동화 테스트는 완료됐지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
-- 현재 공모전 staging은 인증을 사용하지 않지만 BFF 배포본에는 아직 인증 필터가 남아 있어 무인증 Live E2E가 차단됩니다.
-- 이동갱신·기록저장 BFF와 실제 길찾기 Provider·영구 DB는 아직 운영 연동 전입니다.
+- 실제 배포 AI 서버와 API Key를 사용한 공개 물질검색·사고분석 Live E2E는 검증됐지만, 기관 사용자·지령 시스템 연계는 아직 없습니다.
+- 현재 공모전 staging은 공개 물질검색·사고분석만 인증 없이 허용하며 confirmation·movement·record는 보호됩니다.
+- Cloud SQL 영속화는 배포됐지만 보호된 confirmation·movement·record 전체 E2E와 실제 길찾기 Provider는 아직 운영 연동 전입니다.
 - 저장소의 기존 로고 이미지에는 `케미가드` 표기가 남아 있습니다. 서비스 표시명 확정 후 별도 디자인 자산 교체가 필요합니다.
 
 ## 배포 전 결정 필요

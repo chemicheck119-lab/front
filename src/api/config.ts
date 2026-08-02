@@ -36,6 +36,9 @@ export const apiConfig = {
   dispatchCenterName: import.meta.env.VITE_DISPATCH_CENTER_NAME?.trim() ?? "",
   dispatchCenterPhone: import.meta.env.VITE_DISPATCH_CENTER_PHONE?.trim() ?? "",
   demoEnabled,
+  presentationScenarioEnabled: !demoEnabled
+    && normalizedBaseUrl.length > 0
+    && import.meta.env.VITE_ENABLE_PRESENTATION_SCENARIO === "true",
   movementEnabled: demoEnabled || import.meta.env.VITE_ENABLE_MOVEMENT_API === "true",
   recordEnabled: demoEnabled || import.meta.env.VITE_ENABLE_RECORD_API === "true",
 };
