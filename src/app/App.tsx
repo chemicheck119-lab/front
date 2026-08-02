@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
+  LogOut,
   Moon,
   Save,
   Sun,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "@/app/components/BrandLogo";
 import { apiConfig, runtimeDataMode } from "../api/config";
+import { endAuthenticatedSession } from "../api/auth";
 import { analyzeIncident } from "../api/incidents";
 import { updateMovement } from "../api/movement";
 import { discoverSubstances } from "../api/substances";
@@ -35,6 +37,7 @@ import { FieldToolsPanel } from "../features/field-tools/FieldToolsPanel";
 import { LoginScreen } from "../features/auth/LoginScreen";
 import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
 import { adaptDirectEntryIssue, resolveInitialStation } from "../features/auth/accessMode";
+import { resetDemoSession as resetDemoDataSession } from "../fixtures/demo";
 import { MessageComposer } from "../features/composer/MessageComposer";
 
 type Mode = "collision" | "substance";
@@ -138,6 +141,10 @@ export default function App() {
   const [sessionExpired, setSessionExpired] = useState<UserFacingErrorInfo | null>(null);
   const [movementError, setMovementError] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showEndSessionDialog, setShowEndSessionDialog] = useState(false);
+  const [endingSession, setEndingSession] = useState(false);
+  const [endSessionError, setEndSessionError] = useState<string | null>(null);
+  const [endSessionCompleted, setEndSessionCompleted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [recordResetPending, setRecordResetPending] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -199,6 +206,12 @@ export default function App() {
     const timer = window.setTimeout(() => setSavedRecordId(null), 3000);
     return () => window.clearTimeout(timer);
   }, [savedRecordId]);
+
+  useEffect(() => {
+    if (!endSessionCompleted) return;
+    const timer = window.setTimeout(() => setEndSessionCompleted(false), 3500);
+    return () => window.clearTimeout(timer);
+  }, [endSessionCompleted]);
 
   useEffect(() => () => {
     if (recordResetTimer.current !== null) window.clearTimeout(recordResetTimer.current);
@@ -318,6 +331,11 @@ export default function App() {
   }
 
   function resetSession() {
+    if (recordResetTimer.current !== null) {
+      window.clearTimeout(recordResetTimer.current);
+      recordResetTimer.current = null;
+    }
+    if (apiConfig.demoEnabled) resetDemoDataSession();
     setAnalysis(null);
     setMapContext(null);
     setMaterialResult(null);
@@ -330,8 +348,37 @@ export default function App() {
     setInput("");
     setFacilityName("");
     setAddress("");
+    setMode("collision");
     setJourneyState("EN_ROUTE");
+    setError(null);
+    setSessionExpired(null);
+    setMovementError(null);
+    setShowSaveDialog(false);
+    setSaveError(null);
+    setSavedRecordId(null);
+    setRecordResetPending(false);
+    setConfirmationTarget(null);
+    setConfirmationBasis("CONTAINER_LABEL");
+    setConfirmationObservedAt(toConfirmationDateTimeInput());
+    setConfirmingRole(null);
     movementSequence.current = 0;
+  }
+
+  async function handleEndSession() {
+    if (endingSession || loading || saving || confirmingRole || recordResetPending) return;
+    setEndingSession(true);
+    setEndSessionError(null);
+    try {
+      await endAuthenticatedSession();
+      resetSession();
+      setShowEndSessionDialog(false);
+      if (apiConfig.authEnabled || runtimeDataMode === "DEMO_SIMULATION") setStation(null);
+      else setEndSessionCompleted(true);
+    } catch (caught) {
+      setEndSessionError(userFacingError(caught));
+    } finally {
+      setEndingSession(false);
+    }
   }
 
   async function handleSave() {
@@ -380,6 +427,7 @@ export default function App() {
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${runtimeDataMode === "DEMO_SIMULATION" ? "border-accent/40 bg-accent/10 text-accent" : runtimeDataMode === "LIVE_API" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-muted text-muted-foreground"}`}>{modeLabel(runtimeDataMode)}</span>
           {runtimeDataMode === "LIVE_API" && !apiConfig.authEnabled && <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold text-blue-700 dark:text-blue-300">인증 미사용</span>}
           <div className="flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 text-xs font-semibold"><User size={13} />{station}</div>
+          <button type="button" disabled={loading || saving || Boolean(confirmingRole) || recordResetPending || endingSession} onClick={() => { setEndSessionError(null); setShowEndSessionDialog(true); }} className="flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[11px] font-bold transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40" aria-label="사용 종료 및 화면 초기화"><LogOut size={14} />사용 종료</button>
           <button onClick={() => setIsDark((value) => !value)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted" aria-label={isDark ? "라이트 모드" : "다크 모드"}>{isDark ? <Sun size={17} /> : <Moon size={17} />}</button>
         </div>
       </header>
@@ -500,7 +548,25 @@ export default function App() {
         </DialogShell>
       )}
 
+      {showEndSessionDialog && (
+        <DialogShell title="사용 종료" onClose={() => !endingSession && setShowEndSessionDialog(false)}>
+          <div className="p-5">
+            <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><AlertTriangle size={17} /></span>
+              <div>
+                <p className="text-sm font-bold">현재 대응 화면을 초기화할까요?</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">저장하지 않은 내용은 복구할 수 없습니다.{apiConfig.authEnabled ? " 로그인 세션도 함께 종료됩니다." : " 현재 공개 모드에서는 서버 세션을 사용하지 않습니다."}</p>
+              </div>
+            </div>
+            <ul className="mt-4 space-y-1.5 text-[11px] text-muted-foreground"><li>• 현재 사고와 물질 확인 결과</li><li>• 대화·AI 분석·대응 근거</li><li>• 시설명·주소·신고 입력값</li></ul>
+            {endSessionError && <p className="mt-3 rounded-lg bg-primary/10 p-2 text-[11px] leading-relaxed text-primary">{endSessionError} 화면은 유지됐습니다. 다시 시도해주세요.</p>}
+            <div className="mt-5 flex gap-2"><button type="button" disabled={endingSession} onClick={() => setShowEndSessionDialog(false)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button type="button" disabled={endingSession} onClick={() => void handleEndSession()} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{endingSession ? "종료 중…" : "사용 종료 및 초기화"}</button></div>
+          </div>
+        </DialogShell>
+      )}
+
       {savedRecordId && <div className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-xs font-semibold text-white shadow-2xl"><Check size={15} />저장된 기록은 화학사고 대응에 활용됩니다. <span className="font-mono text-[10px] text-white/70">{savedRecordId}</span></div>}
+      {endSessionCompleted && <div className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-xs font-semibold text-white shadow-2xl" role="status"><Check size={15} />사용을 종료하고 대응 화면을 초기화했습니다.</div>}
     </div>
   );
 }

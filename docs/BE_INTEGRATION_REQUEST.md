@@ -24,7 +24,7 @@ X-API-Key: BE Secret에서만 주입
 | 영역 | 상태 | FE 처리 |
 |---|---|---|
 | CORS | 연동 완료 | `https://chemicheck119.site` exact origin 허용; preflight 200·미인증 401·외부 origin 403 실측 |
-| 현재 공모전 인증 | FE 비활성화·BE 변경 필요 | FE는 로그인·세션·로그아웃 UI 없이 `credentials: omit`; BE는 무인증 서비스 요청을 허용하도록 인증 필터를 비활성화해 재배포 필요 |
+| 현재 공모전 인증 | FE 비활성화·BE 변경 필요 | FE는 로그인·세션 없이 직접 진입하고 `사용 종료` 시 로컬 대응 상태를 초기화하며 `credentials: omit`; BE는 무인증 서비스 요청을 허용하도록 인증 필터를 비활성화해 재배포 필요 |
 | 사고 분석 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 물질 검색 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 현장 확인 | 연동 가능 | 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 사고 분석 재호출 |
@@ -56,7 +56,7 @@ X-API-Key: BE Secret에서만 주입
 
 ## 0. 운영 로그인 후 세션 컨텍스트 (공모전 이후 보류)
 
-현재 공모전 staging에서는 로그인·세션·로그아웃 UI를 사용하지 않으므로 아래 계약은 연결하지 않습니다. 운영 인증을 다시 도입할 때 사용하는 후속 설계입니다.
+현재 공모전 staging에서는 로그인·세션을 사용하지 않으므로 아래 세션 컨텍스트 계약은 연결하지 않습니다. `사용 종료` UI는 현재 로컬 대응 상태만 초기화하고, 운영 인증을 다시 도입하면 이미 구현된 `POST /api/c2guard/v1/logout`으로 HttpOnly 세션을 만료시킵니다.
 
 권장 신규 경로: `GET /api/c2guard/v1/session`
 
@@ -101,7 +101,8 @@ X-API-Key: BE Secret에서만 주입
 - [ ] 응답 조직은 FE 입력이 아니라 검증된 JWT principal에서 결정
 - [x] FE origin `https://chemicheck119.site`를 exact allowlist로 두고 credential CORS 허용
 - [ ] 사용자 표시명·역할·소방서·상황실 연락처의 권위 출처와 최신성 제공
-- [ ] 로그아웃 또는 만료 세션 처리 경로 확정
+- [x] 로그아웃 경로 `POST /api/c2guard/v1/logout` 구현; 인증 모드 FE에서 세션 쿠키를 포함해 호출
+- [ ] 만료 세션의 재인증·화면 보존 정책 확정
 - [ ] 운영 인증 재도입 시에만 FE가 이 응답 성공 전 Live 대시보드 진입을 제한
 
 ## 1. 사고 분석

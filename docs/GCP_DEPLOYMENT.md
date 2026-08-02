@@ -42,7 +42,7 @@ npx firebase-tools deploy --only hosting --project chemi-check
 
 2026-08-01에 BE staging의 `CHEMICHECK119_CORS_ALLOWED_ORIGINS`에 `https://chemicheck119.site`를 등록했습니다. 실측 결과 preflight는 `200`과 정확한 `Access-Control-Allow-Origin`을 반환합니다. 다만 인증 쿠키가 없는 POST는 CORS 헤더가 포함된 `401 AUTH_REQUIRED`를 반환하므로, FE 직접 연동을 완료하려면 BE 인증 필터 비활성화 배포가 필요합니다.
 
-FE는 로그인·세션·로그아웃 UI를 연결하지 않고 인증 정보를 보내지 않는 staging 번들로 전환합니다. BFF가 무인증 요청을 허용하기 전까지 화면은 유지하면서 BE 배포 상태 오류를 표시합니다.
+FE는 로그인·세션 없이 직접 진입하고 인증 정보를 보내지 않는 staging 번들로 전환합니다. `사용 종료`는 현재 로컬 대응 상태를 초기화하며, 인증 모드에서만 BE `POST /api/c2guard/v1/logout`을 세션 쿠키와 함께 호출합니다. BFF가 무인증 요청을 허용하기 전까지 화면은 유지하면서 BE 배포 상태 오류를 표시합니다.
 
 ## 공모전 Live 연동 완료 조건
 

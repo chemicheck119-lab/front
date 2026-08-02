@@ -55,7 +55,7 @@ BE가 전달한 staging 설정은 `.env.staging`에 비밀값 없이 고정합�
 corepack pnpm build:staging
 ```
 
-현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. 공모전 staging은 `VITE_ENABLE_AUTH=false`로 로그인·세션·로그아웃 UI 없이 `현장대응본부` 화면에 바로 진입합니다. AI 분석을 포함한 모든 서비스 요청은 모델 서버가 아니라 이 BFF만 호출합니다. 2026-08-01 실측 시 BFF가 무인증 요청에 아직 `401 AUTH_REQUIRED`를 반환하므로 실제 분석 E2E에는 BE의 인증 필터 비활성화 배포가 추가로 필요합니다.
+현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 movement·record는 비활성화합니다. 공모전 staging은 `VITE_ENABLE_AUTH=false`로 로그인·세션 없이 `현장대응본부` 화면에 바로 진입합니다. 상단 `사용 종료`는 사고·대화·분석·입력값을 로컬에서 초기화하며, 인증 모드에서는 BE `POST /api/c2guard/v1/logout`을 먼저 호출합니다. AI 분석을 포함한 모든 서비스 요청은 모델 서버가 아니라 이 BFF만 호출합니다. 2026-08-01 실측 시 BFF가 무인증 요청에 아직 `401 AUTH_REQUIRED`를 반환하므로 실제 분석 E2E에는 BE의 인증 필터 비활성화 배포가 추가로 필요합니다.
 
 ## 환경변수와 보안
 
