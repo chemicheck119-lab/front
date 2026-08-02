@@ -1069,7 +1069,7 @@ export default function App() {
               </div>
 
               <div ref={analysisPanelRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-                <section className={`sticky top-0 z-20 rounded-xl border p-4 shadow-sm backdrop-blur-md ${currentTask.complete ? "border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90" : "border-blue-500/30 bg-blue-50/95 dark:bg-blue-950/90"}`} aria-label="현재 해야 할 일">
+                <section className={`rounded-xl border p-4 shadow-sm ${currentTask.complete ? "border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90" : "border-blue-500/30 bg-blue-50/95 dark:bg-blue-950/90"}`} aria-label="현재 해야 할 일">
                   <div className="flex items-center gap-2.5"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${currentTask.complete ? "bg-emerald-600 text-white" : "bg-blue-600 text-white"}`}>{currentTask.step}</span><p className="text-sm font-bold">{currentTask.title}</p></div>
                   <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{currentTask.detail}</p>
                 </section>
