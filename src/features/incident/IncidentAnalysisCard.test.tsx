@@ -65,4 +65,13 @@ describe("사고 분석 현장 확인 흐름", () => {
     expect(screen.getAllByText("합성 확인 완료").length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText("현장 확인됨")).not.toBeInTheDocument();
   });
+
+  it("공개 합성 시연의 잠금 안내와 다음 행동을 운영 현장 기록처럼 표현하지 않는다", () => {
+    render(<IncidentAnalysisCard analysis={getDemoAnalysis()} onConfirm={vi.fn()} confirmingRole={null} confirmationMode="PUBLIC_SYNTHETIC" />);
+
+    expect(screen.getByText("합성 확인 게이트 검증 단계입니다.")).toBeInTheDocument();
+    expect(screen.getByText("합성 QA 다음 단계")).toBeInTheDocument();
+    expect(screen.getByText(/공개 합성 사고물질 확인 API/)).toBeInTheDocument();
+    expect(screen.queryByText("대원이 해야 할 일")).not.toBeInTheDocument();
+  });
 });
