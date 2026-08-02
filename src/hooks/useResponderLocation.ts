@@ -10,7 +10,7 @@ interface ResponderLocation {
   errorMessage?: string;
 }
 
-export function useResponderLocation(enabled: boolean): ResponderLocation {
+export function useResponderLocation(enabled: boolean, stationFallback: PositionSnapshot | null = null): ResponderLocation {
   const demoPosition = demoMapContext.responderPosition;
   const [location, setLocation] = useState<ResponderLocation>(() => apiConfig.demoEnabled && demoPosition
     ? {
@@ -32,11 +32,15 @@ export function useResponderLocation(enabled: boolean): ResponderLocation {
     }
     if (apiConfig.demoEnabled) return;
     if (!("geolocation" in navigator)) {
-      setLocation({ state: "UNAVAILABLE", position: null });
+      setLocation(stationFallback
+        ? { state: "ACTIVE", position: stationFallback }
+        : { state: "UNAVAILABLE", position: null });
       return;
     }
 
-    setLocation({ state: "WAITING", position: null });
+    setLocation(stationFallback
+      ? { state: "ACTIVE", position: stationFallback }
+      : { state: "WAITING", position: null });
     const watchId = navigator.geolocation.watchPosition(
       ({ coords, timestamp }) => {
         setLocation({
@@ -51,6 +55,10 @@ export function useResponderLocation(enabled: boolean): ResponderLocation {
         });
       },
       (error) => {
+        if (stationFallback) {
+          setLocation({ state: "ACTIVE", position: stationFallback, errorMessage: error.message });
+          return;
+        }
         const state: LocationState = error.code === error.PERMISSION_DENIED
           ? "DENIED"
           : error.code === error.POSITION_UNAVAILABLE
@@ -62,7 +70,7 @@ export function useResponderLocation(enabled: boolean): ResponderLocation {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [enabled]);
+  }, [enabled, stationFallback]);
 
   return useMemo(() => location, [location]);
 }

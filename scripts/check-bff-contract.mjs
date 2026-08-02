@@ -59,7 +59,7 @@ assertContract(sessionScheme?.type === "apiKey" && sessionScheme?.in === "cookie
 
 const sessionContext = contract.components?.schemas?.DashboardSessionContextResponse;
 const sessionRequired = new Set(sessionContext?.required ?? []);
-for (const field of ["requestId", "userId", "stationId", "stationDisplayName", "roles", "incidentScopes", "issuedAt", "expiresAt"]) {
+for (const field of ["requestId", "userId", "stationId", "stationDisplayName", "stationLocation", "roles", "incidentScopes", "issuedAt", "expiresAt"]) {
   assertContract(sessionRequired.has(field), `DashboardSessionContextResponse.${field}가 필수가 아닙니다.`);
 }
 assertContract(Boolean(contract.paths?.["/api/c2guard/v1/logout"]?.post?.responses?.["204"]), "로그아웃 성공 응답은 204여야 합니다.");

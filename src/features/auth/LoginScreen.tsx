@@ -1,7 +1,7 @@
 import { AlertTriangle, ExternalLink, LoaderCircle, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/app/components/BrandLogo";
-import { getPublicPilotStations } from "../../api/auth";
+import { getPublicPilotStations, type PilotStationCatalog } from "../../api/auth";
 import type { UserFacingErrorInfo } from "../../api/client";
 import type { DataMode } from "../../api/contracts";
 
@@ -27,7 +27,11 @@ const REGIONS: Array<{ label: string; stations: string[] }> = [
 
 interface PilotRegionOption {
   regionName: string;
-  stations: Array<{ stationId: string; stationName: string }>;
+  stations: Array<{
+    stationId: string;
+    stationName: string;
+    address?: string;
+  }>;
 }
 
 const FALLBACK_PILOT_REGIONS: PilotRegionOption[] = [
@@ -83,29 +87,24 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
   const [station, setStation] = useState("");
   const [pilotRegion, setPilotRegion] = useState("");
   const [pilotStationId, setPilotStationId] = useState("");
-  const [pilotRegions, setPilotRegions] = useState<PilotRegionOption[] | null>(null);
+  const [pilotCatalog, setPilotCatalog] = useState<PilotStationCatalog | null>(null);
   const [pilotCatalogStatus, setPilotCatalogStatus] = useState<"IDLE" | "LOADING" | "READY" | "FALLBACK">("IDLE");
   const [pilotCatalogAttempt, setPilotCatalogAttempt] = useState(0);
-  const stations = REGIONS.find((item) => item.label === region)?.stations ?? [];
   const isDemo = dataMode === "DEMO_SIMULATION";
   const isLive = dataMode === "LIVE_API" || dataMode === "CACHED_API";
   const safeAuthLoginUrl = normalizeAuthLoginUrl(authLoginUrl);
   const publicPilotAccess = safeAuthLoginUrl ? isPublicPilotAccessUrl(safeAuthLoginUrl) : false;
-  const availablePilotRegions = pilotRegions ?? FALLBACK_PILOT_REGIONS;
+  const demoStations = REGIONS.find((item) => item.label === region)?.stations ?? [];
+  const availablePilotRegions = pilotCatalog?.regions ?? FALLBACK_PILOT_REGIONS;
   const pilotStations = availablePilotRegions.find((item) => item.regionName === pilotRegion)?.stations ?? [];
+  const selectedPilotStation = pilotStations.find((item) => item.stationId === pilotStationId) ?? null;
 
   useEffect(() => {
     if (!publicPilotAccess || !safeAuthLoginUrl || sessionChecking) return;
     const controller = new AbortController();
     setPilotCatalogStatus("LOADING");
     void getPublicPilotStations(safeAuthLoginUrl, controller.signal).then((catalog) => {
-      setPilotRegions(catalog.regions.map((item) => ({
-        regionName: item.regionName,
-        stations: item.stations.map((pilotStation) => ({
-          stationId: pilotStation.stationId,
-          stationName: pilotStation.stationName,
-        })),
-      })));
+      setPilotCatalog(catalog);
       setPilotCatalogStatus("READY");
     }).catch(() => {
       if (!controller.signal.aborted) setPilotCatalogStatus("FALLBACK");
@@ -135,7 +134,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
               <label htmlFor="login-station" className="block text-xs font-semibold text-muted-foreground">소방서
                 <select id="login-station" value={station} disabled={!region} onChange={(event) => setStation(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-input-background px-3 text-sm text-foreground outline-none disabled:opacity-50 focus:border-primary">
                   <option value="">소방서를 선택하세요</option>
-                  {stations.map((item) => <option key={item}>{item}</option>)}
+                  {demoStations.map((item) => <option key={item}>{item}</option>)}
                 </select>
               </label>
               <button disabled={!region || !station} onClick={() => onDemoLogin(`${region} ${station}`)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-40">
@@ -154,7 +153,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
                     {sessionChecking
                       ? "BE가 검증한 사용자·역할·소방서 정보를 불러온 뒤 대시보드에 진입합니다."
                       : isLive && publicPilotAccess
-                      ? "근무 지역과 소방서를 선택하면 해당 관할의 대회·QA용 제한 세션으로 접속합니다."
+                      ? "지역과 소방서를 선택하면 소방청 공개 좌표를 출동 기준점으로 불러옵니다. 계정이나 비밀번호는 필요하지 않습니다."
                       : isLive
                       ? "사용자 소속과 사고 접근권한은 BE가 서명한 HttpOnly 세션만 기준으로 확인합니다. 지역 선택만으로 운영 화면에 접속하지 않습니다."
                       : "BFF 주소가 설정되지 않아 실제 사용자 인증과 현장대응 기능을 시작할 수 없습니다."}
@@ -179,6 +178,13 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
                     {pilotStations.map((item) => <option key={item.stationId} value={item.stationId}>{item.stationName}</option>)}
                   </select>
                 </label>
+                {selectedPilotStation?.address && (
+                  <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3 text-[12px] leading-relaxed text-foreground">
+                    <strong>{pilotRegion} {selectedPilotStation.stationName}</strong>
+                    <p className="mt-1 text-muted-foreground">{selectedPilotStation.address}</p>
+                    <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-300">소방청 공개 좌표 · {pilotCatalog?.sourceDate} 기준</p>
+                  </div>
+                )}
                 {pilotCatalogStatus === "LOADING" && <p className="flex items-center gap-2 text-xs text-muted-foreground"><LoaderCircle size={13} className="animate-spin" />전체 소방서 목록을 확인하고 있습니다.</p>}
                 {pilotCatalogStatus === "FALLBACK" && (
                   <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200" role="status">
@@ -186,8 +192,8 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
                     <button type="button" onClick={() => setPilotCatalogAttempt((attempt) => attempt + 1)} className="ml-2 font-bold underline underline-offset-2">다시 불러오기</button>
                   </div>
                 )}
-                <button type="submit" disabled={!pilotRegion || !pilotStationId} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-40">
-                  <LogIn size={16} />선택한 소방서로 시작
+                <button type="submit" disabled={!selectedPilotStation} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-40">
+                  <LogIn size={16} />선택한 소방서로 접속
                 </button>
               </form>
             ) : !sessionChecking && isLive && safeAuthLoginUrl ? (
@@ -203,7 +209,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
             {!sessionChecking && isLive && onRetrySession && <button type="button" onClick={onRetrySession} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-xs font-bold transition hover:bg-muted"><RefreshCw size={14} />세션 다시 확인</button>}
 
             {!sessionChecking && isLive && safeAuthLoginUrl && (
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{publicPilotAccess ? "소방청 공개 좌표 자료의 소방서 위치를 출동 기준점으로 사용합니다. 실제 기관 사용자 인증이나 실제 119 지령 계정은 아닙니다." : "로그인 후 사용자·소방서 세션 컨텍스트가 확인돼야 대시보드 진입이 활성화됩니다."}</p>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{publicPilotAccess ? "공개 파일럿은 실제 기관 사용자 인증이나 실제 119 지령 계정이 아닙니다. 선택한 좌표는 소방서 출동 기준점이며 대원 GPS가 수신되면 실제 위치로 교체됩니다." : "로그인 후 사용자·소방서 세션 컨텍스트가 확인돼야 대시보드 진입이 활성화됩니다."}</p>
             )}
           </div>
         )}
