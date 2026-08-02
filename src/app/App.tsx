@@ -914,7 +914,7 @@ export default function App() {
   }
   function changeIncidentInput(value: string) {
     const sourceText = presentationReplay?.reportText ?? contestLiveScenario.text;
-    if (presentationScenarioId && value !== sourceText) {
+    if (mode === "collision" && presentationScenarioId && value !== sourceText) {
       setPresentationScenarioId(null);
       setPresentationReplay(null);
       setPresentationReplayStatus("IDLE");
