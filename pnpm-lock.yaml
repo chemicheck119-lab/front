@@ -195,6 +195,9 @@ importers:
       '@testing-library/react':
         specifier: 16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/navermaps':
+        specifier: 3.9.2
+        version: 3.9.2
       '@types/node':
         specifier: 24.10.13
         version: 24.10.13
@@ -206,10 +209,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitejs/plugin-react':
         specifier: 4.7.0
-        version: 4.7.0(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1))
+        version: 4.7.0(supports-color@10.2.2)(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1))
       jsdom:
         specifier: 26.1.0
-        version: 26.1.0
+        version: 26.1.0(supports-color@10.2.2)
       openapi-typescript:
         specifier: 7.13.0
         version: 7.13.0(typescript@5.9.3)
@@ -224,7 +227,7 @@ importers:
         version: 6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1)
       vitest:
         specifier: 4.1.10
-        version: 4.1.10(@types/node@24.10.13)(jsdom@26.1.0)(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1))
+        version: 4.1.10(@types/node@24.10.13)(jsdom@26.1.0(supports-color@10.2.2))(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1))
 
 packages:
 
@@ -1694,6 +1697,9 @@ packages:
   '@types/geojson@7946.0.16':
     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
 
+  '@types/navermaps@3.9.2':
+    resolution: {integrity: sha512-pPO38MFRRY+2wka0VdG3U9RlwLEVBwJVYy50KtQzwxNdJVVfas8Qlv4USx3wxvly7GNX9Cew2qfjdKEmLoQPKQ==}
+
   '@types/node@24.10.13':
     resolution: {integrity: sha512-oH72nZRfDv9lADUBSo104Aq7gPHpQZc4BTx38r9xf9pg5LfP6EzSyH2n7qFmmxRQXh7YlUXODcYsg6PuTDSxGg==}
 
@@ -2932,7 +2938,7 @@ snapshots:
 
   '@babel/compat-data@7.29.7': {}
 
-  '@babel/core@7.29.7':
+  '@babel/core@7.29.7(supports-color@10.2.2)':
     dependencies:
       '@babel/code-frame': 7.29.7
       '@babel/generator': 7.29.7
@@ -2979,7 +2985,7 @@ snapshots:
 
   '@babel/helper-module-transforms@7.29.7(@babel/core@7.29.7)':
     dependencies:
-      '@babel/core': 7.29.7
+      '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/helper-module-imports': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
       '@babel/traverse': 7.29.7
@@ -3003,14 +3009,14 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.7
 
-  '@babel/plugin-transform-react-jsx-self@7.29.7(@babel/core@7.29.7)':
+  '@babel/plugin-transform-react-jsx-self@7.29.7(@babel/core@7.29.7(supports-color@10.2.2))':
     dependencies:
-      '@babel/core': 7.29.7
+      '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-transform-react-jsx-source@7.29.7(@babel/core@7.29.7)':
+  '@babel/plugin-transform-react-jsx-source@7.29.7(@babel/core@7.29.7(supports-color@10.2.2))':
     dependencies:
-      '@babel/core': 7.29.7
+      '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/runtime@7.29.7': {}
@@ -4324,6 +4330,10 @@ snapshots:
 
   '@types/geojson@7946.0.16': {}
 
+  '@types/navermaps@3.9.2':
+    dependencies:
+      '@types/geojson': 7946.0.16
+
   '@types/node@24.10.13':
     dependencies:
       undici-types: 7.16.0
@@ -4345,11 +4355,11 @@ snapshots:
       '@types/prop-types': 15.7.15
       csstype: 3.2.3
 
-  '@vitejs/plugin-react@4.7.0(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1))':
+  '@vitejs/plugin-react@4.7.0(supports-color@10.2.2)(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1))':
     dependencies:
-      '@babel/core': 7.29.7
-      '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
-      '@babel/plugin-transform-react-jsx-source': 7.29.7(@babel/core@7.29.7)
+      '@babel/core': 7.29.7(supports-color@10.2.2)
+      '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))
+      '@babel/plugin-transform-react-jsx-source': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
@@ -4692,7 +4702,7 @@ snapshots:
     dependencies:
       whatwg-encoding: 3.1.1
 
-  http-proxy-agent@7.0.2:
+  http-proxy-agent@7.0.2(supports-color@10.2.2):
     dependencies:
       agent-base: 7.1.4
       debug: 4.4.3(supports-color@10.2.2)
@@ -4744,13 +4754,13 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  jsdom@26.1.0:
+  jsdom@26.1.0(supports-color@10.2.2):
     dependencies:
       cssstyle: 4.6.0
       data-urls: 5.0.0
       decimal.js: 10.6.0
       html-encoding-sniffer: 4.0.0
-      http-proxy-agent: 7.0.2
+      http-proxy-agent: 7.0.2(supports-color@10.2.2)
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
       is-potential-custom-element-name: 1.0.1
       nwsapi: 2.2.24
@@ -5357,7 +5367,7 @@ snapshots:
       jiti: 2.7.0
       lightningcss: 1.30.1
 
-  vitest@4.1.10(@types/node@24.10.13)(jsdom@26.1.0)(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1)):
+  vitest@4.1.10(@types/node@24.10.13)(jsdom@26.1.0(supports-color@10.2.2))(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1)):
     dependencies:
       '@vitest/expect': 4.1.10
       '@vitest/mocker': 4.1.10(vite@6.3.5(@types/node@24.10.13)(jiti@2.7.0)(lightningcss@1.30.1))
@@ -5381,7 +5391,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 24.10.13
-      jsdom: 26.1.0
+      jsdom: 26.1.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - msw
 

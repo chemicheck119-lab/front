@@ -6,6 +6,7 @@ import type { MapContext } from "../../api/contracts";
 import { apiConfig, runtimeDataMode } from "../../api/config";
 import { canRenderRoute, formatDistance, formatEta, type LocationPresentation } from "./mapState";
 import { resolveOperationalMapStyle } from "./mapStyle";
+import { NaverMapCanvas } from "./NaverMapCanvas";
 import { AlertTriangle, Crosshair, LocateFixed, MapPinned, Route } from "lucide-react";
 
 interface IncidentMapProps {
@@ -14,7 +15,7 @@ interface IncidentMapProps {
   gps: LocationPresentation;
 }
 
-const EMPTY_ROUTE = { type: "FeatureCollection", features: [] } as const;
+const EMPTY_ROUTE = { type: "FeatureCollection" as const, features: [] };
 
 function markerElement(kind: "incident" | "responder") {
   const element = document.createElement("div");
@@ -47,8 +48,10 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
   const lastResponderRef = useRef<[number, number] | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const styleUrl = isDark && apiConfig.mapDarkStyleUrl ? apiConfig.mapDarkStyleUrl : apiConfig.mapStyleUrl;
+  const hasMapConfiguration = Boolean(apiConfig.naverMapClientId || styleUrl);
 
   useEffect(() => {
+    if (apiConfig.naverMapClientId) return;
     if (!containerRef.current || !styleUrl || mapRef.current) return;
     try {
       setMapError(null);
@@ -147,13 +150,15 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
 
   return (
     <section className="relative h-full min-h-[460px] overflow-hidden rounded-2xl border border-border bg-card" aria-label="전국 사고 및 출동 지도">
-      <div ref={containerRef} className="chemicheck-map-canvas absolute inset-0" />
-      {!styleUrl && (
+      {apiConfig.naverMapClientId
+        ? <NaverMapCanvas context={context} onError={setMapError} />
+        : <div ref={containerRef} className="chemicheck-map-canvas absolute inset-0" data-map-provider="maplibre" />}
+      {!hasMapConfiguration && (
         <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,var(--muted),var(--card))] p-8 text-center">
           <div className="max-w-xs">
             <MapPinned className="mx-auto mb-3 text-muted-foreground" size={32} />
-            <p className="text-sm font-semibold">지도 스타일 연결 필요</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">`VITE_MAP_STYLE_URL`에 운영용 지도 사업자의 Style URL을 설정해주세요.</p>
+            <p className="text-sm font-semibold">지도 서비스 연결 필요</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">네이버 지도 Client ID 또는 운영 지도 Style URL을 설정해주세요.</p>
           </div>
         </div>
       )}

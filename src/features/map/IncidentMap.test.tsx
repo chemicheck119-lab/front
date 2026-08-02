@@ -6,15 +6,18 @@ import { apiConfig } from "../../api/config";
 import { IncidentMap } from "./IncidentMap";
 
 const originalMapStyleUrl = apiConfig.mapStyleUrl;
+const originalNaverMapClientId = apiConfig.naverMapClientId;
 const mapStyles = readFileSync(path.resolve(process.cwd(), "src/styles/map.css"), "utf8");
 
 describe("MapLibre 지도 컨테이너", () => {
   afterEach(() => {
     apiConfig.mapStyleUrl = originalMapStyleUrl;
+    apiConfig.naverMapClientId = originalNaverMapClientId;
   });
 
   it("MapLibre 기본 position 규칙이 덮어써도 전체 지도 높이를 유지한다", () => {
     apiConfig.mapStyleUrl = "";
+    apiConfig.naverMapClientId = "";
     render(<IncidentMap
       context={null}
       isDark={false}

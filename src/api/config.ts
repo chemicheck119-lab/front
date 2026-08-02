@@ -30,6 +30,7 @@ export const apiConfig = {
   locationUpdateIntervalMs: positiveNumber(import.meta.env.VITE_LOCATION_UPDATE_INTERVAL_MS, 5000),
   mapStyleUrl: mapStyleUrlWithPublicToken(import.meta.env.VITE_MAP_STYLE_URL, mapPublicToken),
   mapDarkStyleUrl: mapStyleUrlWithPublicToken(import.meta.env.VITE_MAP_DARK_STYLE_URL, mapPublicToken),
+  naverMapClientId: import.meta.env.VITE_NAVER_MAP_CLIENT_ID?.trim() ?? "",
   authLoginUrl: import.meta.env.VITE_AUTH_LOGIN_URL?.trim() ?? "",
   authEnabled,
   defaultStationName: import.meta.env.VITE_DEFAULT_STATION_NAME?.trim() ?? "",
