@@ -31,6 +31,7 @@ import type {
   JourneyState,
   MapContext,
   MaterialDiscoveryResponse,
+  PositionSnapshot,
   RecordSaveRequest,
   SessionContextResponse,
 } from "../api/contracts";
@@ -195,7 +196,11 @@ function waitForPresentationStep(signal: AbortSignal, delayMs = 500) {
   });
 }
 
-function mergeResponderPosition(context: MapContext | null, position: ReturnType<typeof useResponderLocation>["position"]): MapContext | null {
+function mergeResponderPosition(
+  context: MapContext | null,
+  position: ReturnType<typeof useResponderLocation>["position"],
+  stationName: string | null,
+): MapContext | null {
   if (!context && !position) return null;
   const base: MapContext = context ?? {
     coverageScope: "NATIONWIDE_KOREA",
@@ -207,7 +212,11 @@ function mergeResponderPosition(context: MapContext | null, position: ReturnType
     ...base,
     responderPosition: {
       ...position,
-      label: position.source === "DEMO_SIMULATION" ? "시연용 출동 차량" : "대원·차량 현재 위치",
+      label: position.source === "DEMO_SIMULATION"
+        ? "시연용 출동 차량"
+        : position.source === "MANUAL_DISPATCH"
+          ? `${stationName ?? "소방서"} 출동 기준점`
+          : "대원·차량 현재 위치",
       isSimulation: position.source === "DEMO_SIMULATION",
     },
   };
@@ -271,7 +280,21 @@ export default function App() {
   const analysisPanelRef = useRef<HTMLDivElement>(null);
   const operationGeneration = useRef(0);
   const operationControllers = useRef(new Set<AbortController>());
-  const responderLocation = useResponderLocation(Boolean(station) && useActive && apiConfig.movementEnabled);
+  const stationFallbackPosition = useMemo<PositionSnapshot | null>(() => {
+    const location = sessionContext?.stationLocation;
+    if (!location) return null;
+    return {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      observedAt: sessionContext.issuedAt,
+      source: "MANUAL_DISPATCH",
+      accuracyM: null,
+    };
+  }, [sessionContext]);
+  const responderLocation = useResponderLocation(
+    Boolean(station) && useActive && apiConfig.movementEnabled,
+    stationFallbackPosition,
+  );
 
   useEffect(() => {
     if (!apiConfig.authEnabled) return;
@@ -317,12 +340,19 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const gpsPresentation = useMemo(() => getLocationPresentation(
-    responderLocation.state,
-    responderLocation.position?.observedAt,
-    responderLocation.position?.accuracyM,
-    nowMs,
-  ), [responderLocation, nowMs]);
+  const gpsPresentation = useMemo(() => responderLocation.position?.source === "MANUAL_DISPATCH"
+    ? {
+        label: "소방서 기준 위치",
+        detail: `${station ?? "선택 소방서"} · 실제 대원 GPS 수신 전`,
+        tone: "waiting" as const,
+        usableForRoute: true,
+      }
+    : getLocationPresentation(
+      responderLocation.state,
+      responderLocation.position?.observedAt,
+      responderLocation.position?.accuracyM,
+      nowMs,
+    ), [responderLocation, station, nowMs]);
 
   const syntheticScenario = Boolean(presentationReplay && presentationScenarioId);
   const displayGpsPresentation = syntheticScenario
@@ -334,7 +364,8 @@ export default function App() {
   const effectiveMapContext = useMemo(() => mergeResponderPosition(
     mapContext ?? analysis?.agent?.mapContext ?? null,
     responderLocation.position,
-  ), [mapContext, analysis, responderLocation.position]);
+    station,
+  ), [mapContext, analysis, responderLocation.position, station]);
 
   useEffect(() => {
     if (!apiConfig.movementEnabled || !incidentId || !responderLocation.position || runtimeDataMode !== "LIVE_API") return;

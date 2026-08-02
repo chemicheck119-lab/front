@@ -1562,6 +1562,26 @@ export interface components {
             userId: string;
             stationId: string;
             stationDisplayName: string;
+            stationLocation: {
+                address: string;
+                latitude: number;
+                longitude: number;
+                phone: string;
+                /** @constant */
+                coordinateSource: "NFA_PUBLIC_DATA";
+                /** @constant */
+                sourceName: "소방청_전국소방서 좌표현황(XY좌표)";
+                /**
+                 * Format: uri
+                 * @constant
+                 */
+                sourceUrl: "https://www.data.go.kr/data/15138232/fileData.do";
+                /**
+                 * Format: date
+                 * @constant
+                 */
+                sourceDate: "2024-09-01";
+            } | null;
             roles: ("RESPONDER" | "COMMANDER" | "ADMIN")[];
             incidentScopes: string[];
             /** Format: date-time */
