@@ -5,6 +5,7 @@ export function buildNaverMapSdkUrl(clientId: string): string {
   const url = new URL("https://oapi.map.naver.com/openapi/v3/maps.js");
   url.searchParams.set("ncpKeyId", clientId);
   url.searchParams.set("language", "ko");
+  url.searchParams.set("submodules", "geocoder");
   return url.toString();
 }
 
