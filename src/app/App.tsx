@@ -281,6 +281,27 @@ export default function App() {
     name: apiConfig.dispatchCenterName || `${station} 상황실`,
     phone: apiConfig.dispatchCenterPhone,
   };
+  const dispatchPreview = presentationReplay
+    ? {
+        receivedAt: presentationReplay.receivedAt,
+        stationDisplayName: presentationReplay.stationDisplayName,
+        facilityName: presentationReplay.facilityName,
+        addressText: presentationReplay.addressText,
+        reportText: presentationReplay.reportText,
+        requestId: presentationReplay.requestId,
+        disclosure: presentationReplay.disclosure,
+      }
+    : presentationReplayStatus === "RECEIVED"
+      ? {
+          receivedAt: conversationStartedAt,
+          stationDisplayName: station,
+          facilityName: contestLiveScenario.facilityName,
+          addressText: contestLiveScenario.address,
+          reportText: contestLiveScenario.text,
+          requestId: null,
+          disclosure: contestLiveScenario.disclosure,
+        }
+      : null;
 
   function beginOperation() {
     const controller = new AbortController();
@@ -548,35 +569,24 @@ export default function App() {
 
   async function loadPresentationIncident() {
     if (!apiConfig.presentationScenarioEnabled) {
-      setFacilityName(contestLiveScenario.facilityName);
-      setAddress(contestLiveScenario.address);
-      setInput(contestLiveScenario.text);
-      setPresentationScenarioId(null);
       setPresentationReplay(null);
-      setPresentationReplayStatus("IDLE");
-      setMode("collision");
+      setPresentationReplayStatus("RECEIVED");
+      setError(null);
       return;
     }
 
-    if (analysis || incidentId || analysisIds.length > 0) resetSession();
     const operation = beginOperation();
     setPresentationReplayStatus("WAITING");
     setError(null);
     try {
       const envelope = await receiveContestIncident(operation.controller.signal);
       if (!isCurrentOperation(operation.generation)) return;
-      setFacilityName(envelope.facilityName);
-      setAddress(envelope.addressText);
-      setInput(envelope.reportText);
-      setIncidentId(envelope.incidentId);
-      setPresentationScenarioId(contestLiveScenario.scenarioId);
       setPresentationReplay(envelope);
       setPresentationReplayStatus("RECEIVED");
       setMessages((previous) => [...previous, makeMessage(
         "SYSTEM",
-        `공개 합성 지령을 BE SSE에서 수신했습니다. ${envelope.disclosure} (요청 ID: ${envelope.requestId})`,
+        `상황실 지령망에서 공개 합성 지령을 수신했습니다. 대원 확인 전에는 분석을 시작하지 않습니다. (요청 ID: ${envelope.requestId})`,
       )]);
-      setMode("collision");
     } catch (caught) {
       if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
       const issue = captureRequestIssue(caught);
@@ -587,6 +597,26 @@ export default function App() {
     } finally {
       finishOperation(operation.controller);
     }
+  }
+
+  function acceptPresentationIncident() {
+    if (presentationReplayStatus !== "RECEIVED") return;
+    const envelope = presentationReplay;
+    if (analysis || incidentId || analysisIds.length > 0) {
+      resetSession();
+      setPresentationReplay(envelope);
+      setPresentationReplayStatus("RECEIVED");
+    }
+    setFacilityName(envelope?.facilityName ?? contestLiveScenario.facilityName);
+    setAddress(envelope?.addressText ?? contestLiveScenario.address);
+    setInput(envelope?.reportText ?? contestLiveScenario.text);
+    setIncidentId(envelope?.incidentId ?? null);
+    setPresentationScenarioId(contestLiveScenario.scenarioId);
+    setMessages((previous) => [...previous, makeMessage(
+      "SYSTEM",
+      `대원이 상황실 지령을 확인해 대응화면에 반영했습니다.${envelope?.requestId ? ` (요청 ID: ${envelope.requestId})` : ""} 분석은 별도로 실행해야 합니다.`,
+    )]);
+    setMode("collision");
   }
 
   function changeIncidentInput(value: string) {
@@ -638,8 +668,14 @@ export default function App() {
           confirmationIds={confirmationIds}
           canSave={Boolean(apiConfig.recordEnabled && !recordResetPending && incidentId && analysisIds.length)}
           recordAvailable={apiConfig.recordEnabled}
+          dispatchStreamAvailable={apiConfig.presentationScenarioEnabled || runtimeDataMode === "DEMO_SIMULATION"}
+          dispatchStreamStatus={presentationReplayStatus}
+          dispatchPreview={dispatchPreview}
+          dispatchAccepted={Boolean(presentationScenarioId)}
           onRequestSave={() => setShowSaveDialog(true)}
           onContactAttempt={() => setMessages((previous) => [...previous, makeMessage("SYSTEM", `${dispatchContact.name} 전화 연결을 시도했습니다.`)])}
+          onConnectDispatch={() => { void loadPresentationIncident(); }}
+          onAcceptDispatch={acceptPresentationIncident}
         />
 
         <main className="flex min-w-0 flex-1 flex-col gap-2 p-2">
@@ -669,13 +705,6 @@ export default function App() {
                     <input value={facilityName} onChange={(event) => { clearPresentationReplayForManualEdit(); setFacilityName(event.target.value); }} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="시설명(출동지령 기준)" />
                     <input value={address} onChange={(event) => { clearPresentationReplayForManualEdit(); setAddress(event.target.value); }} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="사고 주소(좌표는 BE 검증)" />
                   </div>
-                )}
-                {mode === "collision" && (runtimeDataMode === "DEMO_SIMULATION" || apiConfig.presentationScenarioEnabled) && (
-                  <button type="button" disabled={presentationReplayStatus === "WAITING"} onClick={() => { void loadPresentationIncident(); }} className="mt-2 text-[10px] font-semibold text-accent hover:underline disabled:cursor-wait disabled:opacity-60">
-                    {apiConfig.presentationScenarioEnabled
-                      ? presentationReplayStatus === "WAITING" ? "공개 합성 지령 수신 대기 중…" : "공개 합성 지령 실시간 수신"
-                      : "오프라인 시연 신고 불러오기"}
-                  </button>
                 )}
                 {presentationReplayStatus === "WAITING" && (
                   <div className="mt-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-[10px] leading-relaxed text-blue-800 dark:text-blue-200" role="status">

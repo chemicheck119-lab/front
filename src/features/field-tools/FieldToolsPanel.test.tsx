@@ -29,8 +29,14 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof FieldToolsPa
     confirmationIds: [],
     canSave: false,
     recordAvailable: true,
+    dispatchStreamAvailable: false,
+    dispatchStreamStatus: "IDLE",
+    dispatchPreview: null,
+    dispatchAccepted: false,
     onRequestSave: vi.fn(),
     onContactAttempt: vi.fn(),
+    onConnectDispatch: vi.fn(),
+    onAcceptDispatch: vi.fn(),
     ...overrides,
   };
   render(<FieldToolsPanel {...props} />);
@@ -44,8 +50,44 @@ describe("좌측 현장 도구", () => {
     fireEvent.click(screen.getByRole("button", { name: /상황실 연결/ }));
 
     expect(screen.getByRole("dialog", { name: "상황실 연결" })).toBeInTheDocument();
-    expect(screen.getByText("연락처 미설정")).toBeInTheDocument();
+    expect(screen.getByText("운영 연락처 미설정")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /전화 연결/ })).not.toBeInTheDocument();
+  });
+
+  it("상황실 지령망을 연결하고 수신 지령을 대원 확인 뒤 별도로 반영한다", () => {
+    const onConnectDispatch = vi.fn();
+    const onAcceptDispatch = vi.fn();
+    const dispatchPreview = {
+      receivedAt: "2026-08-02T11:20:00+09:00",
+      stationDisplayName: "공개 시연 소방서",
+      facilityName: "공개 합성 사업장",
+      addressText: "경기도 화성시 팔탄면",
+      reportText: "차아염소산나트륨 저장탱크 누출 의심",
+      requestId: "REQ-DISPATCH-1",
+      disclosure: "개인정보 없는 공개 합성 지령",
+    };
+
+    renderPanel({ dispatchStreamAvailable: true, onConnectDispatch, onAcceptDispatch });
+    fireEvent.click(screen.getByRole("button", { name: /상황실 연결/ }));
+    fireEvent.click(screen.getByRole("button", { name: "지령망 연결" }));
+    expect(onConnectDispatch).toHaveBeenCalledOnce();
+
+    cleanup();
+    renderPanel({
+      dispatchStreamAvailable: true,
+      dispatchStreamStatus: "RECEIVED",
+      dispatchPreview,
+      onConnectDispatch,
+      onAcceptDispatch,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /상황실 연결/ }));
+
+    expect(screen.getByText("새 지령 수신")).toBeInTheDocument();
+    expect(screen.getByText(dispatchPreview.reportText)).toBeInTheDocument();
+    expect(screen.getByText(/REQ-DISPATCH-1/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "지령 확인 및 대응화면에 반영" }));
+    expect(onAcceptDispatch).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog", { name: "상황실 연결" })).not.toBeInTheDocument();
   });
 
   it("대화상자를 열면 닫기에 초점을 두고 Escape 후 호출 버튼으로 돌아간다", async () => {

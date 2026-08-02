@@ -6,6 +6,7 @@ import {
   Copy,
   ExternalLink,
   FileClock,
+  LoaderCircle,
   Phone,
   Radio,
   X,
@@ -28,6 +29,18 @@ interface DispatchContact {
   phone: string;
 }
 
+export type DispatchStreamStatus = "IDLE" | "WAITING" | "RECEIVED" | "ERROR";
+
+export interface DispatchPreview {
+  receivedAt: string;
+  stationDisplayName: string;
+  facilityName: string;
+  addressText: string;
+  reportText: string;
+  requestId?: string | null;
+  disclosure: string;
+}
+
 interface FieldToolsPanelProps {
   station: string;
   dispatchContact: DispatchContact;
@@ -41,8 +54,14 @@ interface FieldToolsPanelProps {
   confirmationIds: string[];
   canSave: boolean;
   recordAvailable: boolean;
+  dispatchStreamAvailable: boolean;
+  dispatchStreamStatus: DispatchStreamStatus;
+  dispatchPreview: DispatchPreview | null;
+  dispatchAccepted: boolean;
   onRequestSave: () => void;
   onContactAttempt: () => void;
+  onConnectDispatch: () => void;
+  onAcceptDispatch: () => void;
 }
 
 type ToolDialog = "contact" | "sources" | "record" | null;
@@ -158,8 +177,14 @@ export function FieldToolsPanel({
   confirmationIds,
   canSave,
   recordAvailable,
+  dispatchStreamAvailable,
+  dispatchStreamStatus,
+  dispatchPreview,
+  dispatchAccepted,
   onRequestSave,
   onContactAttempt,
+  onConnectDispatch,
+  onAcceptDispatch,
 }: FieldToolsPanelProps) {
   const [activeDialog, setActiveDialog] = useState<ToolDialog>(null);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
@@ -168,6 +193,15 @@ export function FieldToolsPanel({
   const unsavedCount = countUnsavedRecordItems(messages, analysisIds, confirmationIds);
   const phoneHref = normalizePhoneHref(dispatchContact.phone);
   const dataStatus = modeStatus(dataMode);
+  const dispatchButtonDetail = dispatchStreamAvailable
+    ? dispatchStreamStatus === "WAITING"
+      ? "지령망 연결 중"
+      : dispatchStreamStatus === "ERROR"
+        ? "지령망 재연결 필요"
+        : dispatchStreamStatus === "RECEIVED"
+          ? dispatchAccepted ? "지령 확인 완료" : "새 지령 1건"
+          : "지령망 연결 대기"
+    : phoneHref ? dispatchContact.phone : "연결 설정 필요";
 
   function openDialog(dialog: Exclude<ToolDialog, null>, trigger: HTMLButtonElement) {
     dialogTriggerRef.current = trigger;
@@ -197,7 +231,7 @@ export function FieldToolsPanel({
           <p className="mt-1 truncate text-[9px] text-muted-foreground">{station}</p>
         </div>
         <nav className="space-y-1" aria-label="현장 도구 메뉴">
-          <ToolButton icon={<Phone size={16} />} label="상황실 연결" detail={phoneHref ? dispatchContact.phone : "연락처 설정 필요"} onClick={(trigger) => openDialog("contact", trigger)} />
+          <ToolButton icon={<Phone size={16} />} label="상황실 연결" detail={dispatchButtonDetail} badge={dispatchStreamStatus === "RECEIVED" && !dispatchAccepted ? "1" : undefined} onClick={(trigger) => openDialog("contact", trigger)} />
           <ToolButton icon={<BookOpenCheck size={16} />} label="공식 화학자료" detail={officialItems.length ? `CAS 후보 ${officialItems.length}건` : "분석 후 CAS 자료 확인"} badge={officialItems.length ? String(officialItems.length) : undefined} onClick={(trigger) => openDialog("sources", trigger)} />
           <ToolButton icon={<ClipboardList size={16} />} label="현재 사고 기록" detail={!recordAvailable ? "조회 가능 · 저장 API 준비 중" : incidentId ? `사고 ${incidentId}` : "신고 접수 대기"} badge={unsavedCount ? String(unsavedCount) : undefined} onClick={(trigger) => openDialog("record", trigger)} />
         </nav>
@@ -211,11 +245,45 @@ export function FieldToolsPanel({
       </aside>
 
       {activeDialog === "contact" && (
-        <ToolDialogShell title="상황실 연결" description="연결 대상을 확인한 뒤 기기의 전화 기능을 사용합니다." onClose={closeDialog}>
-          <div className="rounded-xl border border-border bg-secondary/45 p-4">
-            <p className="text-[10px] font-semibold text-muted-foreground">연결 대상</p>
+        <ToolDialogShell title="상황실 연결" description="지령망 수신과 음성 통화를 분리해 필요한 작업만 단계별로 실행합니다." onClose={closeDialog}>
+          <section className="rounded-xl border border-border bg-secondary/45 p-4" aria-label="상황실 지령망">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground">상황실 지령망</p>
+                <p className="mt-1 text-sm font-bold">{dispatchStreamStatus === "WAITING" ? "연결 중" : dispatchStreamStatus === "ERROR" ? "연결 오류" : dispatchStreamStatus === "RECEIVED" ? dispatchAccepted ? "지령 확인 완료" : "새 지령 수신" : "연결 대기"}</p>
+              </div>
+              <span className={`mt-1 h-2.5 w-2.5 rounded-full ${dispatchStreamStatus === "RECEIVED" ? "bg-emerald-500" : dispatchStreamStatus === "WAITING" ? "animate-pulse bg-blue-500" : dispatchStreamStatus === "ERROR" ? "bg-red-500" : "bg-slate-400"}`} />
+            </div>
+
+            {dispatchPreview && (
+              <article className="mt-3 space-y-2 rounded-xl border border-border bg-card p-3">
+                <div className="flex items-center justify-between gap-2 text-[9px] font-semibold text-muted-foreground">
+                  <span>{dispatchPreview.stationDisplayName}</span>
+                  <time>{formatRecordTime(dispatchPreview.receivedAt)}</time>
+                </div>
+                <div><p className="text-xs font-bold">{dispatchPreview.facilityName}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{dispatchPreview.addressText}</p></div>
+                <p className="rounded-lg bg-secondary px-3 py-2 text-[11px] leading-relaxed">{dispatchPreview.reportText}</p>
+                {dispatchPreview.requestId && <p className="truncate font-mono text-[8px] text-muted-foreground">요청 ID {dispatchPreview.requestId}</p>}
+              </article>
+            )}
+
+            {!dispatchStreamAvailable ? (
+              <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">이 환경에는 지령 스트림이 연결되지 않았습니다.</p>
+            ) : dispatchStreamStatus === "IDLE" || dispatchStreamStatus === "ERROR" ? (
+              <button type="button" onClick={onConnectDispatch} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary/90"><Radio size={14} />지령망 연결</button>
+            ) : dispatchStreamStatus === "WAITING" ? (
+              <button type="button" disabled className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-white opacity-65"><LoaderCircle size={14} className="animate-spin" />상황실 지령 수신 중</button>
+            ) : !dispatchAccepted ? (
+              <button type="button" onClick={() => { onAcceptDispatch(); closeDialog(); }} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary/90"><Check size={14} />지령 확인 및 대응화면에 반영</button>
+            ) : (
+              <p className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-500/10 p-3 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"><Check size={13} />대응화면에 반영했습니다. 분석 버튼은 별도로 실행하세요.</p>
+            )}
+          </section>
+
+          <div className="mt-4 rounded-xl border border-border p-4">
+            <p className="text-[10px] font-semibold text-muted-foreground">음성 통화</p>
             <p className="mt-1 text-sm font-bold">{dispatchContact.name || `${station} 상황실`}</p>
-            <p className="mt-2 font-mono text-lg font-bold">{dispatchContact.phone || "연락처 미설정"}</p>
+            <p className="mt-2 font-mono text-base font-bold">{dispatchContact.phone || "운영 연락처 미설정"}</p>
           </div>
           {phoneHref ? (
             <>
@@ -227,7 +295,7 @@ export function FieldToolsPanel({
             </>
           ) : (
             <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
-              로그인 세션 또는 운영 환경에 상황실 전화번호가 없습니다. 가짜 번호나 일반 119 번호로 대체하지 않습니다.
+              운영 상황실 전화번호가 아직 제공되지 않아 음성 통화만 비활성화했습니다. 위 지령망 수신 기능은 별도로 사용할 수 있습니다.
             </div>
           )}
           {copyStatus && <p className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground" aria-live="polite"><Check size={12} />{copyStatus}</p>}
