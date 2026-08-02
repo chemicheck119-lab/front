@@ -101,17 +101,17 @@ export function MessageComposer({
         }}
         onKeyDown={handleKeyDown}
         rows={2}
-        className="min-h-16 flex-1 resize-none rounded-xl border border-border bg-input-background px-4 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground focus:border-primary"
+        className="min-h-[60px] flex-1 resize-none rounded-xl border border-border bg-input-background px-4 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground focus:border-primary"
         placeholder={mode === "collision" ? "신고 내용과 확인된 상황을 입력하세요…" : "물질명·CAS·화학식 또는 색·냄새·상태 입력…"}
       />
       <button
         type="button"
         onClick={handleButtonClick}
         disabled={submitDisabled}
-        className="flex h-16 min-w-[112px] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white shadow-sm hover:bg-primary/90 disabled:opacity-40"
+        className="flex h-[60px] min-w-[112px] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-40"
         aria-label={mode === "collision" ? "사고 분석" : "물질 검색"}
       >
-        {mode === "collision" ? <><Send size={18} />분석 시작</> : <><Search size={18} />검색</>}
+        {mode === "collision" ? <><Send size={15} />분석 시작</> : <><Search size={15} />검색</>}
       </button>
     </div>
   );

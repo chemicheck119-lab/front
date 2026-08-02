@@ -2,3 +2,27 @@
 @import './tailwind.css';
 @import './theme.css';
 @import './map.css';
+
+/*
+ * The response console is primarily used on 12–13 inch tablets and demo
+ * laptops. Tailwind's former 9–11px microcopy was technically compact but
+ * illegible at a normal viewing distance. Keep the existing utility markup
+ * while enforcing a readable minimum inside the application shell.
+ */
+.readable-shell .text-\[8px\],
+.readable-shell .text-\[9px\],
+.readable-shell .text-\[10px\] {
+  font-size: 0.85rem;
+  line-height: 1.15rem;
+}
+
+.readable-shell .text-\[11px\],
+.readable-shell .text-xs {
+  font-size: 0.9rem;
+  line-height: 1.25rem;
+}
+
+.readable-shell .text-sm {
+  font-size: 1rem;
+  line-height: 1.4rem;
+}

@@ -171,37 +171,37 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
 
       <div className="absolute left-3 right-3 top-3 z-10 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
         <div className="rounded-xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-sm font-black">
+          <div className="flex items-center gap-2 text-sm font-semibold">
             <span className={`status-dot ${context?.incidentPosition ? "status-dot--danger" : "status-dot--muted"}`} />
             {context?.incidentPosition ? "사고 위치 확인" : "사고 위치 확인 필요"}
           </div>
-          <p className="mt-1.5 max-w-[320px] text-xs font-medium text-muted-foreground">{context?.incidentPosition?.label ?? unavailableMessage}</p>
+          <p className="mt-1 max-w-[320px] text-xs text-muted-foreground">{context?.incidentPosition?.label ?? unavailableMessage}</p>
         </div>
-        {(runtimeDataMode === "DEMO_SIMULATION" || syntheticMap) && <span className="rounded-full border border-accent/40 bg-card/95 px-3 py-1.5 text-[13px] font-bold text-accent shadow">공개 합성 지도 · 실제 경로 아님</span>}
+        {(runtimeDataMode === "DEMO_SIMULATION" || syntheticMap) && <span className="rounded-full border border-accent/40 bg-card/95 px-3 py-1.5 text-[11px] font-bold text-accent shadow">공개 합성 지도 · 실제 경로 아님</span>}
       </div>
 
-      <div data-testid="map-route-summary" className="absolute bottom-4 right-16 z-10 w-[260px] max-w-[calc(100%-5rem)] rounded-xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-sm pointer-events-none">
+      <div data-testid="map-route-summary" className="absolute bottom-4 right-16 z-10 w-[270px] max-w-[calc(100%-5rem)] rounded-xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-sm pointer-events-none">
         <div className="grid grid-cols-2 gap-3">
-          <div><p className="text-xs font-bold text-muted-foreground">예상 도착</p><p className="mt-1 text-lg font-black">{route?.status === "POSITION_STALE" ? "—" : formatEta(route?.etaSeconds)}</p></div>
-          <div><p className="text-xs font-bold text-muted-foreground">남은 거리</p><p className="mt-1 text-lg font-black">{formatDistance(route?.remainingDistanceM)}</p></div>
+          <div><p className="text-[10px] text-muted-foreground">예상 도착</p><p className="mt-0.5 text-base font-bold">{route?.status === "POSITION_STALE" ? "—" : formatEta(route?.etaSeconds)}</p></div>
+          <div><p className="text-[10px] text-muted-foreground">남은 거리</p><p className="mt-0.5 text-base font-bold">{formatDistance(route?.remainingDistanceM)}</p></div>
         </div>
-        <div className="mt-3 space-y-2 border-t border-border pt-3 text-xs font-medium">
-          <div className="flex items-center gap-2"><LocateFixed size={14} className="text-blue-500" /><span>{gps.label} · {gps.detail}</span></div>
-          <div className="flex items-center gap-2"><Route size={14} /><span className="truncate">{route?.message ?? "경로 대기"}</span></div>
-          {route?.attribution && <p className="line-clamp-2 border-t border-border pt-1 text-xs text-muted-foreground">{route.attribution}</p>}
+        <div className="mt-3 space-y-1.5 border-t border-border pt-2 text-[10px]">
+          <div className="flex items-center gap-1.5"><LocateFixed size={11} className="text-blue-500" /><span>{gps.label} · {gps.detail}</span></div>
+          <div className="flex items-center gap-1.5"><Route size={11} /><span className="truncate">{route?.message ?? "경로 대기"}</span></div>
+          {route?.attribution && <p className="line-clamp-2 border-t border-border pt-1 text-[9px] text-muted-foreground">{route.attribution}</p>}
         </div>
       </div>
 
       {!context?.incidentPosition && (
         <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-accent/40 bg-card/95 px-4 py-3 text-center shadow-xl">
           <Crosshair className="mx-auto mb-2 text-accent" size={22} />
-          <p className="text-sm font-black">사고 좌표 없음</p>
-          <p className="mt-1.5 text-xs font-medium text-muted-foreground">상황실 좌표 또는 검증된 지오코딩 결과가 필요합니다.</p>
+          <p className="text-xs font-semibold">사고 좌표 없음</p>
+          <p className="mt-1 text-[10px] text-muted-foreground">상황실 좌표 또는 검증된 지오코딩 결과가 필요합니다.</p>
         </div>
       )}
       {context?.hazardOverlayStatus === "NOT_COMPUTED_NO_VALIDATED_DISPERSION_MODEL" && (
-        <div className="absolute bottom-10 left-3 z-10 flex max-w-[380px] items-center gap-2 rounded-lg border border-border bg-card/90 px-3 py-2 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-          <AlertTriangle size={14} /> 검증된 확산 모델이 없어 위험 반경은 표시하지 않습니다.
+        <div className="absolute bottom-10 left-3 z-10 flex max-w-[330px] items-center gap-2 rounded-lg border border-border bg-card/90 px-2.5 py-1.5 text-[10px] text-muted-foreground backdrop-blur-sm">
+          <AlertTriangle size={12} /> 검증된 확산 모델이 없어 위험 반경은 표시하지 않습니다.
         </div>
       )}
     </section>
