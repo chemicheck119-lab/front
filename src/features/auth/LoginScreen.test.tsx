@@ -33,6 +33,22 @@ describe("접속 모드 분리", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
+  it("운영 세션 확인 중에는 로그인 이동 대신 차단 화면을 표시한다", () => {
+    render(<LoginScreen dataMode="LIVE_API" authLoginUrl="https://auth.example.test/login" sessionChecking onDemoLogin={vi.fn()} />);
+
+    expect(screen.getByText("운영 세션을 확인하고 있습니다")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("세션 확인 실패 후 사용자가 다시 조회할 수 있다", () => {
+    const onRetrySession = vi.fn();
+    render(<LoginScreen dataMode="LIVE_API" authLoginUrl="https://auth.example.test/login" sessionError={{ message: "세션 확인 실패", retryable: true }} onRetrySession={onRetrySession} onDemoLogin={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "세션 다시 확인" }));
+    expect(onRetrySession).toHaveBeenCalledOnce();
+    expect(screen.getByRole("alert")).toHaveTextContent("세션 확인 실패");
+  });
+
   it("실행 가능한 스크립트 URL은 인증 링크로 사용하지 않는다", () => {
     render(<LoginScreen dataMode="LIVE_API" authLoginUrl="javascript:alert(1)" onDemoLogin={vi.fn()} />);
 

@@ -90,6 +90,19 @@ describe("BFF 오류 매핑", () => {
     expect(fetchMock).toHaveBeenCalledWith("https://bff.example.test/public", expect.objectContaining({ credentials: "omit" }));
   });
 
+  it("사용 종료에서 전달한 abort 신호로 진행 중 요청을 중단한다", async () => {
+    const externalController = new AbortController();
+    const fetchMock = vi.fn().mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const request = apiRequest("/slow", { signal: externalController.signal });
+    externalController.abort();
+
+    await expect(request).rejects.toMatchObject({ name: "AbortError" });
+  });
+
   it("사용자 메시지에는 내부 상세 대신 안전한 문구와 request ID만 표시한다", () => {
     const message = userFacingError(new ApiError("NO_ROUTE", "provider secret failure", "REQ-MAP-9"));
 

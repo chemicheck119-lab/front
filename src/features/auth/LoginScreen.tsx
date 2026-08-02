@@ -1,6 +1,7 @@
-import { AlertTriangle, ExternalLink, LogIn, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ExternalLink, LoaderCircle, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { BrandLogo } from "@/app/components/BrandLogo";
+import type { UserFacingErrorInfo } from "../../api/client";
 import type { DataMode } from "../../api/contracts";
 
 const REGIONS: Array<{ label: string; stations: string[] }> = [
@@ -37,10 +38,13 @@ export function normalizeAuthLoginUrl(value: string, baseUrl = window.location.o
 interface LoginScreenProps {
   dataMode: DataMode;
   authLoginUrl: string;
+  sessionChecking?: boolean;
+  sessionError?: UserFacingErrorInfo | null;
+  onRetrySession?: () => void;
   onDemoLogin: (station: string) => void;
 }
 
-export function LoginScreen({ dataMode, authLoginUrl, onDemoLogin }: LoginScreenProps) {
+export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, sessionError = null, onRetrySession, onDemoLogin }: LoginScreenProps) {
   const [region, setRegion] = useState("");
   const [station, setStation] = useState("");
   const stations = REGIONS.find((item) => item.label === region)?.stations ?? [];
@@ -82,11 +86,13 @@ export function LoginScreen({ dataMode, authLoginUrl, onDemoLogin }: LoginScreen
           <div>
             <div className="rounded-2xl border border-border bg-secondary/55 p-4">
               <div className="flex items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-foreground text-background"><ShieldCheck size={18} /></span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-foreground text-background">{sessionChecking ? <LoaderCircle size={18} className="animate-spin" /> : <ShieldCheck size={18} />}</span>
                 <div>
-                  <h1 className="text-sm font-bold">{isLive ? "운영 인증이 필요합니다" : "서비스 연결 설정이 필요합니다"}</h1>
+                  <h1 className="text-sm font-bold">{sessionChecking ? "운영 세션을 확인하고 있습니다" : isLive ? "운영 인증이 필요합니다" : "서비스 연결 설정이 필요합니다"}</h1>
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    {isLive
+                    {sessionChecking
+                      ? "BE가 검증한 사용자·역할·소방서 정보를 불러온 뒤 대시보드에 진입합니다."
+                      : isLive
                       ? "사용자 소속과 사고 접근권한은 BE가 서명한 HttpOnly 세션만 기준으로 확인합니다. 지역 선택만으로 운영 화면에 접속하지 않습니다."
                       : "BFF 주소가 설정되지 않아 실제 사용자 인증과 현장대응 기능을 시작할 수 없습니다."}
                   </p>
@@ -94,17 +100,21 @@ export function LoginScreen({ dataMode, authLoginUrl, onDemoLogin }: LoginScreen
               </div>
             </div>
 
-            {isLive && safeAuthLoginUrl ? (
+            {sessionError && <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-[11px] leading-relaxed text-primary" role="alert">{sessionError.message}{sessionError.requestId ? ` (요청 ID: ${sessionError.requestId})` : ""}</div>}
+
+            {!sessionChecking && isLive && safeAuthLoginUrl ? (
               <a href={safeAuthLoginUrl} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-foreground text-sm font-bold text-background transition hover:opacity-90">
                 운영 로그인 페이지로 이동<ExternalLink size={15} />
               </a>
-            ) : (
+            ) : !sessionChecking ? (
               <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
                 {isLive ? "운영 인증 URL이 설정되지 않았습니다. VITE_AUTH_LOGIN_URL과 신뢰된 인증 어댑터가 필요합니다." : "VITE_BFF_BASE_URL을 먼저 설정해주세요."}
               </div>
-            )}
+            ) : null}
 
-            {isLive && safeAuthLoginUrl && (
+            {!sessionChecking && isLive && onRetrySession && <button type="button" onClick={onRetrySession} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-xs font-bold transition hover:bg-muted"><RefreshCw size={14} />세션 다시 확인</button>}
+
+            {!sessionChecking && isLive && safeAuthLoginUrl && (
               <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">로그인 후 사용자·소방서 세션 컨텍스트가 확인돼야 대시보드 진입이 활성화됩니다.</p>
             )}
           </div>

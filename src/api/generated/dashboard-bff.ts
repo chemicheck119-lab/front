@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/api/c2guard/v1/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_session_context_api_c2guard_v1_session_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logout_api_c2guard_v1_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/c2guard/v1/incidents/analyze": {
         parameters: {
             query?: never;
@@ -1522,6 +1554,21 @@ export interface components {
             /** Surfacetext */
             surfaceText: string;
         };
+        /** DashboardSessionContextResponse */
+        DashboardSessionContextResponse: {
+            /** @constant */
+            schemaVersion: "chemicheck119-dashboard-bff-v1";
+            requestId: string;
+            userId: string;
+            stationId: string;
+            stationDisplayName: string;
+            roles: ("RESPONDER" | "COMMANDER" | "ADMIN")[];
+            incidentScopes: string[];
+            /** Format: date-time */
+            issuedAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1531,6 +1578,62 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_session_context_api_c2guard_v1_session_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authenticated session context */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSessionContextResponse"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    logout_api_c2guard_v1_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session cookie expired */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
     analyze_incident_api_c2guard_v1_incidents_analyze_post: {
         parameters: {
             query?: never;

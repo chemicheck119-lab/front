@@ -21,7 +21,7 @@ FE가 인증 체계, 운영 API 주소, 지도 사업자, 조직 식별자와 �
 - 운영 배경지도는 MapTiler Dataviz Light/Dark로 확정했습니다. 공개 키는 허용 origin으로 제한하고 Git에 저장하지 않으며, MapTiler·OpenStreetMap attribution은 Style JSON 원문을 표시합니다.
 - 모든 서비스 요청은 `VITE_BFF_BASE_URL`을 사용합니다. 현재 공모전 staging은 `VITE_ENABLE_AUTH=false`로 인증 쿠키를 포함하지 않고 현장 화면에 바로 진입합니다.
 - FE는 모델 API와 길찾기 Provider를 직접 호출하거나 API Key를 보관하지 않습니다.
-- 사고 분석, 물질 검색, 현장 확인은 BE `develop@d1a7391` 기준 Live 연결 대상입니다.
+- 세션·로그아웃·사고 분석·물질 검색·현장 확인·movement·record는 BE `develop@9685a8c2` 고정 계약 기준 연결 대상입니다.
 - 확인 성공 응답의 `reanalyzeRequired=true`이면 동일한 `incidentId`로 사고 분석을 다시 호출합니다.
 - movement와 record는 BE 배포가 검증된 환경에서 각각의 기능 플래그를 켜기 전까지 호출하지 않습니다.
 - 시연 fixture는 `VITE_ENABLE_DEMO_MODE=true`인 명시적 데모 환경에서만 사용합니다.

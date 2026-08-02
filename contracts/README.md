@@ -1,6 +1,6 @@
 # BFF 계약 동기화
 
-FE의 고정 기준은 `chemicheck119/BE_Repository@d1a7391d33cd7dc798eb72debc6198e1549547c6`의 `contracts/dashboard-bff-v1.openapi.json`입니다.
+FE의 고정 기준은 `chemicheck119/BE_Repository@9685a8c2bbd048c1f79cb69770ba92dd7877a50b`의 `contracts/dashboard-bff-v1.openapi.json`입니다.
 
 - `dashboard-bff-v1.openapi.json`: 권위 커밋에서 가져온 OpenAPI 원본
 - `dashboard-bff-v1.source.json`: 저장소·전체 commit SHA·원본 해시·URL

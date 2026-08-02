@@ -49,14 +49,22 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   if (!apiConfig.baseUrl) throw new ApiError("NETWORK", "BFF 주소가 설정되지 않았습니다.");
 
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), apiConfig.timeoutMs);
+  const externalSignal = init.signal;
+  let timedOut = false;
+  const abortFromCaller = () => controller.abort(externalSignal?.reason);
+  if (externalSignal?.aborted) abortFromCaller();
+  else externalSignal?.addEventListener("abort", abortFromCaller, { once: true });
+  const timer = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, apiConfig.timeoutMs);
   try {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const response = await fetch(`${apiConfig.baseUrl}${path}`, {
         ...init,
         signal: controller.signal,
         credentials: init.credentials ?? (apiConfig.authEnabled ? "include" : "omit"),
-        headers: { "Content-Type": "application/json", ...init.headers },
+        headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
       });
       const body = await response.json().catch(() => ({}));
       const requestId = body.requestId ?? response.headers.get("x-request-id") ?? undefined;
@@ -71,10 +79,12 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     throw new ApiError("SERVICE_UNAVAILABLE", "분석 서비스 재시도에 실패했습니다.", undefined, true);
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    if (error instanceof DOMException && error.name === "AbortError") throw new ApiError("TIMEOUT", "요청 시간이 초과되었습니다.", undefined, true);
+    if (error instanceof DOMException && error.name === "AbortError" && timedOut) throw new ApiError("TIMEOUT", "요청 시간이 초과되었습니다.", undefined, true);
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiError("NETWORK", "네트워크에 연결할 수 없습니다.", undefined, true);
   } finally {
     window.clearTimeout(timer);
+    externalSignal?.removeEventListener("abort", abortFromCaller);
   }
 }
 

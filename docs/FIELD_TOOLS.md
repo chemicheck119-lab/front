@@ -16,7 +16,7 @@ VITE_DISPATCH_CENTER_NAME=
 VITE_DISPATCH_CENTER_PHONE=
 ```
 
-실제 운영에서는 인증된 로그인 세션 컨텍스트에서 조직별 연락처를 받아야 합니다. FE는 `GET /api/c2guard/v1/session` 계약이 구현되기 전까지 Live 소속과 상황실 연락처를 사용자 선택값으로 확정하지 않습니다.
+실제 운영에서는 인증된 로그인 세션 컨텍스트에서 조직별 연락처를 받아야 합니다. FE 인증 모드는 `GET /api/c2guard/v1/session`의 검증된 `stationId`와 표시명을 사용하며, 현재 계약에 포함되지 않은 상황실 연락처는 임시 환경값을 권위 데이터로 간주하지 않습니다.
 
 ## 2. 공식 화학자료
 

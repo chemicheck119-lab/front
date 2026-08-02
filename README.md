@@ -10,14 +10,14 @@
 |---|---|---|
 | MapLibre 전국 지도 | 운영 배경지도 연동 완료 | MapTiler Dataviz Light/Dark, 사고/대원 마커와 BE GeoJSON LineString 표시 |
 | 브라우저 위치 | 구현 완료 | `watchPosition`, 권한 거부·대기·오래됨·낮은 정확도 처리 |
-| 이동 경로·ETA | FE 계약 연동 완료·BE 미구현 | Live 기본값은 `준비 중`; 기능 플래그 전에는 movement를 호출하거나 가짜 직선 경로를 만들지 않음 |
+| 이동 경로·ETA | FE·BE 구현 완료·활성화 대기 | Live 기본값은 `준비 중`; staging GPS·도로 경로 검증 후 기능 플래그 활성화 |
 | 현장대응 에이전트 | BFF 계약 연동 완료 | 단계·목표·다음 행동·도구 실행 요약 표시 |
 | 물질검색 | FE·BE 연동 가능 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
 | 확인 게이트 | FE·BE 구현 완료 | 두 CAS 확인 전 규칙 차단, `0/2→2/2` 현장 체크포인트와 역할·근거·확인 시각 기록 |
-| 기록 저장 | FE 계약 연동 완료·BE 미구현 | 내역 조회는 유지하고 저장은 `준비 중`; 기능 플래그와 성공 응답 뒤에만 초기화 |
+| 기록 저장 | FE·BE 구현 완료·활성화 대기 | 저장은 staging 영속성 검증 전까지 `준비 중`; 성공 응답 뒤에만 초기화 |
 | 좌측 현장 도구 | UI·화면 상태 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
-| 실제 BE/BFF | 3개 경로 연동 가능 | `develop@d1a7391` 기준 사고분석·물질검색·현장확인, movement·record 미구현 |
-| BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·5개 경로·세션 보안·생성 타입을 `pnpm check`에서 검증 |
+| 실제 BE/BFF | 7개 operation 계약 동기화 | `develop@9685a8c2` 기준 세션·로그아웃·분석·검색·확인·movement·record |
+| BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·7개 operation·세션 보안·생성 타입을 `pnpm check`에서 검증 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
 
@@ -82,7 +82,7 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 
 인증 미사용 환경에서 받은 401은 로그인 화면을 띄우지 않고 `BFF가 아직 인증 없는 직접 요청을 허용하지 않습니다`로 안내합니다. 향후 `VITE_ENABLE_AUTH=true`로 전환하면 401 세션 만료와 403 권한 거부를 분리하고 기존 재인증 UI를 다시 사용합니다.
 
-시연 모드에서는 기존 지역·소방서 선택 화면을 유지합니다. 인증 미사용 Live staging은 `VITE_DEFAULT_STATION_NAME`으로 바로 진입하며 이 표시명을 권한·감사 식별자로 사용하지 않습니다. 향후 인증 모드는 안전한 `VITE_AUTH_LOGIN_URL`과 세션 컨텍스트 API가 준비된 경우에만 활성화합니다.
+시연 모드에서는 기존 지역·소방서 선택 화면을 유지합니다. 인증 미사용 Live staging은 `VITE_DEFAULT_STATION_NAME`으로 바로 진입하며 이 표시명을 권한·감사 식별자로 사용하지 않습니다. 인증 모드는 `GET /api/c2guard/v1/session` 성공 후 받은 `stationId`·역할·표시명으로만 진입하며 안전한 `VITE_AUTH_LOGIN_URL`이 함께 준비된 환경에서 활성화합니다.
 
 상황실 전화번호는 비밀키가 아니지만 운영 조직별로 달라질 수 있으므로, 실제 서비스에서는 환경변수보다 인증된 로그인 세션/BFF 응답으로 제공하는 방식을 권장합니다. 좌측 도구의 자세한 동작은 [현장 도구 설계](./docs/FIELD_TOOLS.md)를 참고하세요.
 
@@ -90,19 +90,21 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 
 ## BFF 경로
 
-권위 기준은 BE `develop@d1a7391`입니다. 모든 요청은 `VITE_BFF_BASE_URL`을 사용하며 인증 쿠키는 인증 기능이 활성화된 환경에서만 포함합니다.
+권위 기준은 BE `develop@9685a8c2`입니다. 모든 요청은 `VITE_BFF_BASE_URL`을 사용하며 인증 쿠키는 인증 기능이 활성화된 환경에서만 포함합니다.
 
 동일 커밋의 OpenAPI 원본과 생성 타입을 저장소에 고정했습니다. 갱신 절차는 [BFF 계약 동기화](./contracts/README.md), 출처 메타데이터는 [dashboard-bff-v1.source.json](./contracts/dashboard-bff-v1.source.json)을 참고합니다.
 
 | 경로 | 현재 상태 |
 |---|---|
+| `GET /api/c2guard/v1/session` | 인증 모드 진입 게이트와 사용자·소방서 컨텍스트 연동 완료 |
+| `POST /api/c2guard/v1/logout` | 인증 모드 사용 종료 연동 완료 |
 | `POST /api/c2guard/v1/incidents/analyze` | 연동 가능 |
 | `POST /api/c2guard/v1/substances/discover` | 연동 가능 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/confirmations` | 연동 가능; 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 재분석 |
-| `POST /api/c2guard/v1/incidents/{incidentId}/movement` | BE 미구현 |
-| `POST /api/c2guard/v1/incidents/{incidentId}/record` | BE 미구현 |
+| `POST /api/c2guard/v1/incidents/{incidentId}/movement` | FE·BE 구현 완료; staging 활성화 검증 대기 |
+| `POST /api/c2guard/v1/incidents/{incidentId}/record` | FE·BE 구현 완료; staging 영속성 검증 대기 |
 
-현재 FE는 확인 성공 후 동일 사고를 재분석하며 BE 계약과 일치합니다. movement·record는 명시적 기능 플래그가 없으면 Live 요청을 보내지 않고 `준비 중`으로 표시하므로, 미구현 응답을 FE 결함으로 오인하지 않습니다.
+현재 FE는 확인 성공 후 동일 사고를 재분석하며 BE 계약과 일치합니다. movement·record는 명시적 기능 플래그가 없으면 Live 요청을 보내지 않고 `준비 중`으로 표시하며, staging E2E가 통과된 환경에서만 활성화합니다.
 
 상세 계약과 BE 담당 체크리스트는 [BE 연동 요청서](./docs/BE_INTEGRATION_REQUEST.md)를 참고합니다.
 

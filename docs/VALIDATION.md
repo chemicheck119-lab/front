@@ -8,8 +8,8 @@
 
 ```text
 pnpm typecheck  성공
-pnpm contract:check 성공 — BE d1a7391d, 5 paths, generated types synchronized
-pnpm test       성공 — 15 files, 61 tests
+pnpm contract:check 성공 — BE 9685a8c2, 7 operations, generated types synchronized
+pnpm test       성공 — 20 files, 78 tests
 pnpm build      성공
 pnpm build:demo 성공
 pnpm build:staging 성공
@@ -32,6 +32,8 @@ pnpm build:staging 성공
 - Demo 모드에서만 fixture 사용, Live 장애 시 자동 대체 금지
 - 인증·확인 필요·근거 부족·경로 없음·artifact 미준비 오류 구분
 - BFF 세션 쿠키 기본 전송과 호출부 override 보존
+- 인증 모드의 `GET /session` 진입 게이트와 `POST /logout` 세션 종료
+- 사용 종료 시 GPS watch 해제·좌표 제거·진행 요청 abort
 - `MODEL_TIMEOUT`·일시 장애·사고 참조 충돌·계약 위반 오류 구분
 - 시연 모드에서만 로컬 지역·소방서 접속 허용
 - Live 모드의 로컬 권한 선택 제거와 안전한 인증 URL 검증
@@ -90,6 +92,6 @@ pnpm build:staging 성공
 ## 검증 한계
 
 - 공개 MapLibre demo style은 `.env.demo`와 `pnpm dev:demo`에서만 사용하며 운영 설정에는 사용하지 않습니다.
-- BE `develop@d1a7391` 기준 사고 분석·물질 검색·현장 확인은 연결 대상이지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
-- movement·record·실제 길찾기 Provider는 BE 미구현입니다. Live에서는 기능 플래그 전까지 요청을 차단하고 `준비 중`으로 표시합니다.
+- BE `develop@9685a8c2` 기준 7개 operation 계약과 FE client는 동기화됐지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
+- movement·record는 FE·BE 구현 완료 상태이며, 실제 길찾기·영속성 staging 검증 전까지 기능 플래그로 요청을 차단하고 `준비 중`으로 표시합니다.
 - 실제 장비 위치 권한과 장시간 이동은 staging 태블릿에서 추가 검증해야 합니다.

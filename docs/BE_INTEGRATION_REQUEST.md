@@ -2,7 +2,7 @@
 
 기준 계약: `chemicheck119-dashboard-bff-v1`
 
-BE 권위 기준: `develop@d1a7391`
+BE 권위 기준: `develop@9685a8c2`
 
 AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
@@ -17,7 +17,7 @@ X-API-Key: BE Secret에서만 주입
 
 모델 API Key는 `VITE_*` 환경변수나 FE 요청에 포함하지 않습니다. 호출 구조는 항상 `FE → BE/BFF → AI`이며, BE는 모델의 camelCase 응답을 `chemicheck119-dashboard-bff-v1` 화면 계약으로 투영합니다.
 
-현재 Live 연결 대상은 사고 분석, 물질 검색, 현장 확인입니다. 이동갱신과 기록저장은 BE 미구현이며 해당 경로의 실패를 FE 결함으로 분류하지 않습니다. AI 계약·client·자동화 테스트는 완료됐지만 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 없습니다.
+BE `develop`에는 세션·로그아웃·사고 분석·물질 검색·현장 확인·이동 갱신·기록 저장의 7개 operation 계약과 구현이 있습니다. FE도 같은 고정 OpenAPI와 client를 사용하며, movement·record는 staging Live E2E가 통과되기 전까지 기능 플래그로 비활성화합니다. 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 아직 없습니다.
 
 ## 현재 연동 행렬
 
@@ -28,8 +28,8 @@ X-API-Key: BE Secret에서만 주입
 | 사고 분석 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 물질 검색 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 현장 확인 | 연동 가능 | 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 사고 분석 재호출 |
-| movement | BE 미구현 | `준비 중` 표시; `VITE_ENABLE_MOVEMENT_API=true` 전에는 Live 요청 차단 |
-| record | BE 미구현 | 내역 조회 유지·저장은 `준비 중`; `VITE_ENABLE_RECORD_API=true` 전에는 Live 요청 차단 |
+| movement | FE·BE 구현 완료·검증 대기 | `준비 중` 표시; staging 도로 경로 검증 후 `VITE_ENABLE_MOVEMENT_API=true` |
+| record | FE·BE 구현 완료·검증 대기 | 저장은 `준비 중`; staging 영속성 검증 후 `VITE_ENABLE_RECORD_API=true` |
 | AI Live E2E | 증적 없음 | 실제 배포 AI URL·API Key가 준비된 환경에서 별도 검증 필요 |
 
 ## 공모전 시연 전 필수 통합 시나리오
@@ -52,13 +52,13 @@ X-API-Key: BE Secret에서만 주입
 - 과거 업체 취급 이력을 현재 재고로 바꾸어 표현하지 않습니다.
 - 사고물질·시설물질 CAS 두 개가 확인되기 전 CAMEO 규칙을 실행하지 않습니다.
 - BE 모델 응답 제한은 15초이며 FE 요청 제한은 20초로 두어 구조화된 `MODEL_TIMEOUT` 응답을 우선 수신합니다.
-- FE는 `develop@d1a7391d`의 OpenAPI 원본과 생성 타입을 고정하고 CI에서 경로·세션 보안·필수 필드 드리프트를 검사합니다.
+- FE는 `develop@9685a8c2`의 OpenAPI 원본과 생성 타입을 고정하고 CI에서 7개 operation·세션 보안·필수 필드 드리프트를 검사합니다.
 
 ## 0. 운영 로그인 후 세션 컨텍스트 (공모전 이후 보류)
 
-현재 공모전 staging에서는 로그인·세션을 사용하지 않으므로 아래 세션 컨텍스트 계약은 연결하지 않습니다. `사용 종료` UI는 현재 로컬 대응 상태만 초기화하고, 운영 인증을 다시 도입하면 이미 구현된 `POST /api/c2guard/v1/logout`으로 HttpOnly 세션을 만료시킵니다.
+현재 공모전 staging에서는 인증을 사용하지 않지만 FE 인증 모드는 아래 세션 컨텍스트 계약에 연결돼 있습니다. `GET /session` 성공 전 대시보드 진입을 차단하고, `사용 종료` 시 `POST /logout`으로 HttpOnly 세션을 만료시킨 뒤 GPS·진행 요청·로컬 대응 상태를 정리합니다.
 
-권장 신규 경로: `GET /api/c2guard/v1/session`
+구현 경로: `GET /api/c2guard/v1/session`
 
 필요한 이유: `CHEMICHECK119_SESSION`은 HttpOnly이므로 FE가 사용자 소속과 역할을 직접 읽을 수 없습니다. 지역·소방서 선택값을 권한 정보로 사용하지 않고, BE가 검증한 principal을 화면과 사고분석의 조직 컨텍스트로 사용해야 합니다.
 
@@ -109,7 +109,7 @@ X-API-Key: BE Secret에서만 주입
 
 `POST /api/c2guard/v1/incidents/analyze`
 
-상태: BE `develop@d1a7391` 기준 연동 가능. 실제 배포 AI 서버까지 이어지는 Live E2E 증적은 아직 없습니다.
+상태: BE `develop@9685a8c2` 기준 연동 가능. 실제 배포 AI 서버까지 이어지는 Live E2E 증적은 아직 없습니다.
 
 필요한 이유: 신고문, 사고 위치, 출동 상태를 구조화하고 안전 게이트·에이전트 단계·근거를 한 DTO로 받기 위해 필요합니다.
 
@@ -164,7 +164,7 @@ X-API-Key: BE Secret에서만 주입
 
 `POST /api/c2guard/v1/incidents/{incidentId}/movement`
 
-상태: BE 미구현. FE는 명시적인 `준비 중` 상태를 표시하고 `VITE_ENABLE_MOVEMENT_API=true`가 검증된 배포 환경에 설정되기 전까지 이 경로를 호출하지 않습니다.
+상태: FE·BE 구현 완료. FE는 명시적인 `준비 중` 상태를 표시하고 `VITE_ENABLE_MOVEMENT_API=true`가 staging GPS·도로 경로 검증을 통과한 환경에 설정되기 전까지 이 경로를 호출하지 않습니다.
 
 필요한 이유: 브라우저 GPS를 검증하고 서버측 길찾기 결과를 GeoJSON·ETA로 전달하기 위해 필요합니다. FE는 Key를 갖지 않습니다.
 
@@ -208,7 +208,7 @@ X-API-Key: BE Secret에서만 주입
 
 `POST /api/c2guard/v1/substances/discover`
 
-상태: BE `develop@d1a7391` 기준 연동 가능. 실제 배포 AI 서버까지 이어지는 Live E2E 증적은 아직 없습니다.
+상태: BE `develop@9685a8c2` 기준 연동 가능. 실제 배포 AI 서버까지 이어지는 Live E2E 증적은 아직 없습니다.
 
 요청: `{ "query": "무색 투명하고 박하 냄새가 나는 휘발성 액체", "topK": 5, "evidenceTopK": 3 }`
 
@@ -232,7 +232,7 @@ X-API-Key: BE Secret에서만 주입
 
 `POST /api/c2guard/v1/incidents/{incidentId}/confirmations`
 
-상태: BE `develop@d1a7391` 기준 연동 가능. 현재 저장은 영구 DB 전까지 process-local입니다.
+상태: BE `develop@9685a8c2` 기준 연동 가능. staging 영속 저장·재시작 검증 증적은 별도로 확인합니다.
 
 요청:
 
@@ -264,7 +264,7 @@ FE는 성공 응답의 `reanalyzeRequired=true`를 받으면 동일한 `incident
 
 `POST /api/c2guard/v1/incidents/{incidentId}/record`
 
-상태: BE 미구현. FE는 현재 사고 내역 조회는 유지하되 저장 버튼을 `준비 중`으로 표시하고, `VITE_ENABLE_RECORD_API=true`가 검증된 배포 환경에 설정되기 전까지 이 경로를 호출하지 않습니다.
+상태: FE·BE 구현 완료. FE는 저장 버튼을 `준비 중`으로 표시하고, `VITE_ENABLE_RECORD_API=true`가 staging 영속성·원자성 검증을 통과한 환경에 설정되기 전까지 이 경로를 호출하지 않습니다.
 
 요청: `conversationStartedAt`, 순번·역할·시각이 있는 `messages[]`, 중복 없는 `analysisIds[]`, `confirmationIds[]`.
 

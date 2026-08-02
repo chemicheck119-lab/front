@@ -26,7 +26,11 @@ export function useResponderLocation(enabled: boolean): ResponderLocation {
     : { state: "WAITING", position: null });
 
   useEffect(() => {
-    if (!enabled || apiConfig.demoEnabled) return;
+    if (!enabled) {
+      setLocation({ state: "WAITING", position: null });
+      return;
+    }
+    if (apiConfig.demoEnabled) return;
     if (!("geolocation" in navigator)) {
       setLocation({ state: "UNAVAILABLE", position: null });
       return;
