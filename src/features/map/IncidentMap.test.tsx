@@ -30,7 +30,7 @@ describe("MapLibre 지도 컨테이너", () => {
     expect(mapStyles).toMatch(/\.chemicheck-map-canvas\.maplibregl-map\s*\{[^}]*position:\s*absolute;[^}]*height:\s*100%;/s);
   });
 
-  it("경로 요약 카드는 지도 확대 컨트롤과 겹치지 않도록 오른쪽 여백을 확보한다", () => {
+  it("경로 요약 카드는 지도 오른쪽 아래에 정렬한다", () => {
     apiConfig.mapStyleUrl = "";
     apiConfig.naverMapClientId = "";
     render(<IncidentMap
@@ -39,6 +39,6 @@ describe("MapLibre 지도 컨테이너", () => {
       gps={{ label: "GPS 수신 대기", detail: "현재 위치를 확인하고 있습니다", tone: "waiting", usableForRoute: false }}
     />);
 
-    expect(screen.getByTestId("map-route-summary")).toHaveClass("right-20", "w-[230px]");
+    expect(screen.getByTestId("map-route-summary")).toHaveClass("right-4", "w-[230px]");
   });
 });

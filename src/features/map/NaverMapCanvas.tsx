@@ -42,7 +42,7 @@ export function NaverMapCanvas({ context, onError }: NaverMapCanvasProps) {
           maxZoom: 19,
           zoomControl: true,
           zoomControlOptions: {
-            position: naver.maps.Position.BOTTOM_RIGHT,
+            position: naver.maps.Position.TOP_RIGHT,
             style: naver.maps.ZoomControlStyle.SMALL,
             legendDisabled: true,
           },
