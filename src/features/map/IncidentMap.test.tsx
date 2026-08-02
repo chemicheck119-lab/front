@@ -39,6 +39,6 @@ describe("MapLibre 지도 컨테이너", () => {
       gps={{ label: "GPS 수신 대기", detail: "현재 위치를 확인하고 있습니다", tone: "waiting", usableForRoute: false }}
     />);
 
-    expect(screen.getByTestId("map-route-summary")).toHaveClass("right-16", "w-[230px]");
+    expect(screen.getByTestId("map-route-summary")).toHaveClass("right-16", "w-[270px]");
   });
 });

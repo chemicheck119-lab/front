@@ -120,11 +120,11 @@ function ToolButton({ icon, label, detail, badge, emphasized = false, onClick }:
   onClick: (trigger: HTMLButtonElement) => void;
 }) {
   return (
-    <button onClick={(event) => onClick(event.currentTarget)} className={`group flex min-h-[58px] w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring ${emphasized ? "border-primary/45 bg-primary/5 shadow-sm hover:bg-primary/10" : "border-transparent hover:border-sidebar-border hover:bg-sidebar-accent"}`}>
+    <button onClick={(event) => onClick(event.currentTarget)} className={`group flex min-h-[72px] w-full items-center gap-2 rounded-xl border px-2 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring ${emphasized ? "border-primary/45 bg-primary/5 shadow-sm hover:bg-primary/10" : "border-transparent hover:border-sidebar-border hover:bg-sidebar-accent"}`}>
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-sidebar-foreground group-hover:text-primary">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-bold text-sidebar-foreground">{label}</span>
-        <span className="mt-0.5 block truncate text-[9px] text-muted-foreground">{detail}</span>
+        <span className="block text-sm font-bold text-sidebar-foreground">{label}</span>
+        <span className="mt-0.5 block truncate text-xs text-muted-foreground" title={detail}>{detail}</span>
       </span>
       {badge && <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">{badge}</span>}
     </button>
@@ -198,6 +198,7 @@ export function FieldToolsPanel({
   const unsavedCount = countUnsavedRecordItems(messages, analysisIds, confirmationIds);
   const phoneHref = normalizePhoneHref(dispatchContact.phone);
   const dataStatus = modeStatus(dataMode);
+  const incidentIdLabel = incidentId?.replace(/^INC-.*-/, "INC…") ?? null;
   const dispatchButtonDetail = dispatchStreamAvailable
     ? dispatchStreamStatus === "WAITING"
       ? "1단계 · 지령 수신 중"
@@ -230,18 +231,18 @@ export function FieldToolsPanel({
 
   return (
     <>
-      <aside className="flex w-[164px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-3" aria-label="현장 도구">
+      <aside className="flex w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-3" aria-label="현장 도구">
         <div className="mb-2 px-2">
-          <p className="text-[10px] font-bold tracking-[0.08em] text-muted-foreground">현장 도구</p>
-          <p className="mt-1 truncate text-[9px] text-muted-foreground">{station}</p>
+          <p className="text-xs font-bold tracking-[0.08em] text-muted-foreground">현장 도구</p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{station}</p>
         </div>
-        <nav className="space-y-1" aria-label="현장 도구 메뉴">
+        <nav className="space-y-2" aria-label="현장 도구 메뉴">
           <ToolButton icon={<Phone size={16} />} label="상황실 연결" detail={dispatchButtonDetail} badge={dispatchStreamStatus === "RECEIVED" && !dispatchAccepted ? "1" : undefined} emphasized={dispatchStreamAvailable && !dispatchAccepted} onClick={(trigger) => openDialog("contact", trigger)} />
           <ToolButton icon={<BookOpenCheck size={16} />} label="공식 화학자료" detail={officialItems.length ? `CAS 후보 ${officialItems.length}건` : "분석 후 CAS 자료 확인"} badge={officialItems.length ? String(officialItems.length) : undefined} onClick={(trigger) => openDialog("sources", trigger)} />
-          <ToolButton icon={<ClipboardList size={16} />} label="현재 사고 기록" detail={!recordAvailable && localExportAvailable ? "시연 JSON 내보내기" : !recordAvailable ? "현재 세션에서만 조회" : incidentId ? `사고 ${incidentId}` : "신고 접수 대기"} badge={unsavedCount ? String(unsavedCount) : undefined} onClick={(trigger) => openDialog("record", trigger)} />
+          <ToolButton icon={<ClipboardList size={16} />} label="현재 사고 기록" detail={!recordAvailable && localExportAvailable ? "시연 JSON 내보내기" : !recordAvailable ? "현재 세션에서만 조회" : incidentIdLabel ? `사고 ${incidentIdLabel}` : "신고 접수 대기"} badge={unsavedCount ? String(unsavedCount) : undefined} onClick={(trigger) => openDialog("record", trigger)} />
         </nav>
 
-        <div className="mt-auto space-y-2 rounded-xl border border-sidebar-border bg-sidebar-accent/55 p-2.5 text-[9px] text-muted-foreground" aria-label="운영 상태">
+        <div className="mt-auto space-y-2.5 rounded-xl border border-sidebar-border bg-sidebar-accent/55 p-3 text-xs text-muted-foreground" aria-label="운영 상태">
           <div className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${dataStatus.tone}`} /><span className="truncate">{dataStatus.label}</span></div>
           <div className="flex items-center gap-2"><Radio size={11} className="shrink-0" /><span className="truncate">{gpsLabel}</span></div>
           <div className="flex items-center gap-2"><FileClock size={11} className="shrink-0" /><span>{recordAvailable ? (unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 없음") : (unsavedCount ? `세션 기록 ${unsavedCount}건` : "세션 기록 없음")}</span></div>
