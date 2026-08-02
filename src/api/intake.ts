@@ -1,4 +1,5 @@
 import { ApiError } from "./client";
+import { apiRequest } from "./client";
 import { apiConfig } from "./config";
 
 export interface IncidentReplayEnvelope {
@@ -23,6 +24,30 @@ export interface IncidentReplayEnvelope {
   disclosure: string;
   datasetReferences: Array<{ name: string; url: string; usage: string }>;
 }
+
+export type SyntheticReplayConfirmationRole = "INCIDENT" | "FACILITY";
+
+export interface SyntheticReplayConfirmationResponse {
+  schemaVersion: "chemicheck119-synthetic-replay-confirmation-v1";
+  requestId: string;
+  incidentId: string;
+  confirmationId: string;
+  role: SyntheticReplayConfirmationRole;
+  casNumber: "7681-52-9" | "7647-01-0";
+  displayName: "차아염소산나트륨" | "염산";
+  dataClassification: "PUBLIC_SYNTHETIC";
+  confirmationType: "SYNTHETIC_DEMO_CONFIRMATION";
+  createdAt: string;
+  confirmedCount: 1 | 2;
+  allRequiredConfirmed: boolean;
+  reanalyzeRequired: true;
+  disclosure: string;
+}
+
+const SYNTHETIC_SUBSTANCES = {
+  INCIDENT: { casNumber: "7681-52-9", displayName: "차아염소산나트륨" },
+  FACILITY: { casNumber: "7647-01-0", displayName: "염산" },
+} as const;
 
 const CONTEST_REPLAY_PATH =
   "/api/c2guard/v1/intake/replay-stream/CONTEST-LIVE-CHEMICAL-001";
@@ -133,4 +158,50 @@ export async function receiveContestIncident(signal?: AbortSignal): Promise<Inci
     window.clearTimeout(timer);
     signal?.removeEventListener("abort", abortFromCaller);
   }
+}
+
+export function parseSyntheticReplayConfirmation(
+  value: unknown,
+  incidentId: string,
+  role: SyntheticReplayConfirmationRole,
+): SyntheticReplayConfirmationResponse {
+  if (!value || typeof value !== "object") {
+    throw new ApiError("SAFETY", "합성 현장 확인 응답 형식이 아닙니다.");
+  }
+  const response = value as Partial<SyntheticReplayConfirmationResponse>;
+  const expected = SYNTHETIC_SUBSTANCES[role];
+  const safeBoundary = response.schemaVersion === "chemicheck119-synthetic-replay-confirmation-v1"
+    && response.incidentId === incidentId
+    && response.role === role
+    && response.casNumber === expected.casNumber
+    && response.displayName === expected.displayName
+    && response.dataClassification === "PUBLIC_SYNTHETIC"
+    && response.confirmationType === "SYNTHETIC_DEMO_CONFIRMATION"
+    && response.reanalyzeRequired === true
+    && (response.confirmedCount === 1 || response.confirmedCount === 2)
+    && response.allRequiredConfirmed === (response.confirmedCount === 2)
+    && requiredString(response.requestId)
+    && requiredString(response.confirmationId)
+    && requiredString(response.createdAt)
+    && requiredString(response.disclosure);
+  if (!safeBoundary) {
+    throw new ApiError(
+      "SAFETY",
+      "공개 합성 현장 확인의 incident·물질·출처 경계를 검증할 수 없습니다.",
+      response.requestId,
+    );
+  }
+  return response as SyntheticReplayConfirmationResponse;
+}
+
+export async function confirmSyntheticReplaySubstance(
+  incidentId: string,
+  role: SyntheticReplayConfirmationRole,
+  signal?: AbortSignal,
+): Promise<SyntheticReplayConfirmationResponse> {
+  const response = await apiRequest<unknown>(
+    `/api/c2guard/v1/intake/replays/${encodeURIComponent(incidentId)}/confirmations/${role}`,
+    { method: "POST", headers: { Accept: "application/json" }, signal },
+  );
+  return parseSyntheticReplayConfirmation(response, incidentId, role);
 }

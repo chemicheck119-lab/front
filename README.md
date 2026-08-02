@@ -20,7 +20,7 @@
 | BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·7개 operation·세션 보안·생성 타입을 `pnpm check`에서 검증 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `시연 데이터` 배지를 고정 표시 |
-| 공모전 Live 시나리오 | 실제 BFF·AI 사용 | 공개 합성 신고임을 표시하고 실제 staging 분석 경로로 전송 |
+| 공모전 Live 시나리오 | 단계형 현장 흐름 구현 | 상황실 SSE 연결 → 대원 지령 확인 → 실제 AI 분석 → 현장 확인 1/2·2/2 → CAMEO 규칙 검증 |
 
 ## 실행
 
@@ -49,8 +49,9 @@ VITE_ENABLE_DEMO_MODE=true
 시연 fixture는 `src/fixtures/demo.ts`에만 있으며 실제 API 장애 시 자동 fallback으로 사용되지 않습니다. 운영에서는 `false`로 두고, API 장애를 “연결할 수 없음” 상태로 표시합니다.
 
 공모전의 주 시연에는 이 offline 시연 모드를 사용하지 않습니다. `https://chemicheck119.site`의
-`공개 합성 지령 실시간 수신`으로 BE SSE에서 개인정보 없는 IncidentEnvelope를 받고 실제
-BFF·AI 응답을 보여줍니다. 화면의
+좌측 `상황실 연결`에서 지령망에 연결해 BE SSE의 개인정보 없는 IncidentEnvelope를 받은 뒤,
+대원이 지령을 확인해 대응화면에 반영합니다. 이후 사고 분석과 두 CAS 확인은 각각 별도 행동으로
+진행하며 실제 BFF·AI 응답을 보여줍니다. 화면의
 `실제 API`는 처리 경로를, `공개 합성 신고`는 입력 데이터 성격을 뜻합니다. 자세한 경계와 실제
 119 지령 연계 계획은 [신고 입력·시연·실운영 전략](./docs/INCIDENT_INTAKE_STRATEGY.md)을 참고합니다.
 
@@ -109,6 +110,7 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 | `POST /api/c2guard/v1/incidents/analyze` | 연동 가능 |
 | `POST /api/c2guard/v1/substances/discover` | 연동 가능 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/confirmations` | 연동 가능; 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 재분석 |
+| `POST /api/c2guard/v1/intake/replays/{incidentId}/confirmations/{role}` | staging 공개 합성 시연 전용; 요청 본문·임의 CAS 없이 고정 확인 1/2·2/2 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/movement` | FE·BE 구현 완료; staging 활성화 검증 대기 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/record` | FE·BE 구현 완료; staging 영속성 검증 대기 |
 

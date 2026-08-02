@@ -340,42 +340,64 @@ export default function App() {
     return issue;
   }
 
+  function requestAnalysis(
+    text: string,
+    targetIncidentId: string | null,
+    replay: IncidentReplayEnvelope | null,
+    signal: AbortSignal,
+  ) {
+    return analyzeIncident({
+      incidentId: targetIncidentId,
+      text,
+      inputType: "DISPATCH_TEXT",
+      occurredAt: replay?.occurredAt ?? nowIso(),
+      location: {
+        facilityName: replay?.facilityName ?? (facilityName || null),
+        address: replay?.addressText ?? (address || null),
+        latitude: replay?.location.latitude ?? null,
+        longitude: replay?.location.longitude ?? null,
+        resolvedAt: replay?.receivedAt ?? null,
+        coordinateSource: replay
+          ? "DEMO_FIXTURE"
+          : runtimeDataMode === "DEMO_SIMULATION" ? "DEMO_FIXTURE" : null,
+      },
+      operationsContext: {
+        dispatchStationName: replay?.stationDisplayName ?? station,
+        journeyState,
+        responderPosition: responderLocation.position,
+      },
+      evidenceTopK: 5,
+    }, signal);
+  }
+
+  function applyAnalysisResponse(response: IncidentAnalysisResponse, text: string) {
+    setSessionExpired(null);
+    setAnalysis(response);
+    setIncidentId(response.incidentId);
+    setLastIncidentText(text);
+    setAnalysisIds((previous) => previous.includes(response.analysisId)
+      ? previous : [...previous, response.analysisId]);
+    if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
+    setMessages((previous) => [...previous, makeMessage(
+      "ASSISTANT",
+      response.agent?.currentObjective
+        ?? response.requiredNextSteps[0]
+        ?? analysisStateLabel(response.state),
+      response.analysisId,
+    )]);
+  }
+
   async function runAnalysis(text: string, appendUserMessage: boolean) {
     const operation = beginOperation();
     setLoading(true);
     setError(null);
     if (appendUserMessage) setMessages((previous) => [...previous, makeMessage("USER", text)]);
     try {
-      const response = await analyzeIncident({
-        incidentId,
-        text,
-        inputType: "DISPATCH_TEXT",
-        occurredAt: presentationReplay?.occurredAt ?? nowIso(),
-        location: {
-          facilityName: facilityName || null,
-          address: address || null,
-          latitude: presentationReplay?.location.latitude ?? null,
-          longitude: presentationReplay?.location.longitude ?? null,
-          resolvedAt: presentationReplay?.receivedAt ?? null,
-          coordinateSource: presentationReplay
-            ? "DEMO_FIXTURE"
-            : runtimeDataMode === "DEMO_SIMULATION" ? "DEMO_FIXTURE" : null,
-        },
-        operationsContext: {
-          dispatchStationName: station,
-          journeyState,
-          responderPosition: responderLocation.position,
-        },
-        evidenceTopK: 5,
-      }, operation.controller.signal);
+      const response = await requestAnalysis(
+        text, incidentId, presentationReplay, operation.controller.signal,
+      );
       if (!isCurrentOperation(operation.generation)) return;
-      setSessionExpired(null);
-      setAnalysis(response);
-      setIncidentId(response.incidentId);
-      setLastIncidentText(text);
-      setAnalysisIds((previous) => previous.includes(response.analysisId) ? previous : [...previous, response.analysisId]);
-      if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
-      setMessages((previous) => [...previous, makeMessage("ASSISTANT", response.agent?.currentObjective ?? response.requiredNextSteps[0] ?? analysisStateLabel(response.state), response.analysisId)]);
+      applyAnalysisResponse(response, text);
     } catch (caught) {
       if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
       const issue = captureRequestIssue(caught);
@@ -618,7 +640,6 @@ export default function App() {
     )]);
     setMode("collision");
   }
-
   function changeIncidentInput(value: string) {
     const sourceText = presentationReplay?.reportText ?? contestLiveScenario.text;
     if (presentationScenarioId && value !== sourceText) {
