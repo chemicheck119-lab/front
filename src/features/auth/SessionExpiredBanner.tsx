@@ -1,6 +1,6 @@
 import { ExternalLink, LockKeyhole } from "lucide-react";
 import { useState } from "react";
-import { normalizeAuthLoginUrl } from "./LoginScreen";
+import { isPublicPilotAccessUrl, normalizeAuthLoginUrl } from "./LoginScreen";
 
 interface SessionExpiredBannerProps {
   authLoginUrl: string;
@@ -11,6 +11,7 @@ interface SessionExpiredBannerProps {
 export function SessionExpiredBanner({ authLoginUrl, hasIncident, requestId }: SessionExpiredBannerProps) {
   const [copied, setCopied] = useState(false);
   const safeAuthLoginUrl = normalizeAuthLoginUrl(authLoginUrl);
+  const publicPilotAccess = safeAuthLoginUrl ? isPublicPilotAccessUrl(safeAuthLoginUrl) : false;
 
   return (
     <aside className="fixed left-1/2 top-16 z-[95] w-[min(560px,calc(100vw-32px))] -translate-x-1/2 rounded-2xl border border-amber-500/40 bg-card p-4 shadow-2xl" role="alert" aria-label="로그인 세션 만료">
@@ -24,7 +25,11 @@ export function SessionExpiredBanner({ authLoginUrl, hasIncident, requestId }: S
               : "새 창에서 로그인한 뒤 이 화면으로 돌아와 작업을 다시 실행하세요."}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {safeAuthLoginUrl ? (
+            {safeAuthLoginUrl && publicPilotAccess ? (
+              <form method="post" action={safeAuthLoginUrl} target="_blank">
+                <button type="submit" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-foreground px-3 text-[13px] font-bold text-background">파일럿 세션 다시 시작<ExternalLink size={12} /></button>
+              </form>
+            ) : safeAuthLoginUrl ? (
               <a href={safeAuthLoginUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-foreground px-3 text-[13px] font-bold text-background">새 창에서 다시 로그인<ExternalLink size={12} /></a>
             ) : (
               <span className="inline-flex min-h-9 items-center rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-semibold text-amber-800 dark:text-amber-200">운영 인증 URL 설정 필요</span>
