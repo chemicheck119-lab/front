@@ -1060,7 +1060,7 @@ export default function App() {
                     <strong>지령 스트림 연결 중</strong> · BE SSE에서 개인정보 없는 공개 합성 신고가 도착하기를 기다리고 있습니다.
                   </div>
                 )}
-                {presentationScenarioId && (
+                {presentationScenarioId && !analysis && (
                   <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] leading-relaxed text-amber-800 dark:text-amber-200" role="status">
                     <strong>지령 반영 완료</strong> · 신고 내용을 확인한 뒤 아래에서 분석을 시작하세요.
                     {presentationReplay && <details className="mt-1"><summary className="cursor-pointer font-semibold">통신 정보 보기</summary><p className="mt-1 break-all text-[9px] opacity-85">공개 합성 신고 · SSE event {presentationReplay.sourceEventId} · 요청 ID {presentationReplay.requestId} · 실제 staging BE·AI 사용</p></details>}
