@@ -23,11 +23,11 @@ const statusText: Record<string, string> = {
 
 type MilestoneStatus = "COMPLETED" | "IN_PROGRESS" | "BLOCKED" | "WAITING";
 
-export function getAgentMilestones(agent: OperationsAgentSnapshot) {
+export function getAgentMilestones(agent: OperationsAgentSnapshot, syntheticMode = false) {
   const definitions = [
     { id: "INCIDENT_PARSING", fallbackId: "INCIDENT_INGESTION", label: "신고 분석" },
     { id: "SUBSTANCE_RESOLUTION", label: "후보 탐색" },
-    { id: "ON_SITE_CONFIRMATION", label: "현장 확인" },
+    { id: "ON_SITE_CONFIRMATION", label: syntheticMode ? "합성 확인" : "현장 확인" },
     { id: "CONFLICT_SCREENING", label: "충돌 검토" },
   ];
 
@@ -45,19 +45,19 @@ export function getAgentMilestones(agent: OperationsAgentSnapshot) {
   });
 }
 
-export function AgentPanel({ agent }: { agent: OperationsAgentSnapshot | null | undefined }) {
+export function AgentPanel({ agent, syntheticMode = false }: { agent: OperationsAgentSnapshot | null | undefined; syntheticMode?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   if (!agent) {
     return <div className="rounded-xl border border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">에이전트 상태를 기다리고 있습니다.</div>;
   }
 
-  const milestones = getAgentMilestones(agent);
+  const milestones = getAgentMilestones(agent, syntheticMode);
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="border-b border-border p-3">
         <div className="flex items-start justify-between gap-2">
-          <div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">현장대응 에이전트</p><h3 className="mt-1 text-sm font-bold">{PHASE_LABELS[agent.phase]}</h3></div>
+          <div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">{syntheticMode ? "통합 데모 에이전트" : "현장대응 에이전트"}</p><h3 className="mt-1 text-sm font-bold">{PHASE_LABELS[agent.phase]}</h3></div>
           <span className="rounded-full bg-blue-500/10 px-2 py-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300">절차 조율</span>
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{agent.currentObjective}</p>

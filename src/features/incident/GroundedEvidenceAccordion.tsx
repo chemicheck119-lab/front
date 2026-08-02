@@ -1,5 +1,6 @@
 import { BookOpenCheck, ExternalLink, FileWarning } from "lucide-react";
 import type { GroundedRagResult, GroundedRagStatus } from "../../api/contracts";
+import { resolveOfficialSourceUrl } from "../evidence/sourceLinks";
 
 const RAG_PRESENTATION: Record<GroundedRagStatus, { title: string; detail: string }> = {
   COMPLETED: {
@@ -35,7 +36,10 @@ export function getRagPresentation(status: GroundedRagStatus) {
 function StatementSources({ sourceIds, rag }: { sourceIds: string[]; rag: GroundedRagResult }) {
   const citations = sourceIds.flatMap((sourceId) => {
     const citation = rag.citations.find((item) => item.sourceId === sourceId);
-    return citation ? citation.sourceUrls.map((url) => ({ sourceId, title: citation.title, url })) : [];
+    return citation ? citation.sourceUrls.flatMap((url) => {
+      const safeUrl = resolveOfficialSourceUrl(url);
+      return safeUrl ? [{ sourceId, title: citation.title, url: safeUrl }] : [];
+    }) : [];
   });
 
   if (citations.length === 0) {
@@ -73,13 +77,13 @@ export function GroundedEvidenceAccordion({ rag }: { rag: GroundedRagResult | nu
   const hasStatements = (rag.status === "COMPLETED" || rag.status === "FALLBACK_EXTRACTIVE") && rag.statements.length > 0;
 
   return (
-    <details className="overflow-hidden rounded-xl border border-border bg-secondary/30" open={hasStatements}>
+    <details className="overflow-hidden rounded-xl border border-border bg-secondary/30">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
           <BookOpenCheck size={14} className="text-blue-600" />
           <span><span className="block text-[11px] font-bold">대응 근거</span><span className="block text-[9px] text-muted-foreground">{presentation.title}</span></span>
         </span>
-        <span className="rounded-full bg-blue-500/10 px-2 py-1 text-[9px] font-semibold text-blue-700 dark:text-blue-300">{rag.status}</span>
+        <span className="rounded-full bg-blue-500/10 px-2 py-1 text-[9px] font-semibold text-blue-700 dark:text-blue-300">{hasStatements ? `${rag.statements.length}개 근거 문장` : "상태 안내"}</span>
       </summary>
       <div className="space-y-2 border-t border-border p-3">
         <p className="text-[10px] leading-relaxed text-muted-foreground">{presentation.detail}</p>

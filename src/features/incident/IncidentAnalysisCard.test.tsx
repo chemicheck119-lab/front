@@ -54,4 +54,15 @@ describe("사고 분석 현장 확인 흐름", () => {
     expect(screen.getByRole("region", { name: "충돌 검토 결과" })).toHaveTextContent("높음");
     expect(screen.getByRole("region", { name: "충돌 검토 결과" })).toHaveTextContent("현장 지휘관 판단");
   });
+
+  it("공개 합성 시연 확인을 실제 현장 확인으로 표시하지 않는다", () => {
+    makeDemoConfirmation("INCIDENT", "7681-52-9");
+    makeDemoConfirmation("FACILITY", "7647-01-0");
+    render(<IncidentAnalysisCard analysis={getDemoAnalysis()} onConfirm={vi.fn()} confirmingRole={null} confirmationMode="PUBLIC_SYNTHETIC" />);
+
+    expect(screen.getByRole("region", { name: "현장 확인 3단계" })).toHaveTextContent("공개 합성 확인 게이트");
+    expect(screen.getByRole("region", { name: "현장 확인 3단계" })).toHaveTextContent("필수 CAS 2/2 합성 확인");
+    expect(screen.getAllByText("합성 확인 완료").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText("현장 확인됨")).not.toBeInTheDocument();
+  });
 });

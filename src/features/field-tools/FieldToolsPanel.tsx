@@ -12,8 +12,8 @@ import {
   X,
 } from "lucide-react";
 import type { DataMode, IncidentAnalysisResponse } from "../../api/contracts";
+import { KOSHA_MSDS_SEARCH_URL } from "../evidence/sourceLinks";
 
-const KOSHA_MSDS_URL = "https://msds.kosha.or.kr/MSDSInfo/kcic/msdssearchMsds.do";
 const ICIS_SEARCH_URL = "https://icis.mcee.go.kr/search/searchType1.do";
 const ERG_URL = "https://www.phmsa.dot.gov/training/hazmat/erg/emergency-response-guidebook-erg";
 
@@ -58,6 +58,8 @@ interface FieldToolsPanelProps {
   dispatchStreamStatus: DispatchStreamStatus;
   dispatchPreview: DispatchPreview | null;
   dispatchAccepted: boolean;
+  localExportAvailable?: boolean;
+  syntheticMode?: boolean;
   onRequestSave: () => void;
   onContactAttempt: () => void;
   onConnectDispatch: () => void;
@@ -102,9 +104,9 @@ export function getOfficialSubstanceItems(analysis: IncidentAnalysisResponse | n
 
 function modeStatus(mode: DataMode) {
   return {
-    LIVE_API: { label: "실제 API 설정", tone: "bg-emerald-500" },
+    LIVE_API: { label: "서버 연동 모드", tone: "bg-emerald-500" },
     CACHED_API: { label: "캐시 API", tone: "bg-blue-500" },
-    DEMO_SIMULATION: { label: "시연 데이터", tone: "bg-amber-500" },
+    DEMO_SIMULATION: { label: "오프라인 시연", tone: "bg-amber-500" },
     UNAVAILABLE: { label: "연결 설정 필요", tone: "bg-slate-400" },
   }[mode];
 }
@@ -182,6 +184,8 @@ export function FieldToolsPanel({
   dispatchStreamStatus,
   dispatchPreview,
   dispatchAccepted,
+  localExportAvailable = false,
+  syntheticMode = false,
   onRequestSave,
   onContactAttempt,
   onConnectDispatch,
@@ -234,13 +238,13 @@ export function FieldToolsPanel({
         <nav className="space-y-1" aria-label="현장 도구 메뉴">
           <ToolButton icon={<Phone size={16} />} label="상황실 연결" detail={dispatchButtonDetail} badge={dispatchStreamStatus === "RECEIVED" && !dispatchAccepted ? "1" : undefined} emphasized={dispatchStreamAvailable && !dispatchAccepted} onClick={(trigger) => openDialog("contact", trigger)} />
           <ToolButton icon={<BookOpenCheck size={16} />} label="공식 화학자료" detail={officialItems.length ? `CAS 후보 ${officialItems.length}건` : "분석 후 CAS 자료 확인"} badge={officialItems.length ? String(officialItems.length) : undefined} onClick={(trigger) => openDialog("sources", trigger)} />
-          <ToolButton icon={<ClipboardList size={16} />} label="현재 사고 기록" detail={!recordAvailable ? "조회 가능 · 저장 API 준비 중" : incidentId ? `사고 ${incidentId}` : "신고 접수 대기"} badge={unsavedCount ? String(unsavedCount) : undefined} onClick={(trigger) => openDialog("record", trigger)} />
+          <ToolButton icon={<ClipboardList size={16} />} label="현재 사고 기록" detail={!recordAvailable && localExportAvailable ? "시연 JSON 내보내기" : !recordAvailable ? "현재 세션에서만 조회" : incidentId ? `사고 ${incidentId}` : "신고 접수 대기"} badge={unsavedCount ? String(unsavedCount) : undefined} onClick={(trigger) => openDialog("record", trigger)} />
         </nav>
 
         <div className="mt-auto space-y-2 rounded-xl border border-sidebar-border bg-sidebar-accent/55 p-2.5 text-[9px] text-muted-foreground" aria-label="운영 상태">
           <div className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${dataStatus.tone}`} /><span className="truncate">{dataStatus.label}</span></div>
           <div className="flex items-center gap-2"><Radio size={11} className="shrink-0" /><span className="truncate">{gpsLabel}</span></div>
-          <div className="flex items-center gap-2"><FileClock size={11} className="shrink-0" /><span>{unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 없음"}</span></div>
+          <div className="flex items-center gap-2"><FileClock size={11} className="shrink-0" /><span>{recordAvailable ? (unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 없음") : (unsavedCount ? `세션 기록 ${unsavedCount}건` : "세션 기록 없음")}</span></div>
           <p className="border-t border-sidebar-border pt-2 leading-relaxed">{gpsDetail}</p>
         </div>
       </aside>
@@ -296,7 +300,7 @@ export function FieldToolsPanel({
             </>
           ) : (
             <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
-              운영 상황실 전화번호가 아직 제공되지 않아 음성 통화만 비활성화했습니다. 위 지령망 수신 기능은 별도로 사용할 수 있습니다.
+              공개 데모에는 실제 상황실 전화번호를 연결하지 않습니다. 위 합성 지령망은 별도로 QA할 수 있고, 음성 통화는 기관 pilot에서 검증된 연락처가 제공될 때만 활성화합니다.
             </div>
           )}
           {copyStatus && <p className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground" aria-live="polite"><Check size={12} />{copyStatus}</p>}
@@ -311,11 +315,11 @@ export function FieldToolsPanel({
                 <article key={item.key} className="rounded-xl border border-border p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div><p className="text-[9px] font-bold text-muted-foreground">{item.roleLabel}</p><p className="mt-1 text-sm font-bold">{item.displayName}</p><p className="mt-1 font-mono text-xs text-muted-foreground">CAS {item.casNumber}</p></div>
-                    <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${item.confirmed ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>{item.confirmed ? "현장 확인됨" : "후보·확인 필요"}</span>
+                    <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${item.confirmed ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>{item.confirmed ? (syntheticMode ? "합성 확인 완료" : "현장 확인됨") : "후보·확인 필요"}</span>
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-1.5">
                     <button onClick={() => void copyText(item.casNumber, `${item.casNumber}를 복사했습니다.`)} className="flex min-h-11 items-center justify-center gap-1 rounded-lg border border-border text-[10px] font-semibold hover:bg-muted"><Copy size={12} />CAS 복사</button>
-                    <a href={KOSHA_MSDS_URL} target="_blank" rel="noreferrer" className="flex min-h-11 items-center justify-center gap-1 rounded-lg border border-border text-[10px] font-semibold hover:bg-muted">KOSHA<ExternalLink size={11} /></a>
+                    <a href={KOSHA_MSDS_SEARCH_URL} target="_blank" rel="noreferrer" className="flex min-h-11 items-center justify-center gap-1 rounded-lg border border-border text-[10px] font-semibold hover:bg-muted">KOSHA<ExternalLink size={11} /></a>
                     <a href={ICIS_SEARCH_URL} target="_blank" rel="noreferrer" className="flex min-h-11 items-center justify-center gap-1 rounded-lg border border-border text-[10px] font-semibold hover:bg-muted">화학정보<ExternalLink size={11} /></a>
                   </div>
                 </article>
@@ -333,7 +337,7 @@ export function FieldToolsPanel({
       )}
 
       {activeDialog === "record" && (
-        <ToolDialogShell title="현재 사고 기록" description="현재 화면의 대화·분석·현장 확인 상태입니다. 저장 성공 전까지 미저장 기록으로 유지됩니다." onClose={closeDialog}>
+        <ToolDialogShell title="현재 사고 기록" description={recordAvailable ? "현재 화면의 대화·분석·현장 확인 상태입니다. 저장 성공 전까지 미저장 기록으로 유지됩니다." : "현재 브라우저 세션의 시연 진행 기록입니다. 운영 기록 저장소에는 반영되지 않습니다."} onClose={closeDialog}>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-xl bg-secondary p-3"><p className="text-[9px] text-muted-foreground">대화·상태</p><p className="mt-1 text-lg font-bold">{Math.max(0, messages.length - 1)}</p></div>
             <div className="rounded-xl bg-secondary p-3"><p className="text-[9px] text-muted-foreground">분석</p><p className="mt-1 text-lg font-bold">{analysisIds.length}</p></div>
@@ -347,9 +351,9 @@ export function FieldToolsPanel({
               </article>
             )) : <div className="rounded-xl border border-dashed border-border p-5 text-center text-[10px] text-muted-foreground">신고를 접수하면 기록이 시작됩니다.</div>}
           </div>
-          <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-secondary/45 p-3"><div><p className="text-[9px] text-muted-foreground">저장 상태</p><p className="mt-1 text-xs font-bold">{unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 기록 없음"}</p></div><FileClock size={18} className="text-muted-foreground" /></div>
-          {!recordAvailable && <p className="mt-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-[10px] leading-relaxed text-blue-700 dark:text-blue-300">현재 대화·분석·확인 내역은 계속 볼 수 있습니다. 서버 기록저장 API가 배포되면 저장 기능을 활성화합니다.</p>}
-          <button disabled={!canSave} onClick={() => { setActiveDialog(null); onRequestSave(); }} className="mt-3 min-h-12 w-full rounded-xl bg-foreground text-xs font-bold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">{!recordAvailable ? "기록 저장 API 준비 중" : canSave ? "현재 대응 기록 저장" : "분석 완료 후 저장 가능"}</button>
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-secondary/45 p-3"><div><p className="text-[9px] text-muted-foreground">{recordAvailable ? "저장 상태" : "세션 상태"}</p><p className="mt-1 text-xs font-bold">{recordAvailable ? (unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 기록 없음") : (unsavedCount ? `시연 기록 ${unsavedCount}건` : "시연 기록 없음")}</p></div><FileClock size={18} className="text-muted-foreground" /></div>
+          {!recordAvailable && <p className="mt-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-[10px] leading-relaxed text-blue-700 dark:text-blue-300">{localExportAvailable ? "개인정보 없는 공개 합성 기록을 JSON으로 내려받아 QA 증적으로 사용할 수 있습니다. 서버에는 저장하지 않습니다." : "현재 내역은 이 브라우저 세션에서만 볼 수 있습니다. 운영 기록 저장은 인증된 pilot 환경에서만 활성화합니다."}</p>}
+          <button disabled={!canSave} onClick={() => { setActiveDialog(null); onRequestSave(); }} className="mt-3 min-h-12 w-full rounded-xl bg-foreground text-xs font-bold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">{recordAvailable ? (canSave ? "현재 대응 기록 저장" : "분석 완료 후 저장 가능") : localExportAvailable && canSave ? "시연 기록 JSON 내보내기" : "시연 완료 후 내보내기 가능"}</button>
         </ToolDialogShell>
       )}
     </>
