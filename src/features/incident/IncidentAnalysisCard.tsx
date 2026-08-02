@@ -30,14 +30,17 @@ function EvidenceLinks({ evidence }: { evidence: EvidenceCard[] }) {
   }
 
   return (
-    <div className="mt-2 space-y-1.5">
-      {evidence.map((item) => (
-        <a key={item.evidenceId} href={item.sourceUrl} target="_blank" rel="noreferrer" className="block rounded-lg border border-border bg-secondary/45 p-2 hover:bg-muted">
-          <span className="flex items-center justify-between gap-2 text-[10px] font-semibold"><span className="truncate">{item.title}</span><ExternalLink size={10} className="shrink-0" /></span>
-          <span className="mt-1 line-clamp-2 block text-[9px] leading-relaxed text-muted-foreground">{item.bodyPreview}</span>
-        </a>
-      ))}
-    </div>
+    <details className="mt-2 overflow-hidden rounded-lg border border-border bg-secondary/30">
+      <summary className="cursor-pointer px-2.5 py-2 text-[10px] font-semibold text-muted-foreground">공식 근거 {evidence.length}건 보기</summary>
+      <div className="space-y-1.5 border-t border-border p-2">
+        {evidence.map((item) => (
+          <a key={item.evidenceId} href={item.sourceUrl} target="_blank" rel="noreferrer" className="block rounded-lg border border-border bg-card p-2 hover:bg-muted">
+            <span className="flex items-center justify-between gap-2 text-[10px] font-semibold"><span className="truncate">{item.title}</span><ExternalLink size={10} className="shrink-0" /></span>
+            <span className="mt-1 line-clamp-2 block text-[9px] leading-relaxed text-muted-foreground">{item.bodyPreview}</span>
+          </a>
+        ))}
+      </div>
+    </details>
   );
 }
 

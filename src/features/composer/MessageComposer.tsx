@@ -88,10 +88,10 @@ export function MessageComposer({
         type="button"
         onClick={handleButtonClick}
         disabled={submitDisabled}
-        className="grid h-[52px] w-[52px] place-items-center rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-40"
+        className="flex h-[52px] min-w-[92px] items-center justify-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-bold text-white hover:bg-primary/90 disabled:opacity-40"
         aria-label={mode === "collision" ? "사고 분석" : "물질 검색"}
       >
-        {mode === "collision" ? <Send size={16} /> : <Search size={16} />}
+        {mode === "collision" ? <><Send size={15} />분석 시작</> : <><Search size={15} />검색</>}
       </button>
     </div>
   );

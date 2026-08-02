@@ -302,6 +302,15 @@ export default function App() {
           disclosure: contestLiveScenario.disclosure,
         }
       : null;
+  const currentTask = !analysis
+    ? presentationScenarioId
+      ? { step: "2/4", title: "신고 내용을 확인하고 분석을 시작하세요", detail: "시설명·주소·신고문을 확인한 뒤 아래의 ‘분석 시작’을 누르세요.", complete: false }
+      : { step: "1/4", title: "상황실 지령을 받거나 신고문을 입력하세요", detail: "왼쪽 ‘상황실 연결’을 누르면 실제 지령망에서 신고를 받을 수 있습니다.", complete: false }
+    : !analysis.confirmationGate.incidentConfirmed
+      ? { step: "3/4", title: "사고물질을 현장에서 확인하세요", detail: "후보 카드의 ‘사고물질 현장 확인’을 눌러 라벨·MSDS 근거를 기록하세요.", complete: false }
+      : !analysis.confirmationGate.facilityConfirmed
+        ? { step: "4/4", title: "시설물질을 현장에서 확인하세요", detail: "시설물질의 현재 존재와 CAS를 확인해야 충돌 검토가 실행됩니다.", complete: false }
+        : { step: "확인 완료", title: "충돌 검토 결과를 확인하세요", detail: "공개 근거와 제한사항을 확인하고 최종 판단은 현장 지휘관이 수행합니다.", complete: true };
 
   function beginOperation() {
     const controller = new AbortController();
@@ -734,20 +743,23 @@ export default function App() {
                 )}
                 {presentationScenarioId && (
                   <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] leading-relaxed text-amber-800 dark:text-amber-200" role="status">
-                    <strong>공개 합성 지령 수신</strong> · 실제 119 신고가 아닌 개인정보 없는 시나리오입니다. {presentationReplay
-                      ? `BE SSE event ${presentationReplay.sourceEventId} · 요청 ID ${presentationReplay.requestId}. `
-                      : ""}분석 결과는 fixture가 아니라 실제 staging BE·AI에서 생성됩니다.
+                    <strong>지령 반영 완료</strong> · 신고 내용을 확인한 뒤 아래에서 분석을 시작하세요.
+                    {presentationReplay && <details className="mt-1"><summary className="cursor-pointer font-semibold">통신 정보 보기</summary><p className="mt-1 break-all text-[9px] opacity-85">공개 합성 신고 · SSE event {presentationReplay.sourceEventId} · 요청 ID {presentationReplay.requestId} · 실제 staging BE·AI 사용</p></details>}
                   </div>
                 )}
               </div>
 
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+                <section className={`rounded-xl border p-3 ${currentTask.complete ? "border-emerald-500/30 bg-emerald-500/10" : "border-blue-500/30 bg-blue-500/10"}`} aria-label="현재 해야 할 일">
+                  <div className="flex items-center gap-2"><span className={`rounded-full px-2 py-1 text-[9px] font-bold ${currentTask.complete ? "bg-emerald-600 text-white" : "bg-blue-600 text-white"}`}>{currentTask.step}</span><p className="text-xs font-bold">{currentTask.title}</p></div>
+                  <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">{currentTask.detail}</p>
+                </section>
                 {error && <ErrorNotice error={error} onRetry={error.retryable && (input.trim() || lastIncidentText) ? () => { if (input.trim()) void handleSubmit(); else if (lastIncidentText) void runAnalysis(lastIncidentText, false); } : undefined} />}
                 {movementError && <div className="rounded-lg border border-accent/30 bg-accent/5 p-2 text-[10px] text-accent">경로 갱신: {movementError} 기존 화면은 유지됩니다.</div>}
                 {mode === "collision" ? (
                   <>
                     <IncidentAnalysisCard analysis={analysis} onConfirm={(role, casNumber, displayName) => openConfirmation({ role, casNumber, displayName })} confirmingRole={confirmingRole} />
-                    <AgentPanel agent={analysis?.agent} />
+                    {analysis?.agent && <details className="overflow-hidden rounded-xl border border-border bg-card"><summary className="cursor-pointer px-3 py-3 text-[11px] font-semibold">상세 대응 절차·에이전트 기록 보기</summary><div className="border-t border-border p-2"><AgentPanel agent={analysis.agent} /></div></details>}
                     {messages.length > 1 && <details className="rounded-xl border border-border bg-secondary/30"><summary className="cursor-pointer px-3 py-2.5 text-[11px] font-semibold">대화·상태 기록 {messages.length}건</summary><div className="space-y-2 border-t border-border p-3">{messages.slice(-6).map((message) => <div key={message.messageId} className={`rounded-lg p-2 text-[10px] leading-relaxed ${message.role === "USER" ? "ml-8 bg-primary/10" : "mr-8 bg-card border border-border"}`}><p className="font-semibold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "에이전트" : "시스템"}</p><p className="mt-0.5">{message.text}</p></div>)}</div></details>}
                   </>
                 ) : <SubstanceResults result={materialResult} incidentAvailable={Boolean(incidentId)} onUseCandidate={(candidate) => openConfirmation({ role: "INCIDENT", casNumber: candidate.casNumber, displayName: candidate.displayName })} />}

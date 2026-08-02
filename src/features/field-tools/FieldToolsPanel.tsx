@@ -109,15 +109,16 @@ function modeStatus(mode: DataMode) {
   }[mode];
 }
 
-function ToolButton({ icon, label, detail, badge, onClick }: {
+function ToolButton({ icon, label, detail, badge, emphasized = false, onClick }: {
   icon: React.ReactNode;
   label: string;
   detail: string;
   badge?: string;
+  emphasized?: boolean;
   onClick: (trigger: HTMLButtonElement) => void;
 }) {
   return (
-    <button onClick={(event) => onClick(event.currentTarget)} className="group flex min-h-[58px] w-full items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-2 text-left transition hover:border-sidebar-border hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+    <button onClick={(event) => onClick(event.currentTarget)} className={`group flex min-h-[58px] w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring ${emphasized ? "border-primary/45 bg-primary/5 shadow-sm hover:bg-primary/10" : "border-transparent hover:border-sidebar-border hover:bg-sidebar-accent"}`}>
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-sidebar-foreground group-hover:text-primary">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[11px] font-bold text-sidebar-foreground">{label}</span>
@@ -195,12 +196,12 @@ export function FieldToolsPanel({
   const dataStatus = modeStatus(dataMode);
   const dispatchButtonDetail = dispatchStreamAvailable
     ? dispatchStreamStatus === "WAITING"
-      ? "지령망 연결 중"
+      ? "1단계 · 지령 수신 중"
       : dispatchStreamStatus === "ERROR"
-        ? "지령망 재연결 필요"
+        ? "1단계 · 다시 연결"
         : dispatchStreamStatus === "RECEIVED"
-          ? dispatchAccepted ? "지령 확인 완료" : "새 지령 1건"
-          : "지령망 연결 대기"
+          ? dispatchAccepted ? "1단계 완료" : "확인할 지령 1건"
+          : "1단계 · 지령 받기"
     : phoneHref ? dispatchContact.phone : "연결 설정 필요";
 
   function openDialog(dialog: Exclude<ToolDialog, null>, trigger: HTMLButtonElement) {
@@ -231,7 +232,7 @@ export function FieldToolsPanel({
           <p className="mt-1 truncate text-[9px] text-muted-foreground">{station}</p>
         </div>
         <nav className="space-y-1" aria-label="현장 도구 메뉴">
-          <ToolButton icon={<Phone size={16} />} label="상황실 연결" detail={dispatchButtonDetail} badge={dispatchStreamStatus === "RECEIVED" && !dispatchAccepted ? "1" : undefined} onClick={(trigger) => openDialog("contact", trigger)} />
+          <ToolButton icon={<Phone size={16} />} label="상황실 연결" detail={dispatchButtonDetail} badge={dispatchStreamStatus === "RECEIVED" && !dispatchAccepted ? "1" : undefined} emphasized={dispatchStreamAvailable && !dispatchAccepted} onClick={(trigger) => openDialog("contact", trigger)} />
           <ToolButton icon={<BookOpenCheck size={16} />} label="공식 화학자료" detail={officialItems.length ? `CAS 후보 ${officialItems.length}건` : "분석 후 CAS 자료 확인"} badge={officialItems.length ? String(officialItems.length) : undefined} onClick={(trigger) => openDialog("sources", trigger)} />
           <ToolButton icon={<ClipboardList size={16} />} label="현재 사고 기록" detail={!recordAvailable ? "조회 가능 · 저장 API 준비 중" : incidentId ? `사고 ${incidentId}` : "신고 접수 대기"} badge={unsavedCount ? String(unsavedCount) : undefined} onClick={(trigger) => openDialog("record", trigger)} />
         </nav>
