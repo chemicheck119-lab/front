@@ -2,7 +2,7 @@
 
 ## 결론
 
-공모전 주 시연은 `공개 합성 신고 → 실제 FE → 실제 BE/BFF → 실제 AI → 실제 응답`으로 한다.
+공모전 주 시연은 `BE 공개 합성 지령 SSE → 실제 FE → 실제 BE/BFF → 실제 AI → 실제 응답`으로 한다.
 합성 입력이라는 사실을 화면과 발표에서 숨기지 않는다. 로컬 fixture가 응답을 만드는
 `DEMO_SIMULATION`은 인터넷 장애 시 백업 영상·화면에만 사용한다.
 
@@ -14,7 +14,7 @@ API가 아니라 기관별 권한·개인정보·망연계·감사 정책이 필
 
 | 구분 | 신고 입력 | 분석·저장 | 화면 표기 | 용도 |
 |---|---|---|---|---|
-| Contest Live | 개인정보 없는 공개 합성 신고 | 배포된 BFF·AI·DB | `실제 API` + `공개 합성 신고` | 발표 주 시연 |
+| Contest Live | BE SSE로 수신한 개인정보 없는 공개 합성 지령 | 배포된 BFF·AI·DB | `실제 API` + `공개 합성 신고` | 발표 주 시연 |
 | Manual Live | 상황실·대원이 직접 입력 | 배포된 BFF·AI·DB | `실제 API` | 기관 pilot 전 운영 검증 |
 | Dispatch Pilot | 승인된 지령 adapter | 동일 BFF·AI·DB | 실제 입력 출처 | 기관 협약 후 |
 | Offline Demo | 저장소 fixture | 브라우저 메모리 | `시연 데이터` | 인터넷 장애 백업 |
@@ -36,33 +36,33 @@ live 응답을 자동으로 섞거나 장애 시 몰래 대체하지 않는다.
   → confirmation → movement → record
 ```
 
-시연에서는 `Scenario Replay Adapter`가 같은 `IncidentEnvelope`를 만든다. 운영 adapter와 replay
-adapter는 입력원만 다르고 이후 검증·분석·저장 경로는 같아야 한다.
+시연에서는 BE의 `Scenario Replay Adapter`가 같은 `IncidentEnvelope`를 만들고 SSE
+`incident.accepted` event로 FE에 전달한다. 운영 adapter와 replay adapter는 입력원만 다르고
+이후 검증·분석·저장 경로는 같아야 한다. 현재 replay는 실제 119 feed가 아니며 BE 응답의
+`PUBLIC_SYNTHETIC`과 `SYNTHETIC_DISPATCH_REPLAY`를 FE가 다시 검증한다.
 
 ## IncidentEnvelope 최소 계약
 
 ```json
 {
-  "eventId": "EVT-...",
+  "sourceEventId": "SYNTHETIC-DISPATCH-...",
   "incidentId": "INC-...",
-  "sourceType": "SYNTHETIC_REPLAY | MANUAL_DISPATCH | AUTHORIZED_119_ADAPTER",
-  "dataClassification": "PUBLIC_SYNTHETIC | OPERATIONAL_RESTRICTED",
+  "sourceType": "SYNTHETIC_DISPATCH_REPLAY | MANUAL_FIELD | AUTHORIZED_DISPATCH",
+  "dataClassification": "PUBLIC_SYNTHETIC | AUTHORIZED_OPERATIONAL",
   "receivedAt": "RFC3339",
   "occurredAt": "RFC3339|null",
-  "dispatchText": "string",
+  "reportText": "string",
   "location": {
     "address": "string|null",
     "latitude": "number|null",
     "longitude": "number|null",
     "coordinateSource": "string|null"
   },
-  "organization": {
-    "stationId": "string|null"
-  },
-  "provenance": {
-    "scenarioId": "string|null",
-    "datasetVersions": ["string"]
-  }
+  "stationId": "string",
+  "sourceProvider": "string",
+  "requestId": "string",
+  "containsPersonalInformation": false,
+  "disclosure": "string"
 }
 ```
 
@@ -71,7 +71,7 @@ adapter는 입력원만 다르고 이후 검증·분석·저장 경로는 같아
 
 ## 단계별 실사용 전환
 
-1. 공개 합성 시나리오가 실제 배포 파이프라인을 통과하는지 반복 검증한다.
+1. 공개 합성 시나리오가 BE SSE 수신부터 실제 배포 분석 파이프라인까지 통과하는지 반복 검증한다.
 2. 기관 제공 없이 가능한 `Manual Live`에서 상황실 입력→태블릿 분석→기록 저장을 검증한다.
 3. 지령 시스템 담당 기관과 데이터 항목, 전송 방식, 망연계, 보존·삭제, 장애 fallback을 합의한다.
 4. `AUTHORIZED_119_ADAPTER`를 별도 배포하고 합성 replay와 같은 계약 테스트를 통과시킨다.

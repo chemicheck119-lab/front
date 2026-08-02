@@ -49,7 +49,8 @@ VITE_ENABLE_DEMO_MODE=true
 시연 fixture는 `src/fixtures/demo.ts`에만 있으며 실제 API 장애 시 자동 fallback으로 사용되지 않습니다. 운영에서는 `false`로 두고, API 장애를 “연결할 수 없음” 상태로 표시합니다.
 
 공모전의 주 시연에는 이 offline 시연 모드를 사용하지 않습니다. `https://chemicheck119.site`의
-`공개 합성 신고 불러오기`로 개인정보 없는 입력을 채우고 실제 BFF·AI 응답을 보여줍니다. 화면의
+`공개 합성 지령 실시간 수신`으로 BE SSE에서 개인정보 없는 IncidentEnvelope를 받고 실제
+BFF·AI 응답을 보여줍니다. 화면의
 `실제 API`는 처리 경로를, `공개 합성 신고`는 입력 데이터 성격을 뜻합니다. 자세한 경계와 실제
 119 지령 연계 계획은 [신고 입력·시연·실운영 전략](./docs/INCIDENT_INTAKE_STRATEGY.md)을 참고합니다.
 
@@ -79,7 +80,7 @@ corepack pnpm build:staging
 - `VITE_API_TIMEOUT_MS`: BFF 요청 제한 시간. BE의 모델 제한 15초보다 긴 20초 권장
 - `VITE_LOCATION_UPDATE_INTERVAL_MS`: 위치 갱신 최소 간격
 - `VITE_ENABLE_DEMO_MODE`: 명시적 시연 fixture 사용 여부
-- `VITE_ENABLE_PRESENTATION_SCENARIO`: 공개 합성 신고 입력 도우미. `VITE_ENABLE_DEMO_MODE=false`이고 BFF URL이 있을 때만 활성화
+- `VITE_ENABLE_PRESENTATION_SCENARIO`: BE의 공개 합성 지령 SSE 수신 UI. `VITE_ENABLE_DEMO_MODE=false`이고 BFF URL이 있을 때만 활성화
 - `VITE_ENABLE_MOVEMENT_API`: BE movement 배포가 검증된 환경에서만 `true`
 - `VITE_ENABLE_RECORD_API`: BE record 배포가 검증된 환경에서만 `true`
 
