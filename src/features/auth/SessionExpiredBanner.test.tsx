@@ -20,4 +20,14 @@ describe("세션 만료 경계", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.getByText("운영 인증 URL 설정 필요")).toBeInTheDocument();
   });
+
+  it("공개 파일럿은 비밀번호 로그인 대신 POST 재시작 버튼을 제공한다", () => {
+    render(<SessionExpiredBanner authLoginUrl="https://chemicheck119.site/auth/staging/pilot" hasIncident={false} />);
+
+    const button = screen.getByRole("button", { name: /파일럿 세션 다시 시작/ });
+    const form = button.closest("form");
+    expect(form).toHaveAttribute("method", "post");
+    expect(form).toHaveAttribute("action", "https://chemicheck119.site/auth/staging/pilot");
+    expect(form).toHaveAttribute("target", "_blank");
+  });
 });

@@ -9,6 +9,22 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "chemicheck119-be-staging",
+          "region": "asia-northeast3",
+          "pinTag": true
+        }
+      },
+      {
+        "source": "/auth/**",
+        "run": {
+          "serviceId": "chemicheck119-be-staging",
+          "region": "asia-northeast3",
+          "pinTag": true
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

@@ -35,6 +35,14 @@ export function normalizeAuthLoginUrl(value: string, baseUrl = window.location.o
   }
 }
 
+export function isPublicPilotAccessUrl(value: string): boolean {
+  try {
+    return new URL(value).pathname === "/auth/staging/pilot";
+  } catch {
+    return false;
+  }
+}
+
 interface LoginScreenProps {
   dataMode: DataMode;
   authLoginUrl: string;
@@ -51,6 +59,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
   const isDemo = dataMode === "DEMO_SIMULATION";
   const isLive = dataMode === "LIVE_API" || dataMode === "CACHED_API";
   const safeAuthLoginUrl = normalizeAuthLoginUrl(authLoginUrl);
+  const publicPilotAccess = safeAuthLoginUrl ? isPublicPilotAccessUrl(safeAuthLoginUrl) : false;
 
   return (
     <main className="grid min-h-[100dvh] place-items-center bg-background p-6" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
@@ -88,10 +97,12 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
               <div className="flex items-start gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-foreground text-background">{sessionChecking ? <LoaderCircle size={18} className="animate-spin" /> : <ShieldCheck size={18} />}</span>
                 <div>
-                  <h1 className="text-sm font-bold">{sessionChecking ? "운영 세션을 확인하고 있습니다" : isLive ? "운영 인증이 필요합니다" : "서비스 연결 설정이 필요합니다"}</h1>
+                  <h1 className="text-sm font-bold">{sessionChecking ? "접속 정보를 확인하고 있습니다" : isLive && publicPilotAccess ? "파일럿을 바로 시작할 수 있습니다" : isLive ? "운영 인증이 필요합니다" : "서비스 연결 설정이 필요합니다"}</h1>
                   <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
                     {sessionChecking
                       ? "BE가 검증한 사용자·역할·소방서 정보를 불러온 뒤 대시보드에 진입합니다."
+                      : isLive && publicPilotAccess
+                      ? "버튼을 누르면 대회·QA용 제한 관할 세션으로 접속합니다. 계정이나 비밀번호를 입력할 필요가 없습니다."
                       : isLive
                       ? "사용자 소속과 사고 접근권한은 BE가 서명한 HttpOnly 세션만 기준으로 확인합니다. 지역 선택만으로 운영 화면에 접속하지 않습니다."
                       : "BFF 주소가 설정되지 않아 실제 사용자 인증과 현장대응 기능을 시작할 수 없습니다."}
@@ -102,7 +113,13 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
 
             {sessionError && <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-[13px] leading-relaxed text-primary" role="alert">{sessionError.message}{sessionError.requestId ? ` (요청 ID: ${sessionError.requestId})` : ""}</div>}
 
-            {!sessionChecking && isLive && safeAuthLoginUrl ? (
+            {!sessionChecking && isLive && safeAuthLoginUrl && publicPilotAccess ? (
+              <form method="post" action={safeAuthLoginUrl}>
+                <button type="submit" className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white transition hover:bg-primary/90">
+                  <LogIn size={16} />파일럿 시작하기
+                </button>
+              </form>
+            ) : !sessionChecking && isLive && safeAuthLoginUrl ? (
               <a href={safeAuthLoginUrl} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-foreground text-sm font-bold text-background transition hover:opacity-90">
                 운영 로그인 페이지로 이동<ExternalLink size={15} />
               </a>
@@ -115,7 +132,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
             {!sessionChecking && isLive && onRetrySession && <button type="button" onClick={onRetrySession} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-xs font-bold transition hover:bg-muted"><RefreshCw size={14} />세션 다시 확인</button>}
 
             {!sessionChecking && isLive && safeAuthLoginUrl && (
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">로그인 후 사용자·소방서 세션 컨텍스트가 확인돼야 대시보드 진입이 활성화됩니다.</p>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{publicPilotAccess ? "공개 파일럿은 실제 기관 사용자 인증이나 실제 119 지령 계정이 아닙니다." : "로그인 후 사용자·소방서 세션 컨텍스트가 확인돼야 대시보드 진입이 활성화됩니다."}</p>
             )}
           </div>
         )}

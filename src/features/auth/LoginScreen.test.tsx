@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { LoginScreen, normalizeAuthLoginUrl } from "./LoginScreen";
+import { LoginScreen, isPublicPilotAccessUrl, normalizeAuthLoginUrl } from "./LoginScreen";
 
 afterEach(cleanup);
 
@@ -33,10 +33,21 @@ describe("접속 모드 분리", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
+  it("공개 파일럿 URL은 계정 입력 없이 POST 시작 버튼으로 제공한다", () => {
+    render(<LoginScreen dataMode="LIVE_API" authLoginUrl="https://chemicheck119.site/auth/staging/pilot" onDemoLogin={vi.fn()} />);
+
+    const button = screen.getByRole("button", { name: "파일럿 시작하기" });
+    const form = button.closest("form");
+    expect(form).toHaveAttribute("method", "post");
+    expect(form).toHaveAttribute("action", "https://chemicheck119.site/auth/staging/pilot");
+    expect(screen.getByText(/계정이나 비밀번호를 입력할 필요가 없습니다/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /운영 로그인/ })).not.toBeInTheDocument();
+  });
+
   it("운영 세션 확인 중에는 로그인 이동 대신 차단 화면을 표시한다", () => {
     render(<LoginScreen dataMode="LIVE_API" authLoginUrl="https://auth.example.test/login" sessionChecking onDemoLogin={vi.fn()} />);
 
-    expect(screen.getByText("운영 세션을 확인하고 있습니다")).toBeInTheDocument();
+    expect(screen.getByText("접속 정보를 확인하고 있습니다")).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
@@ -70,5 +81,7 @@ describe("인증 URL 검증", () => {
     expect(normalizeAuthLoginUrl("/auth/login", "https://app.example.test"))
       .toBe("https://app.example.test/auth/login");
     expect(normalizeAuthLoginUrl("data:text/html,bad", "https://app.example.test")).toBeNull();
+    expect(isPublicPilotAccessUrl("https://app.example.test/auth/staging/pilot")).toBe(true);
+    expect(isPublicPilotAccessUrl("https://app.example.test/auth/login")).toBe(false);
   });
 });
