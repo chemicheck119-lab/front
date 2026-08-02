@@ -12,13 +12,17 @@ import {
 import { BrandLogo } from "@/app/components/BrandLogo";
 import { apiConfig, runtimeDataMode } from "../api/config";
 import { endAuthenticatedSession, getAuthenticatedSession } from "../api/auth";
-import { receiveContestIncident, type IncidentReplayEnvelope } from "../api/intake";
+import {
+  confirmSyntheticReplaySubstance,
+  receiveContestIncident,
+  type IncidentReplayEnvelope,
+} from "../api/intake";
 import { analyzeIncident } from "../api/incidents";
 import { updateMovement } from "../api/movement";
 import { discoverSubstances } from "../api/substances";
 import { confirmSubstance } from "../api/confirmations";
 import { saveIncidentRecord, shouldResetAfterSave } from "../api/records";
-import { toUserFacingError, userFacingError, type UserFacingErrorInfo } from "../api/client";
+import { ApiError, toUserFacingError, userFacingError, type UserFacingErrorInfo } from "../api/client";
 import type {
   ConfirmationRequest,
   IncidentAnalysisResponse,
@@ -41,6 +45,12 @@ import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
 import { adaptDirectEntryIssue, resolveInitialStation } from "../features/auth/accessMode";
 import { resetDemoSession as resetDemoDataSession } from "../fixtures/demo";
 import { contestLiveScenario } from "../demo/presentationScenario";
+import {
+  fullDemoStatusLabel,
+  fullDemoSteps,
+  isFullDemoRunning,
+  type FullDemoStatus,
+} from "../demo/fullDemoState";
 import { MessageComposer } from "../features/composer/MessageComposer";
 
 type Mode = "collision" | "substance";
@@ -117,6 +127,35 @@ function UseEndedScreen({ station, onRestart }: { station: string; onRestart: ()
   );
 }
 
+function FullDemoProgress({ status, failedAt }: {
+  status: FullDemoStatus;
+  failedAt: FullDemoStatus | null;
+}) {
+  const steps = fullDemoSteps(status, failedAt ?? "RECEIVING");
+  return (
+    <section className="mt-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-3" aria-label="3분 완성형 공개 합성 시연 진행">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-black text-violet-800 dark:text-violet-200">3분 완성형 공개 합성 시연</p>
+          <p className="mt-0.5 text-[9px] text-muted-foreground">실제 FE → BE → AI 호출 · 현장 확인만 합성</p>
+        </div>
+        <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${status === "COMPLETED" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : status === "ERROR" ? "bg-primary/10 text-primary" : "bg-violet-500/15 text-violet-800 dark:text-violet-200"}`}>
+          {fullDemoStatusLabel(status)}
+        </span>
+      </div>
+      <ol className="mt-2 grid grid-cols-5 gap-1">
+        {steps.map((step) => (
+          <li key={step.id} className={`min-w-0 rounded-lg border px-2 py-1.5 ${step.state === "COMPLETED" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : step.state === "ACTIVE" ? "border-violet-500/40 bg-violet-500/10 text-violet-800 dark:text-violet-200" : step.state === "ERROR" ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground"}`}>
+            <p className="truncate text-[9px] font-bold">{step.state === "COMPLETED" ? "✓ " : step.state === "ACTIVE" ? "● " : step.state === "ERROR" ? "! " : "○ "}{step.label}</p>
+            <p className="mt-0.5 truncate text-[8px] opacity-80">{step.detail}</p>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-2 text-[9px] leading-relaxed text-violet-800 dark:text-violet-200">합성 확인은 실제 대원 확인·기관 지령이 아니며 운영 판단에 사용할 수 없습니다. 최종 위험 카드는 두 합성 확인 뒤 실제 CAMEO 규칙이 실행된 경우에만 열립니다.</p>
+    </section>
+  );
+}
+
 function mergeResponderPosition(context: MapContext | null, position: ReturnType<typeof useResponderLocation>["position"]): MapContext | null {
   if (!context && !position) return null;
   const base: MapContext = context ?? {
@@ -155,6 +194,8 @@ export default function App() {
   const [presentationScenarioId, setPresentationScenarioId] = useState<string | null>(null);
   const [presentationReplay, setPresentationReplay] = useState<IncidentReplayEnvelope | null>(null);
   const [presentationReplayStatus, setPresentationReplayStatus] = useState<PresentationReplayStatus>("IDLE");
+  const [fullDemoStatus, setFullDemoStatus] = useState<FullDemoStatus>("IDLE");
+  const [fullDemoFailedAt, setFullDemoFailedAt] = useState<FullDemoStatus | null>(null);
   const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
   const [mapContext, setMapContext] = useState<MapContext | null>(null);
   const [materialResult, setMaterialResult] = useState<MaterialDiscoveryResponse | null>(null);
@@ -319,42 +360,64 @@ export default function App() {
     return issue;
   }
 
+  function requestAnalysis(
+    text: string,
+    targetIncidentId: string | null,
+    replay: IncidentReplayEnvelope | null,
+    signal: AbortSignal,
+  ) {
+    return analyzeIncident({
+      incidentId: targetIncidentId,
+      text,
+      inputType: "DISPATCH_TEXT",
+      occurredAt: replay?.occurredAt ?? nowIso(),
+      location: {
+        facilityName: replay?.facilityName ?? (facilityName || null),
+        address: replay?.addressText ?? (address || null),
+        latitude: replay?.location.latitude ?? null,
+        longitude: replay?.location.longitude ?? null,
+        resolvedAt: replay?.receivedAt ?? null,
+        coordinateSource: replay
+          ? "DEMO_FIXTURE"
+          : runtimeDataMode === "DEMO_SIMULATION" ? "DEMO_FIXTURE" : null,
+      },
+      operationsContext: {
+        dispatchStationName: replay?.stationDisplayName ?? station,
+        journeyState,
+        responderPosition: responderLocation.position,
+      },
+      evidenceTopK: 5,
+    }, signal);
+  }
+
+  function applyAnalysisResponse(response: IncidentAnalysisResponse, text: string) {
+    setSessionExpired(null);
+    setAnalysis(response);
+    setIncidentId(response.incidentId);
+    setLastIncidentText(text);
+    setAnalysisIds((previous) => previous.includes(response.analysisId)
+      ? previous : [...previous, response.analysisId]);
+    if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
+    setMessages((previous) => [...previous, makeMessage(
+      "ASSISTANT",
+      response.agent?.currentObjective
+        ?? response.requiredNextSteps[0]
+        ?? analysisStateLabel(response.state),
+      response.analysisId,
+    )]);
+  }
+
   async function runAnalysis(text: string, appendUserMessage: boolean) {
     const operation = beginOperation();
     setLoading(true);
     setError(null);
     if (appendUserMessage) setMessages((previous) => [...previous, makeMessage("USER", text)]);
     try {
-      const response = await analyzeIncident({
-        incidentId,
-        text,
-        inputType: "DISPATCH_TEXT",
-        occurredAt: presentationReplay?.occurredAt ?? nowIso(),
-        location: {
-          facilityName: facilityName || null,
-          address: address || null,
-          latitude: presentationReplay?.location.latitude ?? null,
-          longitude: presentationReplay?.location.longitude ?? null,
-          resolvedAt: presentationReplay?.receivedAt ?? null,
-          coordinateSource: presentationReplay
-            ? "DEMO_FIXTURE"
-            : runtimeDataMode === "DEMO_SIMULATION" ? "DEMO_FIXTURE" : null,
-        },
-        operationsContext: {
-          dispatchStationName: station,
-          journeyState,
-          responderPosition: responderLocation.position,
-        },
-        evidenceTopK: 5,
-      }, operation.controller.signal);
+      const response = await requestAnalysis(
+        text, incidentId, presentationReplay, operation.controller.signal,
+      );
       if (!isCurrentOperation(operation.generation)) return;
-      setSessionExpired(null);
-      setAnalysis(response);
-      setIncidentId(response.incidentId);
-      setLastIncidentText(text);
-      setAnalysisIds((previous) => previous.includes(response.analysisId) ? previous : [...previous, response.analysisId]);
-      if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
-      setMessages((previous) => [...previous, makeMessage("ASSISTANT", response.agent?.currentObjective ?? response.requiredNextSteps[0] ?? analysisStateLabel(response.state), response.analysisId)]);
+      applyAnalysisResponse(response, text);
     } catch (caught) {
       if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
       const issue = captureRequestIssue(caught);
@@ -457,6 +520,8 @@ export default function App() {
     setPresentationScenarioId(null);
     setPresentationReplay(null);
     setPresentationReplayStatus("IDLE");
+    setFullDemoStatus("IDLE");
+    setFullDemoFailedAt(null);
     setMode("collision");
     setJourneyState("EN_ROUTE");
     setError(null);
@@ -565,13 +630,7 @@ export default function App() {
     try {
       const envelope = await receiveContestIncident(operation.controller.signal);
       if (!isCurrentOperation(operation.generation)) return;
-      setFacilityName(envelope.facilityName);
-      setAddress(envelope.addressText);
-      setInput(envelope.reportText);
-      setIncidentId(envelope.incidentId);
-      setPresentationScenarioId(contestLiveScenario.scenarioId);
-      setPresentationReplay(envelope);
-      setPresentationReplayStatus("RECEIVED");
+      applyPresentationEnvelope(envelope);
       setMessages((previous) => [...previous, makeMessage(
         "SYSTEM",
         `공개 합성 지령을 BE SSE에서 수신했습니다. ${envelope.disclosure} (요청 ID: ${envelope.requestId})`,
@@ -589,12 +648,151 @@ export default function App() {
     }
   }
 
+  function applyPresentationEnvelope(envelope: IncidentReplayEnvelope) {
+    setFacilityName(envelope.facilityName);
+    setAddress(envelope.addressText);
+    setInput(envelope.reportText);
+    setIncidentId(envelope.incidentId);
+    setPresentationScenarioId(contestLiveScenario.scenarioId);
+    setPresentationReplay(envelope);
+    setPresentationReplayStatus("RECEIVED");
+    setMode("collision");
+  }
+
+  async function runFullPresentationDemo() {
+    if (!apiConfig.presentationScenarioEnabled || isFullDemoRunning(fullDemoStatus)) return;
+    resetSession();
+    const operation = beginOperation();
+    let activeStatus: FullDemoStatus = "RECEIVING";
+    const advance = (status: FullDemoStatus) => {
+      activeStatus = status;
+      setFullDemoStatus(status);
+    };
+    advance("RECEIVING");
+    setFullDemoFailedAt(null);
+    setPresentationReplayStatus("WAITING");
+    setLoading(true);
+    setError(null);
+    try {
+      const envelope = await receiveContestIncident(operation.controller.signal);
+      if (!isCurrentOperation(operation.generation)) return;
+      applyPresentationEnvelope(envelope);
+      setInput("");
+      setMessages((previous) => [...previous,
+        makeMessage("SYSTEM", `공개 합성 지령을 BE SSE에서 수신했습니다. ${envelope.disclosure} (요청 ID: ${envelope.requestId})`),
+        makeMessage("USER", envelope.reportText),
+      ]);
+
+      advance("INITIAL_ANALYSIS");
+      const initial = await requestAnalysis(
+        envelope.reportText, envelope.incidentId, envelope, operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      if (initial.confirmationGate.incidentConfirmed
+          || initial.confirmationGate.facilityConfirmed
+          || initial.confirmationGate.ruleExecutionAllowed
+          || initial.riskDisplayAllowed) {
+        throw new ApiError("SAFETY", "합성 시연의 0/2 확인 게이트를 검증할 수 없습니다.", initial.requestId);
+      }
+      applyAnalysisResponse(initial, envelope.reportText);
+
+      advance("INCIDENT_CONFIRMATION");
+      setConfirmingRole("INCIDENT");
+      const incidentConfirmation = await confirmSyntheticReplaySubstance(
+        envelope.incidentId, "INCIDENT", operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      setConfirmationIds((previous) => previous.includes(incidentConfirmation.confirmationId)
+        ? previous : [...previous, incidentConfirmation.confirmationId]);
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `합성 사고물질 확인 1/2 · ${incidentConfirmation.displayName}(${incidentConfirmation.casNumber}). ${incidentConfirmation.disclosure}`,
+      )]);
+
+      advance("INCIDENT_REANALYSIS");
+      const afterIncident = await requestAnalysis(
+        envelope.reportText, envelope.incidentId, envelope, operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      if (!afterIncident.confirmationGate.incidentConfirmed
+          || afterIncident.confirmationGate.facilityConfirmed
+          || afterIncident.confirmationGate.ruleExecutionAllowed
+          || afterIncident.riskDisplayAllowed) {
+        throw new ApiError("SAFETY", "합성 시연의 1/2 확인 게이트를 검증할 수 없습니다.", afterIncident.requestId);
+      }
+      applyAnalysisResponse(afterIncident, envelope.reportText);
+
+      advance("FACILITY_CONFIRMATION");
+      setConfirmingRole("FACILITY");
+      const facilityConfirmation = await confirmSyntheticReplaySubstance(
+        envelope.incidentId, "FACILITY", operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      setConfirmationIds((previous) => previous.includes(facilityConfirmation.confirmationId)
+        ? previous : [...previous, facilityConfirmation.confirmationId]);
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `합성 시설물질 확인 2/2 · ${facilityConfirmation.displayName}(${facilityConfirmation.casNumber}). ${facilityConfirmation.disclosure}`,
+      )]);
+
+      advance("FINAL_ANALYSIS");
+      const completed = await requestAnalysis(
+        envelope.reportText, envelope.incidentId, envelope, operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      const completedRuleId = completed.conflictReview.executed
+        && completed.conflictReview.status === "SCREENING_COMPLETED"
+        && completed.conflictReview.result.kind === "ORDINAL_SCREENING_RESULT"
+        ? completed.conflictReview.result.ruleId
+        : null;
+      const cameoCompleted = completed.state === "SCREENING_COMPLETED"
+        && completed.confirmationGate.incidentConfirmed
+        && completed.confirmationGate.facilityConfirmed
+        && completed.confirmationGate.allRequiredConfirmed
+        && completed.confirmationGate.ruleExecutionAllowed
+        && completed.riskDisplayAllowed
+        && completed.conflictReview.executed
+        && completed.conflictReview.status === "SCREENING_COMPLETED"
+        && completedRuleId === "CAMEO-REACTIVE-GROUP-COMPATIBILITY-MATRIX";
+      if (!cameoCompleted) {
+        throw new ApiError("SAFETY", "확인 2/2 이후 실제 CAMEO 규칙 완료를 검증할 수 없습니다.", completed.requestId);
+      }
+      applyAnalysisResponse(completed, envelope.reportText);
+      setConfirmingRole(null);
+      advance("COMPLETED");
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `실제 CAMEO 규칙 검토가 완료됐습니다. 규칙 ${completedRuleId} · 최종 판단은 현장 지휘관에게 있습니다.`,
+        completed.analysisId,
+      )]);
+    } catch (caught) {
+      if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
+      const issue = captureRequestIssue(caught);
+      setFullDemoFailedAt(activeStatus);
+      setFullDemoStatus("ERROR");
+      setPresentationReplayStatus((current) => current === "WAITING" ? "ERROR" : current);
+      setError(issue.kind === "SESSION_EXPIRED" ? null : issue);
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `완성형 시연을 중단했습니다. ${issue.message}${issue.requestId ? ` (요청 ID: ${issue.requestId})` : ""}`,
+      )]);
+    } finally {
+      finishOperation(operation.controller);
+      if (isCurrentOperation(operation.generation)) {
+        setLoading(false);
+        setConfirmingRole(null);
+      }
+    }
+  }
+
   function changeIncidentInput(value: string) {
     const sourceText = presentationReplay?.reportText ?? contestLiveScenario.text;
     if (presentationScenarioId && value !== sourceText) {
       setPresentationScenarioId(null);
       setPresentationReplay(null);
       setPresentationReplayStatus("IDLE");
+      setFullDemoStatus("IDLE");
+      setFullDemoFailedAt(null);
       if (!analysis) setIncidentId(null);
     }
     setInput(value);
@@ -605,6 +803,8 @@ export default function App() {
     setPresentationScenarioId(null);
     setPresentationReplay(null);
     setPresentationReplayStatus("IDLE");
+    setFullDemoStatus("IDLE");
+    setFullDemoFailedAt(null);
     if (!analysis) setIncidentId(null);
   }
 
@@ -671,12 +871,20 @@ export default function App() {
                   </div>
                 )}
                 {mode === "collision" && (runtimeDataMode === "DEMO_SIMULATION" || apiConfig.presentationScenarioEnabled) && (
-                  <button type="button" disabled={presentationReplayStatus === "WAITING"} onClick={() => { void loadPresentationIncident(); }} className="mt-2 text-[10px] font-semibold text-accent hover:underline disabled:cursor-wait disabled:opacity-60">
-                    {apiConfig.presentationScenarioEnabled
-                      ? presentationReplayStatus === "WAITING" ? "공개 합성 지령 수신 대기 중…" : "공개 합성 지령 실시간 수신"
-                      : "오프라인 시연 신고 불러오기"}
-                  </button>
+                  <div className="mt-2 flex items-center gap-2">
+                    {apiConfig.presentationScenarioEnabled && (
+                      <button type="button" disabled={isFullDemoRunning(fullDemoStatus) || presentationReplayStatus === "WAITING" || loading} onClick={() => { void runFullPresentationDemo(); }} className="min-h-9 rounded-lg bg-violet-600 px-3 text-[10px] font-bold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
+                        {isFullDemoRunning(fullDemoStatus) ? fullDemoStatusLabel(fullDemoStatus) : fullDemoStatus === "COMPLETED" ? "3분 완성형 시연 다시 시작" : fullDemoStatus === "ERROR" ? "3분 완성형 시연 재시도" : "3분 완성형 시연 시작"}
+                      </button>
+                    )}
+                    <button type="button" disabled={isFullDemoRunning(fullDemoStatus) || presentationReplayStatus === "WAITING" || loading} onClick={() => { void loadPresentationIncident(); }} className="text-[10px] font-semibold text-accent hover:underline disabled:cursor-wait disabled:opacity-60">
+                      {apiConfig.presentationScenarioEnabled
+                        ? presentationReplayStatus === "WAITING" ? "공개 합성 지령 수신 대기 중…" : "지령만 수신"
+                        : "오프라인 시연 신고 불러오기"}
+                    </button>
+                  </div>
                 )}
+                {fullDemoStatus !== "IDLE" && <FullDemoProgress status={fullDemoStatus} failedAt={fullDemoFailedAt} />}
                 {presentationReplayStatus === "WAITING" && (
                   <div className="mt-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-[10px] leading-relaxed text-blue-800 dark:text-blue-200" role="status">
                     <strong>지령 스트림 연결 중</strong> · BE SSE에서 개인정보 없는 공개 합성 신고가 도착하기를 기다리고 있습니다.
