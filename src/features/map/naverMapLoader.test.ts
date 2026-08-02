@@ -8,5 +8,6 @@ describe("네이버 지도 SDK URL", () => {
     expect(result.pathname).toBe("/openapi/v3/maps.js");
     expect(result.searchParams.get("ncpKeyId")).toBe("PUBLIC CLIENT ID");
     expect(result.searchParams.get("language")).toBe("ko");
+    expect(result.searchParams.get("submodules")).toBe("geocoder");
   });
 });

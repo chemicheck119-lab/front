@@ -4,6 +4,7 @@ import {
   Check,
   Download,
   LogOut,
+  MapPin,
   Moon,
   Save,
   Sun,
@@ -35,6 +36,7 @@ import type {
 } from "../api/contracts";
 import { useResponderLocation } from "../hooks/useResponderLocation";
 import { formatDistance, formatEta, getLocationPresentation } from "../features/map/mapState";
+import { geocodeIncidentAddress, type ResolvedIncidentAddress } from "../features/map/addressGeocoder";
 import { PHASE_LABELS, AgentPanel } from "../features/operations-agent/AgentPanel";
 import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard";
 import { analysisStateLabel } from "../features/incident/analysisState";
@@ -228,6 +230,9 @@ export default function App() {
   const [input, setInput] = useState("");
   const [facilityName, setFacilityName] = useState("");
   const [address, setAddress] = useState("");
+  const [resolvedIncidentAddress, setResolvedIncidentAddress] = useState<ResolvedIncidentAddress | null>(null);
+  const [addressResolutionStatus, setAddressResolutionStatus] = useState<"IDLE" | "RESOLVING" | "RESOLVED" | "ERROR">("IDLE");
+  const [addressResolutionMessage, setAddressResolutionMessage] = useState<string | null>(null);
   const [presentationScenarioId, setPresentationScenarioId] = useState<string | null>(null);
   const [presentationReplay, setPresentationReplay] = useState<IncidentReplayEnvelope | null>(null);
   const [presentationReplayStatus, setPresentationReplayStatus] = useState<PresentationReplayStatus>("IDLE");
@@ -458,20 +463,26 @@ export default function App() {
     replay: IncidentReplayEnvelope | null,
     signal: AbortSignal,
   ) {
+    const verifiedAddress = !replay
+      && resolvedIncidentAddress?.query === address.trim()
+      ? resolvedIncidentAddress
+      : null;
     return analyzeIncident({
       incidentId: targetIncidentId,
       text,
-      inputType: "DISPATCH_TEXT",
+      inputType: replay ? "DISPATCH_TEXT" : "MANUAL_TEXT",
       occurredAt: replay?.occurredAt ?? nowIso(),
       location: {
         facilityName: replay?.facilityName ?? (facilityName || null),
         address: replay?.addressText ?? (address || null),
-        latitude: replay?.location.latitude ?? null,
-        longitude: replay?.location.longitude ?? null,
-        resolvedAt: replay?.receivedAt ?? null,
+        latitude: replay?.location.latitude ?? verifiedAddress?.latitude ?? null,
+        longitude: replay?.location.longitude ?? verifiedAddress?.longitude ?? null,
+        resolvedAt: replay?.receivedAt ?? verifiedAddress?.resolvedAt ?? null,
         coordinateSource: replay
           ? "DEMO_FIXTURE"
+          : verifiedAddress ? "GEOCODING_PROVIDER"
           : runtimeDataMode === "DEMO_SIMULATION" ? "DEMO_FIXTURE" : null,
+        geocodingProvider: verifiedAddress?.provider ?? null,
       },
       operationsContext: {
         dispatchStationName: replay?.stationDisplayName ?? station,
@@ -528,6 +539,23 @@ export default function App() {
     } finally {
       finishOperation(operation.controller);
       if (isCurrentOperation(operation.generation)) setLoading(false);
+    }
+  }
+
+  async function resolveAddress() {
+    const query = address.trim();
+    if (!query || addressResolutionStatus === "RESOLVING") return;
+    setAddressResolutionStatus("RESOLVING");
+    setAddressResolutionMessage(null);
+    try {
+      const resolved = await geocodeIncidentAddress(query, apiConfig.naverMapClientId);
+      setResolvedIncidentAddress(resolved);
+      setAddressResolutionStatus("RESOLVED");
+      setAddressResolutionMessage(`좌표 확인 완료 · ${resolved.displayAddress}`);
+    } catch {
+      setResolvedIncidentAddress(null);
+      setAddressResolutionStatus("ERROR");
+      setAddressResolutionMessage("주소 좌표를 확인하지 못했습니다. 주소를 보완하거나 좌표 없이 화학 분석을 진행할 수 있습니다.");
     }
   }
 
@@ -629,6 +657,9 @@ export default function App() {
     setInput("");
     setFacilityName("");
     setAddress("");
+    setResolvedIncidentAddress(null);
+    setAddressResolutionStatus("IDLE");
+    setAddressResolutionMessage(null);
     setPresentationScenarioId(null);
     setPresentationReplay(null);
     setPresentationReplayStatus("IDLE");
@@ -1038,8 +1069,16 @@ export default function App() {
                 {mode === "collision" && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <input value={facilityName} onChange={(event) => { clearPresentationReplayForManualEdit(); setFacilityName(event.target.value); }} className="min-h-11 rounded-lg border border-border bg-input-background px-3 text-sm outline-none focus:border-primary" placeholder="시설명(출동지령 기준)" />
-                    <input value={address} onChange={(event) => { clearPresentationReplayForManualEdit(); setAddress(event.target.value); }} className="min-h-11 rounded-lg border border-border bg-input-background px-3 text-sm outline-none focus:border-primary" placeholder="사고 주소(좌표는 BE 검증)" />
+                    <div className="flex min-w-0 gap-2">
+                      <input value={address} maxLength={300} onChange={(event) => { clearPresentationReplayForManualEdit(); setAddress(event.target.value); setResolvedIncidentAddress(null); setAddressResolutionStatus("IDLE"); setAddressResolutionMessage(null); }} className="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-input-background px-3 text-sm outline-none focus:border-primary" placeholder="사고 주소" />
+                      <button type="button" disabled={!address.trim() || addressResolutionStatus === "RESOLVING" || !apiConfig.naverMapClientId} onClick={() => { void resolveAddress(); }} className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 text-xs font-bold hover:bg-muted disabled:opacity-45">
+                        <MapPin size={14} />{addressResolutionStatus === "RESOLVING" ? "좌표 확인 중" : addressResolutionStatus === "RESOLVED" ? "좌표 확인됨" : "주소 좌표 확인"}
+                      </button>
+                    </div>
                   </div>
+                )}
+                {mode === "collision" && addressResolutionMessage && (
+                  <p className={`mt-2 rounded-lg px-3 py-2 text-xs ${addressResolutionStatus === "RESOLVED" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-800 dark:text-amber-200"}`} role="status">{addressResolutionMessage}</p>
                 )}
                 {mode === "substance" && (
                   <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/45 px-3 py-2">
