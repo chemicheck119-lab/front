@@ -12,6 +12,7 @@ import {
 import { BrandLogo } from "@/app/components/BrandLogo";
 import { apiConfig, runtimeDataMode } from "../api/config";
 import { endAuthenticatedSession, getAuthenticatedSession } from "../api/auth";
+import { receiveContestIncident, type IncidentReplayEnvelope } from "../api/intake";
 import { analyzeIncident } from "../api/incidents";
 import { updateMovement } from "../api/movement";
 import { discoverSubstances } from "../api/substances";
@@ -45,6 +46,7 @@ import { MessageComposer } from "../features/composer/MessageComposer";
 type Mode = "collision" | "substance";
 type MessageRole = "USER" | "ASSISTANT" | "SYSTEM";
 type SessionBootstrapStatus = "DISABLED" | "CHECKING" | "AUTHENTICATED" | "REQUIRED" | "ERROR";
+type PresentationReplayStatus = "IDLE" | "WAITING" | "RECEIVED" | "ERROR";
 
 interface Message {
   messageId: string;
@@ -151,6 +153,8 @@ export default function App() {
   const [facilityName, setFacilityName] = useState("");
   const [address, setAddress] = useState("");
   const [presentationScenarioId, setPresentationScenarioId] = useState<string | null>(null);
+  const [presentationReplay, setPresentationReplay] = useState<IncidentReplayEnvelope | null>(null);
+  const [presentationReplayStatus, setPresentationReplayStatus] = useState<PresentationReplayStatus>("IDLE");
   const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
   const [mapContext, setMapContext] = useState<MapContext | null>(null);
   const [materialResult, setMaterialResult] = useState<MaterialDiscoveryResponse | null>(null);
@@ -325,11 +329,16 @@ export default function App() {
         incidentId,
         text,
         inputType: "DISPATCH_TEXT",
-        occurredAt: nowIso(),
+        occurredAt: presentationReplay?.occurredAt ?? nowIso(),
         location: {
           facilityName: facilityName || null,
           address: address || null,
-          coordinateSource: runtimeDataMode === "DEMO_SIMULATION" ? "DEMO_FIXTURE" : null,
+          latitude: presentationReplay?.location.latitude ?? null,
+          longitude: presentationReplay?.location.longitude ?? null,
+          resolvedAt: presentationReplay?.receivedAt ?? null,
+          coordinateSource: presentationReplay
+            ? "DEMO_FIXTURE"
+            : runtimeDataMode === "DEMO_SIMULATION" ? "DEMO_FIXTURE" : null,
         },
         operationsContext: {
           dispatchStationName: station,
@@ -446,6 +455,8 @@ export default function App() {
     setFacilityName("");
     setAddress("");
     setPresentationScenarioId(null);
+    setPresentationReplay(null);
+    setPresentationReplayStatus("IDLE");
     setMode("collision");
     setJourneyState("EN_ROUTE");
     setError(null);
@@ -535,21 +546,66 @@ export default function App() {
     }
   }
 
-  function loadPresentationIncident() {
-    setFacilityName(contestLiveScenario.facilityName);
-    setAddress(contestLiveScenario.address);
-    setInput(contestLiveScenario.text);
-    setPresentationScenarioId(apiConfig.presentationScenarioEnabled
-      ? contestLiveScenario.scenarioId
-      : null);
-    setMode("collision");
+  async function loadPresentationIncident() {
+    if (!apiConfig.presentationScenarioEnabled) {
+      setFacilityName(contestLiveScenario.facilityName);
+      setAddress(contestLiveScenario.address);
+      setInput(contestLiveScenario.text);
+      setPresentationScenarioId(null);
+      setPresentationReplay(null);
+      setPresentationReplayStatus("IDLE");
+      setMode("collision");
+      return;
+    }
+
+    if (analysis || incidentId || analysisIds.length > 0) resetSession();
+    const operation = beginOperation();
+    setPresentationReplayStatus("WAITING");
+    setError(null);
+    try {
+      const envelope = await receiveContestIncident(operation.controller.signal);
+      if (!isCurrentOperation(operation.generation)) return;
+      setFacilityName(envelope.facilityName);
+      setAddress(envelope.addressText);
+      setInput(envelope.reportText);
+      setIncidentId(envelope.incidentId);
+      setPresentationScenarioId(contestLiveScenario.scenarioId);
+      setPresentationReplay(envelope);
+      setPresentationReplayStatus("RECEIVED");
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `공개 합성 지령을 BE SSE에서 수신했습니다. ${envelope.disclosure} (요청 ID: ${envelope.requestId})`,
+      )]);
+      setMode("collision");
+    } catch (caught) {
+      if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
+      const issue = captureRequestIssue(caught);
+      setPresentationReplay(null);
+      setPresentationScenarioId(null);
+      setPresentationReplayStatus("ERROR");
+      setError(issue.kind === "SESSION_EXPIRED" ? null : issue);
+    } finally {
+      finishOperation(operation.controller);
+    }
   }
 
   function changeIncidentInput(value: string) {
-    if (presentationScenarioId && lastIncidentText && value.trim()) {
+    const sourceText = presentationReplay?.reportText ?? contestLiveScenario.text;
+    if (presentationScenarioId && value !== sourceText) {
       setPresentationScenarioId(null);
+      setPresentationReplay(null);
+      setPresentationReplayStatus("IDLE");
+      if (!analysis) setIncidentId(null);
     }
     setInput(value);
+  }
+
+  function clearPresentationReplayForManualEdit() {
+    if (!presentationScenarioId) return;
+    setPresentationScenarioId(null);
+    setPresentationReplay(null);
+    setPresentationReplayStatus("IDLE");
+    if (!analysis) setIncidentId(null);
   }
 
   return (
@@ -610,18 +666,27 @@ export default function App() {
                 </div>
                 {mode === "collision" && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    <input value={facilityName} onChange={(event) => setFacilityName(event.target.value)} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="시설명(출동지령 기준)" />
-                    <input value={address} onChange={(event) => setAddress(event.target.value)} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="사고 주소(좌표는 BE 검증)" />
+                    <input value={facilityName} onChange={(event) => { clearPresentationReplayForManualEdit(); setFacilityName(event.target.value); }} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="시설명(출동지령 기준)" />
+                    <input value={address} onChange={(event) => { clearPresentationReplayForManualEdit(); setAddress(event.target.value); }} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="사고 주소(좌표는 BE 검증)" />
                   </div>
                 )}
                 {mode === "collision" && (runtimeDataMode === "DEMO_SIMULATION" || apiConfig.presentationScenarioEnabled) && (
-                  <button type="button" onClick={loadPresentationIncident} className="mt-2 text-[10px] font-semibold text-accent hover:underline">
-                    {apiConfig.presentationScenarioEnabled ? "공개 합성 신고 불러오기" : "오프라인 시연 신고 불러오기"}
+                  <button type="button" disabled={presentationReplayStatus === "WAITING"} onClick={() => { void loadPresentationIncident(); }} className="mt-2 text-[10px] font-semibold text-accent hover:underline disabled:cursor-wait disabled:opacity-60">
+                    {apiConfig.presentationScenarioEnabled
+                      ? presentationReplayStatus === "WAITING" ? "공개 합성 지령 수신 대기 중…" : "공개 합성 지령 실시간 수신"
+                      : "오프라인 시연 신고 불러오기"}
                   </button>
+                )}
+                {presentationReplayStatus === "WAITING" && (
+                  <div className="mt-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-[10px] leading-relaxed text-blue-800 dark:text-blue-200" role="status">
+                    <strong>지령 스트림 연결 중</strong> · BE SSE에서 개인정보 없는 공개 합성 신고가 도착하기를 기다리고 있습니다.
+                  </div>
                 )}
                 {presentationScenarioId && (
                   <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] leading-relaxed text-amber-800 dark:text-amber-200" role="status">
-                    <strong>공개 합성 신고</strong> · 개인정보가 없는 시나리오 입력입니다. 분석 결과는 fixture가 아니라 실제 staging BE·AI에서 생성됩니다.
+                    <strong>공개 합성 지령 수신</strong> · 실제 119 신고가 아닌 개인정보 없는 시나리오입니다. {presentationReplay
+                      ? `BE SSE event ${presentationReplay.sourceEventId} · 요청 ID ${presentationReplay.requestId}. `
+                      : ""}분석 결과는 fixture가 아니라 실제 staging BE·AI에서 생성됩니다.
                   </div>
                 )}
               </div>
