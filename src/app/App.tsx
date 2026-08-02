@@ -39,6 +39,7 @@ import { LoginScreen } from "../features/auth/LoginScreen";
 import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
 import { adaptDirectEntryIssue, resolveInitialStation } from "../features/auth/accessMode";
 import { resetDemoSession as resetDemoDataSession } from "../fixtures/demo";
+import { contestLiveScenario } from "../demo/presentationScenario";
 import { MessageComposer } from "../features/composer/MessageComposer";
 
 type Mode = "collision" | "substance";
@@ -149,6 +150,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [facilityName, setFacilityName] = useState("");
   const [address, setAddress] = useState("");
+  const [presentationScenarioId, setPresentationScenarioId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
   const [mapContext, setMapContext] = useState<MapContext | null>(null);
   const [materialResult, setMaterialResult] = useState<MaterialDiscoveryResponse | null>(null);
@@ -443,6 +445,7 @@ export default function App() {
     setInput("");
     setFacilityName("");
     setAddress("");
+    setPresentationScenarioId(null);
     setMode("collision");
     setJourneyState("EN_ROUTE");
     setError(null);
@@ -532,11 +535,21 @@ export default function App() {
     }
   }
 
-  function loadDemoIncident() {
-    setFacilityName("시연 사업장");
-    setAddress("경기 화성시 팔탄면");
-    setInput("차아염소산나트륨 저장탱크 누출 의심, 인접 저장고에 염산 표기");
+  function loadPresentationIncident() {
+    setFacilityName(contestLiveScenario.facilityName);
+    setAddress(contestLiveScenario.address);
+    setInput(contestLiveScenario.text);
+    setPresentationScenarioId(apiConfig.presentationScenarioEnabled
+      ? contestLiveScenario.scenarioId
+      : null);
     setMode("collision");
+  }
+
+  function changeIncidentInput(value: string) {
+    if (presentationScenarioId && lastIncidentText && value.trim()) {
+      setPresentationScenarioId(null);
+    }
+    setInput(value);
   }
 
   return (
@@ -545,6 +558,7 @@ export default function App() {
         <div className="flex items-center gap-3"><BrandLogo /><span className="hidden rounded-md bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary lg:inline">전국 현장대응</span></div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${runtimeDataMode === "DEMO_SIMULATION" ? "border-accent/40 bg-accent/10 text-accent" : runtimeDataMode === "LIVE_API" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-muted text-muted-foreground"}`}>{modeLabel(runtimeDataMode)}</span>
+          {presentationScenarioId && <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold text-amber-700 dark:text-amber-300">공개 합성 신고</span>}
           {runtimeDataMode === "LIVE_API" && !apiConfig.authEnabled && <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold text-blue-700 dark:text-blue-300">인증 미사용</span>}
           <div className="flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 text-xs font-semibold" title={sessionContext ? `${sessionContext.stationId} · ${sessionContext.roles.join(", ")}` : undefined}><User size={13} />{station}</div>
           <button type="button" disabled={endingSession} onClick={() => { setEndSessionError(null); setShowEndSessionDialog(true); }} className="flex min-h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[11px] font-bold transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40" aria-label="사용 종료 및 화면 초기화"><LogOut size={14} />사용 종료</button>
@@ -600,7 +614,16 @@ export default function App() {
                     <input value={address} onChange={(event) => setAddress(event.target.value)} className="min-h-9 rounded-lg border border-border bg-input-background px-3 text-[11px] outline-none focus:border-primary" placeholder="사고 주소(좌표는 BE 검증)" />
                   </div>
                 )}
-                {runtimeDataMode === "DEMO_SIMULATION" && mode === "collision" && <button onClick={loadDemoIncident} className="mt-2 text-[10px] font-semibold text-accent hover:underline">시연 신고 불러오기</button>}
+                {mode === "collision" && (runtimeDataMode === "DEMO_SIMULATION" || apiConfig.presentationScenarioEnabled) && (
+                  <button type="button" onClick={loadPresentationIncident} className="mt-2 text-[10px] font-semibold text-accent hover:underline">
+                    {apiConfig.presentationScenarioEnabled ? "공개 합성 신고 불러오기" : "오프라인 시연 신고 불러오기"}
+                  </button>
+                )}
+                {presentationScenarioId && (
+                  <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] leading-relaxed text-amber-800 dark:text-amber-200" role="status">
+                    <strong>공개 합성 신고</strong> · 개인정보가 없는 시나리오 입력입니다. 분석 결과는 fixture가 아니라 실제 staging BE·AI에서 생성됩니다.
+                  </div>
+                )}
               </div>
 
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
@@ -621,7 +644,7 @@ export default function App() {
                   value={input}
                   loading={loading}
                   unavailable={runtimeDataMode === "UNAVAILABLE"}
-                  onChange={setInput}
+                  onChange={changeIncidentInput}
                   onSubmit={(value) => { void handleSubmit(value); }}
                 />
                 {loading && <p className="mt-1.5 text-[10px] text-muted-foreground">{mode === "collision" ? "신고·시설 이력·확인 게이트를 점검 중입니다…" : "물질 후보와 공식 근거를 검색 중입니다…"}</p>}
