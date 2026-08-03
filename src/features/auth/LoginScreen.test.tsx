@@ -88,6 +88,21 @@ describe("접속 모드 분리", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
+  it("공개 파일럿 진입 전의 정상적인 인증 필요 응답은 오류로 표시하지 않는다", () => {
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => undefined)));
+    render(<LoginScreen
+      dataMode="LIVE_API"
+      authLoginUrl="https://chemicheck119.site/auth/staging/pilot"
+      sessionError={{ message: "로그인 세션이 만료되었거나 인증이 필요합니다.", requestId: "REQ-BFF-1", retryable: false, kind: "SESSION_EXPIRED" }}
+      onRetrySession={vi.fn()}
+      onDemoLogin={vi.fn()}
+    />);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(/로그인 세션이 만료/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "세션 다시 확인" })).not.toBeInTheDocument();
+  });
+
   it("세션 확인 실패 후 사용자가 다시 조회할 수 있다", () => {
     const onRetrySession = vi.fn();
     render(<LoginScreen dataMode="LIVE_API" authLoginUrl="https://auth.example.test/login" sessionError={{ message: "세션 확인 실패", retryable: true }} onRetrySession={onRetrySession} onDemoLogin={vi.fn()} />);

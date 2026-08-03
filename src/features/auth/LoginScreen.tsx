@@ -94,6 +94,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
   const isLive = dataMode === "LIVE_API" || dataMode === "CACHED_API";
   const safeAuthLoginUrl = normalizeAuthLoginUrl(authLoginUrl);
   const publicPilotAccess = safeAuthLoginUrl ? isPublicPilotAccessUrl(safeAuthLoginUrl) : false;
+  const visibleSessionError = sessionError?.kind === "SESSION_EXPIRED" ? null : sessionError;
   const demoStations = REGIONS.find((item) => item.label === region)?.stations ?? [];
   const availablePilotRegions = pilotCatalog?.regions ?? FALLBACK_PILOT_REGIONS;
   const pilotStations = availablePilotRegions.find((item) => item.regionName === pilotRegion)?.stations ?? [];
@@ -162,7 +163,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
               </div>
             </div>
 
-            {sessionError && <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-6 text-primary" role="alert">{sessionError.message}{sessionError.requestId ? ` (요청 ID: ${sessionError.requestId})` : ""}</div>}
+            {visibleSessionError && <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-6 text-primary" role="alert">{visibleSessionError.message}{visibleSessionError.requestId ? ` (요청 ID: ${visibleSessionError.requestId})` : ""}</div>}
 
             {!sessionChecking && isLive && safeAuthLoginUrl && publicPilotAccess ? (
               <form method="post" action={safeAuthLoginUrl} className="mt-6 space-y-5">
@@ -206,7 +207,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
               </div>
             ) : null}
 
-            {!sessionChecking && isLive && onRetrySession && <button type="button" onClick={onRetrySession} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-bold transition hover:bg-muted"><RefreshCw size={16} />세션 다시 확인</button>}
+            {!sessionChecking && isLive && onRetrySession && (!publicPilotAccess || visibleSessionError) && <button type="button" onClick={onRetrySession} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-bold transition hover:bg-muted"><RefreshCw size={16} />세션 다시 확인</button>}
 
             {!sessionChecking && isLive && safeAuthLoginUrl && (
               <p className="mt-6 border-t border-border pt-5 text-[13px] leading-6 text-muted-foreground">{publicPilotAccess ? "공개 파일럿은 실제 기관 사용자 인증이나 실제 119 지령 계정이 아닙니다. 선택한 좌표는 소방서 출동 기준점이며 대원 GPS가 수신되면 실제 위치로 교체됩니다." : "로그인 후 사용자·소방서 세션 컨텍스트가 확인돼야 대시보드 진입이 활성화됩니다."}</p>
