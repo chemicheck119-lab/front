@@ -26,18 +26,30 @@ const envelope: IncidentReplayEnvelope = {
 };
 
 describe("공개 합성 시연 지도", () => {
-  it("사고·출동 위치와 그 사이의 명시적인 합성 경로를 만든다", () => {
-    const context = buildPublicSyntheticMapContext(envelope);
+  it("선택 소방서 공개 좌표에서 관할 합성 사고지점까지 경로를 만든다", () => {
+    const responderOrigin = {
+      latitude: 37.133,
+      longitude: 126.861,
+      label: "경기 화성소방서 출동 기준점",
+    };
+    const context = buildPublicSyntheticMapContext(envelope, responderOrigin);
 
     expect(context.incidentPosition).toMatchObject({
       latitude: envelope.location.latitude,
       longitude: envelope.location.longitude,
       isSimulation: true,
     });
-    expect(context.responderPosition?.isSimulation).toBe(true);
+    expect(context.responderPosition).toMatchObject({
+      latitude: responderOrigin.latitude,
+      longitude: responderOrigin.longitude,
+      label: responderOrigin.label,
+      isSimulation: true,
+    });
     expect(context.route.status).toBe("DEMO_SIMULATION");
     expect(context.route.provider).toBe("PUBLIC_SYNTHETIC_ROUTE_FIXTURE");
     expect(context.route.geometry?.coordinates).toHaveLength(4);
+    expect(context.route.totalDistanceM).toBeGreaterThan(1000);
+    expect(context.route.etaSeconds).toBeGreaterThanOrEqual(180);
     expect(context.route.message).toContain("실제 도로·교통 ETA가 아닙니다");
   });
 });
