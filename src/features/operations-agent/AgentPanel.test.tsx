@@ -36,8 +36,8 @@ describe("현장대응 에이전트 패널", () => {
     const { container } = render(<AgentPanel agent={null} loading />);
     const timeline = within(container).getByRole("list", { name: "에이전트 작업 진행" });
     expect(within(container).getByText("서버 검증 중")).toBeInTheDocument();
-    expect(within(timeline).getByText("분석 요청 전송")).toHaveClass("text-blue-700");
-    expect(within(timeline).getByText("신고문 구조화")).toBeInTheDocument();
+    expect(within(timeline).getByText("신고 내용 접수")).toHaveClass("text-emerald-700");
+    expect(within(timeline).getByText("사고 유형·물질 후보 분석")).toHaveClass("text-blue-700");
     expect(within(timeline).getByText("RuleEngine 실행 조건 검사")).toBeInTheDocument();
   });
 });

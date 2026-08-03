@@ -8,6 +8,7 @@ import {
   LoaderCircle,
   MinusCircle,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import type { OperationsAgentSnapshot } from "../../api/contracts";
@@ -36,16 +37,16 @@ type WorkflowStep = OperationsAgentSnapshot["workflow"][number];
 
 const loadingWorkflow: WorkflowStep[] = [
   {
-    stepId: "REQUEST_TRANSMISSION",
-    label: "분석 요청 전송",
-    status: "IN_PROGRESS",
-    detail: "BFF에 신고문·시설·현장 컨텍스트를 전달하고 있습니다.",
+    stepId: "CLIENT_REQUEST",
+    label: "신고 내용 접수",
+    status: "COMPLETED",
+    detail: "입력한 신고문·시설·현장 컨텍스트를 BFF 요청에 포함했습니다.",
   },
   {
-    stepId: "INCIDENT_PARSING",
-    label: "신고문 구조화",
-    status: "WAITING",
-    detail: "누출 상황과 물질 표현을 구조화합니다.",
+    stepId: "ANALYSIS_REQUEST",
+    label: "사고 유형·물질 후보 분석",
+    status: "IN_PROGRESS",
+    detail: "BFF와 AI 분석 서버의 검증된 응답을 기다리고 있습니다.",
   },
   {
     stepId: "FACILITY_HISTORY",
@@ -155,9 +156,12 @@ export function AgentPanel({
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/80" aria-label="에이전트 진행 현황">
       <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">{syntheticMode ? "통합 데모 에이전트" : "현장대응 에이전트"}</p>
-            <h3 className="mt-1 text-sm font-black">{agent ? PHASE_LABELS[agent.phase] : "분석 요청 처리"}</h3>
+          <div className="flex min-w-0 items-start gap-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-sm" aria-hidden="true"><Sparkles size={16} /></span>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">{syntheticMode ? "통합 데모 에이전트" : "현장대응 에이전트"}</p>
+              <h3 className="mt-1 text-sm font-black">{agent ? PHASE_LABELS[agent.phase] : "분석 요청 처리"}</h3>
+            </div>
           </div>
           <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${loading ? "bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"}`} role="status" aria-live="polite">
             {loading ? <LoaderCircle size={12} className="animate-spin" /> : <CircleCheck size={12} />}

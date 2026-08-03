@@ -342,6 +342,7 @@ export default function App() {
     analysis?.state,
     analysis?.confirmationGate.incidentConfirmed,
     analysis?.confirmationGate.facilityConfirmed,
+    loading,
     mode,
   ]);
 
