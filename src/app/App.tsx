@@ -44,6 +44,11 @@ import { analysisStateLabel } from "../features/incident/analysisState";
 import { confirmationDateTimeToIso, defaultConfirmationBasis, toConfirmationDateTimeInput } from "../features/incident/confirmationForm";
 import { SubstanceResults } from "../features/substance-search/SubstanceResults";
 import { FieldToolsPanel } from "../features/field-tools/FieldToolsPanel";
+import {
+  StructuredOutcomeForm,
+  emptyStructuredOutcomeDraft,
+  toStructuredOutcomeReport,
+} from "../features/records/StructuredOutcomeForm";
 import { LoginScreen } from "../features/auth/LoginScreen";
 import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
 import { adaptDirectEntryIssue, resolveInitialStation } from "../features/auth/accessMode";
@@ -110,9 +115,9 @@ function journeyLabel(state: JourneyState) {
 function DialogShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={title}>
-      <section className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl">
-        <header className="flex items-center justify-between border-b border-border px-5 py-4"><h2 className="text-sm font-bold">{title}</h2><button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted" aria-label="닫기"><X size={16} /></button></header>
-        {children}
+      <section className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <header className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4"><h2 className="text-sm font-bold">{title}</h2><button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted" aria-label="닫기"><X size={16} /></button></header>
+        <div className="min-h-0 overflow-y-auto">{children}</div>
       </section>
     </div>
   );
@@ -261,6 +266,7 @@ export default function App() {
   const [sessionExpired, setSessionExpired] = useState<UserFacingErrorInfo | null>(null);
   const [movementError, setMovementError] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [structuredOutcomeDraft, setStructuredOutcomeDraft] = useState(() => emptyStructuredOutcomeDraft());
   const [showEndSessionDialog, setShowEndSessionDialog] = useState(false);
   const [endingSession, setEndingSession] = useState(false);
   const [endSessionError, setEndSessionError] = useState<string | null>(null);
@@ -294,6 +300,10 @@ export default function App() {
   const responderLocation = useResponderLocation(
     Boolean(station) && useActive && apiConfig.movementEnabled,
     stationFallbackPosition,
+  );
+  const structuredOutcomeReport = useMemo(
+    () => toStructuredOutcomeReport(structuredOutcomeDraft),
+    [structuredOutcomeDraft],
   );
 
   useEffect(() => {
@@ -703,6 +713,7 @@ export default function App() {
     setSessionExpired(null);
     setMovementError(null);
     setShowSaveDialog(false);
+    setStructuredOutcomeDraft(emptyStructuredOutcomeDraft());
     setSaveError(null);
     setSavedRecordId(null);
     setRecordResetPending(false);
@@ -775,6 +786,10 @@ export default function App() {
       setShowSaveDialog(false);
       return;
     }
+    if (!structuredOutcomeReport) {
+      setSaveError("사고시설, 실제 수행 대응, 브리프 적용 여부와 최종 대응 결과를 확인해주세요.");
+      return;
+    }
     const operation = beginOperation();
     setSaving(true);
     setSaveError(null);
@@ -783,6 +798,7 @@ export default function App() {
       messages: messages.map((message, index) => ({ ...message, sequence: index + 1 })),
       analysisIds,
       confirmationIds,
+      outcomeReport: structuredOutcomeReport,
     };
     try {
       const response = await saveIncidentRecord(incidentId, payload, operation.controller.signal);
@@ -806,6 +822,16 @@ export default function App() {
       finishOperation(operation.controller);
       if (isCurrentOperation(operation.generation)) setSaving(false);
     }
+  }
+
+  function openSaveDialog() {
+    setSaveError(null);
+    setStructuredOutcomeDraft((previous) => ({
+      ...previous,
+      facilityName: previous.facilityName.trim() || facilityName.trim(),
+      facilityAddress: previous.facilityAddress.trim() || address.trim(),
+    }));
+    setShowSaveDialog(true);
   }
 
   async function loadPresentationIncident() {
@@ -1070,7 +1096,7 @@ export default function App() {
           dispatchAccepted={Boolean(presentationScenarioId)}
           localExportAvailable={syntheticScenario}
           syntheticMode={syntheticScenario}
-          onRequestSave={() => setShowSaveDialog(true)}
+          onRequestSave={openSaveDialog}
           onContactAttempt={() => setMessages((previous) => [...previous, makeMessage("SYSTEM", `${dispatchContact.name} 전화 연결을 시도했습니다.`)])}
           onConnectDispatch={() => { void loadPresentationIncident(); }}
           onAcceptDispatch={acceptPresentationIncident}
@@ -1096,7 +1122,7 @@ export default function App() {
                     <button aria-pressed={mode === "collision"} onClick={() => setMode("collision")} className={`min-h-12 whitespace-nowrap rounded-xl px-2.5 text-[15px] font-black transition ${mode === "collision" ? "bg-primary text-white shadow-md ring-1 ring-primary/25" : "text-muted-foreground hover:bg-card/75 hover:text-foreground"}`}>대응충돌검토</button>
                     <button aria-pressed={mode === "substance"} onClick={() => setMode("substance")} className={`min-h-12 whitespace-nowrap rounded-xl px-2.5 text-[15px] font-black transition ${mode === "substance" ? "bg-primary text-white shadow-md ring-1 ring-primary/25" : "text-muted-foreground hover:bg-card/75 hover:text-foreground"}`}>물질검색</button>
                   </div>
-                  <button disabled={recordResetPending || !incidentId || analysisIds.length === 0 || (!apiConfig.recordEnabled && !presentationReplay)} onClick={() => setShowSaveDialog(true)} className="flex min-h-11 items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 text-[11px] font-bold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50">{presentationReplay && !apiConfig.recordEnabled ? <Download size={13} /> : <Save size={13} />}{recordResetPending ? "저장 완료" : presentationReplay && !apiConfig.recordEnabled ? "시연 기록 내보내기" : !apiConfig.recordEnabled ? "운영 저장 미사용" : "기록 저장"}</button>
+                  <button disabled={recordResetPending || !incidentId || analysisIds.length === 0 || (!apiConfig.recordEnabled && !presentationReplay)} onClick={openSaveDialog} className="flex min-h-11 items-center gap-1.5 rounded-xl border border-border bg-secondary px-3 text-[11px] font-bold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50">{presentationReplay && !apiConfig.recordEnabled ? <Download size={13} /> : <Save size={13} />}{recordResetPending ? "저장 완료" : presentationReplay && !apiConfig.recordEnabled ? "시연 기록 내보내기" : !apiConfig.recordEnabled ? "운영 저장 미사용" : "기록 저장"}</button>
                 </div>
                 {mode === "collision" && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
@@ -1203,9 +1229,10 @@ export default function App() {
         <DialogShell title={presentationReplay && !apiConfig.recordEnabled ? "시연 기록 내보내기" : "대응 기록 저장"} onClose={() => !saving && setShowSaveDialog(false)}>
           <div className="p-5">
             <p className="text-sm leading-relaxed">{presentationReplay && !apiConfig.recordEnabled ? "현재 공개 합성 데모의 대화·분석·확인 ID를 JSON 파일로 내려받습니다. 서버에는 저장하지 않으며 화면도 유지됩니다." : "현재 대화와 현장 확인 내용을 대응 기록으로 저장합니다. 저장 후 새 사고 화면으로 초기화할까요?"}</p>
-            <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground"><li>• 대화와 분석 결과</li><li>• 물질 확인·사고 위치·출동 상태</li><li>• 대응 근거와 모델·데이터·규칙 버전</li></ul>
+            <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground"><li>• 원본 대화·분석·현장확인 로그 보존</li><li>• 사고물질·시설 충돌물질·위험 자동 추출</li><li>• 실제 수행 대응과 최종 결과를 분석용 컬럼으로 저장</li></ul>
+            {(!presentationReplay || apiConfig.recordEnabled) && <div className="mt-5"><StructuredOutcomeForm value={structuredOutcomeDraft} onChange={setStructuredOutcomeDraft} /></div>}
             {saveError && <p className="mt-3 rounded-lg bg-primary/10 p-2 text-[11px] text-primary">{saveError} 현재 화면과 분석 결과는 유지됩니다.</p>}
-            <div className="mt-5 flex gap-2"><button disabled={saving} onClick={() => setShowSaveDialog(false)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button disabled={saving} onClick={() => void handleSave()} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{saving ? "저장 중…" : presentationReplay && !apiConfig.recordEnabled ? "JSON 파일 내려받기" : "저장 후 초기화"}</button></div>
+            <div className="mt-5 flex gap-2"><button disabled={saving} onClick={() => setShowSaveDialog(false)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button disabled={saving || (apiConfig.recordEnabled && !structuredOutcomeReport)} onClick={() => void handleSave()} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{saving ? "저장 중…" : presentationReplay && !apiConfig.recordEnabled ? "JSON 파일 내려받기" : "구조화 기록 저장"}</button></div>
           </div>
         </DialogShell>
       )}
