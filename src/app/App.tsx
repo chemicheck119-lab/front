@@ -1174,7 +1174,7 @@ export default function App() {
                 {movementError && <div className="rounded-lg border border-accent/30 bg-accent/5 p-2 text-[10px] text-accent">경로 갱신: {movementError} 기존 화면은 유지됩니다.</div>}
                 {mode === "collision" ? (
                   <>
-                    {(loading || analysis?.agent) && <AgentPanel agent={analysis?.agent} syntheticMode={syntheticScenario} loading={loading} />}
+                    {(loading || analysis?.agent) && <AgentPanel agent={analysis?.agent} loading={loading} syntheticMode={syntheticScenario} />}
                     <IncidentAnalysisCard analysis={analysis} onConfirm={(role, casNumber, displayName) => openConfirmation({ role, casNumber, displayName })} confirmingRole={confirmingRole} confirmationMode={syntheticScenario ? "PUBLIC_SYNTHETIC" : "FIELD"} />
                     {messages.length > 1 && <details className="rounded-xl border border-border bg-secondary/30"><summary className="cursor-pointer px-3 py-2.5 text-[11px] font-semibold">대화·상태 기록 {messages.length}건</summary><div className="space-y-2 border-t border-border p-3">{messages.slice(-6).map((message) => <div key={message.messageId} className={`rounded-lg p-2 text-[10px] leading-relaxed ${message.role === "USER" ? "ml-8 bg-primary/10" : "mr-8 bg-card border border-border"}`}><p className="font-semibold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "에이전트" : "시스템"}</p><p className="mt-0.5">{message.text}</p></div>)}</div></details>}
                   </>
