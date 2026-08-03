@@ -3,9 +3,20 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "dev:demo": "vite --mode demo",
+    "build:demo": "vite build --mode demo",
+    "build:staging": "vite build --mode staging",
+    "build:sites:demo": "node scripts/prepare-sites-build.mjs --clean && vite build --mode demo --outDir dist/client --emptyOutDir && node scripts/prepare-sites-build.mjs",
+    "build:sites:staging": "node scripts/prepare-sites-build.mjs --clean && vite build --mode staging --outDir dist/client --emptyOutDir && node scripts/prepare-sites-build.mjs",
+    "contract:generate": "openapi-typescript contracts/dashboard-bff-v1.openapi.json -o src/api/generated/dashboard-bff.ts",
+    "contract:check": "node scripts/check-bff-contract.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "pnpm contract:check && pnpm typecheck && pnpm test && pnpm build && pnpm build:staging && pnpm build:sites:demo && pnpm build:sites:staging"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -47,6 +58,7 @@
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
     "lucide-react": "0.487.0",
+    "maplibre-gl": "6.1.0",
     "motion": "12.23.24",
     "next-themes": "0.4.6",
     "react-day-picker": "8.10.1",
@@ -65,11 +77,20 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.62.2",
     "@tailwindcss/vite": "4.1.12",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@types/navermaps": "3.9.2",
+    "@types/node": "24.10.13",
+    "@types/react": "18.3.28",
+    "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react": "4.7.0",
+    "jsdom": "26.1.0",
+    "openapi-typescript": "7.13.0",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "typescript": "5.9.3",
+    "vite": "6.3.5",
+    "vitest": "4.1.10"
   },
   "peerDependencies": {
     "react": "18.3.1",
@@ -81,11 +102,6 @@
     },
     "react-dom": {
       "optional": true
-    }
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": "6.3.5"
     }
   }
 }

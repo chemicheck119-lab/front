@@ -1,0 +1,87 @@
+.chemicheck-map-canvas.maplibregl-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.chemicheck-map-marker {
+  position: relative;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 35%);
+}
+
+.chemicheck-map-marker::after {
+  position: absolute;
+  inset: -7px;
+  z-index: -1;
+  border: 2px solid currentcolor;
+  border-radius: inherit;
+  content: "";
+  opacity: 0.25;
+}
+
+.chemicheck-map-marker--incident {
+  width: 26px;
+  height: 26px;
+  color: #cc2229;
+  background: #cc2229;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+}
+
+.chemicheck-map-marker--incident span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.chemicheck-map-marker--responder {
+  color: #2563eb;
+  background: #2563eb;
+}
+
+.chemicheck-map-marker--responder span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.status-dot--danger { background: #cc2229; }
+.status-dot--muted { background: #94a3b8; }
+
+.maplibregl-ctrl-attrib {
+  color: #475569;
+  font-size: 9px;
+}
+
+.dark .maplibregl-ctrl-group,
+.dark .maplibregl-ctrl-attrib {
+  color: #cbd5e1;
+  background: rgb(13 20 37 / 88%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
