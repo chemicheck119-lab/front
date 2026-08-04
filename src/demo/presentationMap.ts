@@ -2,6 +2,13 @@ import type { MapContext } from "../api/contracts";
 import type { IncidentReplayEnvelope } from "../api/intake";
 
 const RESPONDER_OFFSET = { latitude: -0.028, longitude: -0.042 };
+const EARTH_RADIUS_M = 6_371_000;
+
+export interface PublicSyntheticResponderOrigin {
+  latitude: number;
+  longitude: number;
+  label: string;
+}
 
 function interpolate(
   from: [number, number],
@@ -14,18 +21,38 @@ function interpolate(
   ];
 }
 
+function distanceMeters(from: [number, number], to: [number, number]): number {
+  const latitudeA = from[1] * Math.PI / 180;
+  const latitudeB = to[1] * Math.PI / 180;
+  const latitudeDelta = (to[1] - from[1]) * Math.PI / 180;
+  const longitudeDelta = (to[0] - from[0]) * Math.PI / 180;
+  const haversine = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(latitudeA) * Math.cos(latitudeB) * Math.sin(longitudeDelta / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(haversine));
+}
+
 /**
  * 공개 데모에서 지도·ETA UI를 검증하기 위한 합성 경로다.
  * 실제 도로 길찾기 결과처럼 보이지 않도록 provider와 message에 합성 경계를 고정한다.
  */
-export function buildPublicSyntheticMapContext(envelope: IncidentReplayEnvelope): MapContext {
+export function buildPublicSyntheticMapContext(
+  envelope: IncidentReplayEnvelope,
+  responderOrigin?: PublicSyntheticResponderOrigin,
+): MapContext {
   const incident: [number, number] = [envelope.location.longitude, envelope.location.latitude];
-  const responder: [number, number] = [
-    incident[0] + RESPONDER_OFFSET.longitude,
-    incident[1] + RESPONDER_OFFSET.latitude,
-  ];
+  const responder: [number, number] = responderOrigin
+    ? [responderOrigin.longitude, responderOrigin.latitude]
+    : [
+        incident[0] + RESPONDER_OFFSET.longitude,
+        incident[1] + RESPONDER_OFFSET.latitude,
+      ];
   const middleA = interpolate(responder, incident, 0.34);
   const middleB = interpolate(responder, incident, 0.68);
+  const totalDistanceM = Math.max(
+    1000,
+    Math.round(distanceMeters(responder, incident) * 1.25 / 100) * 100,
+  );
+  const etaSeconds = Math.max(180, Math.round(totalDistanceM / 500) * 60);
 
   return {
     coverageScope: "NATIONWIDE_KOREA",
@@ -43,7 +70,7 @@ export function buildPublicSyntheticMapContext(envelope: IncidentReplayEnvelope)
       observedAt: envelope.receivedAt,
       source: "DEMO_SIMULATION",
       accuracyM: null,
-      label: "공개 합성 출동 위치",
+      label: responderOrigin?.label ?? "공개 합성 출동 위치",
       isSimulation: true,
     },
     route: {
@@ -55,9 +82,9 @@ export function buildPublicSyntheticMapContext(envelope: IncidentReplayEnvelope)
         type: "LineString",
         coordinates: [responder, middleA, middleB, incident],
       },
-      totalDistanceM: 6200,
-      remainingDistanceM: 6200,
-      etaSeconds: 720,
+      totalDistanceM,
+      remainingDistanceM: totalDistanceM,
+      etaSeconds,
       progressRatio: 0,
       progressRatioIsProbability: false,
       trafficApplied: false,

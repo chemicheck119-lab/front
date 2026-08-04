@@ -499,6 +499,15 @@ export default function App() {
     return issue;
   }
 
+  function buildPresentationMap(envelope: IncidentReplayEnvelope) {
+    const location = sessionContext?.stationLocation;
+    return buildPublicSyntheticMapContext(envelope, location ? {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      label: `${sessionContext.stationDisplayName} 출동 기준점`,
+    } : undefined);
+  }
+
   function requestAnalysis(
     text: string,
     targetIncidentId: string | null,
@@ -570,7 +579,7 @@ export default function App() {
       applyAnalysisResponse(
         response,
         text,
-        presentationReplay ? buildPublicSyntheticMapContext(presentationReplay) : undefined,
+        presentationReplay ? buildPresentationMap(presentationReplay) : undefined,
       );
     } catch (caught) {
       if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
@@ -867,6 +876,13 @@ export default function App() {
   }
 
   function applyPresentationEnvelope(envelope: IncidentReplayEnvelope) {
+    if (sessionContext && envelope.stationId !== sessionContext.stationId) {
+      throw new ApiError(
+        "SAFETY",
+        "선택 소방서와 합성 지령의 관할을 검증할 수 없습니다.",
+        envelope.requestId,
+      );
+    }
     setFacilityName(envelope.facilityName);
     setAddress(envelope.addressText);
     setInput(envelope.reportText);
@@ -874,7 +890,7 @@ export default function App() {
     setPresentationScenarioId(contestLiveScenario.scenarioId);
     setPresentationReplay(envelope);
     setPresentationReplayStatus("RECEIVED");
-    setMapContext(buildPublicSyntheticMapContext(envelope));
+    setMapContext(buildPresentationMap(envelope));
     setMode("collision");
   }
 
@@ -916,7 +932,7 @@ export default function App() {
     try {
       const envelope = await receiveContestIncident(operation.controller.signal);
       if (!isCurrentOperation(operation.generation)) return;
-      const syntheticMap = buildPublicSyntheticMapContext(envelope);
+      const syntheticMap = buildPresentationMap(envelope);
       applyPresentationEnvelope(envelope);
       setInput("");
       setMessages((previous) => [...previous,
