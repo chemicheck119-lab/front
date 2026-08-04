@@ -73,6 +73,14 @@ export function isPublicPilotAccessUrl(value: string): boolean {
   }
 }
 
+export function isSameOriginUrl(value: string, origin = window.location.origin): boolean {
+  try {
+    return new URL(value, origin).origin === new URL(origin).origin;
+  } catch {
+    return false;
+  }
+}
+
 interface LoginScreenProps {
   dataMode: DataMode;
   authLoginUrl: string;
@@ -94,6 +102,10 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
   const isLive = dataMode === "LIVE_API" || dataMode === "CACHED_API";
   const safeAuthLoginUrl = normalizeAuthLoginUrl(authLoginUrl);
   const publicPilotAccess = safeAuthLoginUrl ? isPublicPilotAccessUrl(safeAuthLoginUrl) : false;
+  const publicPilotSameOrigin = safeAuthLoginUrl ? isSameOriginUrl(safeAuthLoginUrl) : false;
+  const publicPilotHomeUrl = safeAuthLoginUrl && publicPilotAccess
+    ? new URL("/", safeAuthLoginUrl).toString()
+    : null;
   const visibleSessionError = sessionError?.kind === "SESSION_EXPIRED" ? null : sessionError;
   const demoStations = REGIONS.find((item) => item.label === region)?.stations ?? [];
   const availablePilotRegions = pilotCatalog?.regions ?? FALLBACK_PILOT_REGIONS;
@@ -101,7 +113,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
   const selectedPilotStation = pilotStations.find((item) => item.stationId === pilotStationId) ?? null;
 
   useEffect(() => {
-    if (!publicPilotAccess || !safeAuthLoginUrl || sessionChecking) return;
+    if (!publicPilotAccess || !publicPilotSameOrigin || !safeAuthLoginUrl || sessionChecking) return;
     const controller = new AbortController();
     setPilotCatalogStatus("LOADING");
     void getPublicPilotStations(safeAuthLoginUrl, controller.signal).then((catalog) => {
@@ -111,7 +123,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
       if (!controller.signal.aborted) setPilotCatalogStatus("FALLBACK");
     });
     return () => controller.abort();
-  }, [pilotCatalogAttempt, publicPilotAccess, safeAuthLoginUrl, sessionChecking]);
+  }, [pilotCatalogAttempt, publicPilotAccess, publicPilotSameOrigin, safeAuthLoginUrl, sessionChecking]);
 
   return (
     <main className="grid min-h-[100dvh] place-items-center bg-background px-4 py-10 sm:p-8" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
@@ -165,7 +177,15 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
 
             {visibleSessionError && <div className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-6 text-primary" role="alert">{visibleSessionError.message}{visibleSessionError.requestId ? ` (요청 ID: ${visibleSessionError.requestId})` : ""}</div>}
 
-            {!sessionChecking && isLive && safeAuthLoginUrl && publicPilotAccess ? (
+            {!sessionChecking && isLive && safeAuthLoginUrl && publicPilotAccess && !publicPilotSameOrigin && publicPilotHomeUrl ? (
+              <div className="mt-6 rounded-2xl border border-blue-500/25 bg-blue-500/10 p-5 text-sm leading-6 text-foreground">
+                <p className="font-bold">실제 서비스 주소에서 접속해주세요</p>
+                <p className="mt-2 text-muted-foreground">서명 세션을 안전하게 발급하기 위해 소방서 선택과 접속은 chemicheck119.site 안에서만 진행합니다.</p>
+                <a href={publicPilotHomeUrl} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 font-bold text-background">
+                  chemicheck119.site에서 계속<ExternalLink size={15} />
+                </a>
+              </div>
+            ) : !sessionChecking && isLive && safeAuthLoginUrl && publicPilotAccess ? (
               <form method="post" action={safeAuthLoginUrl} className="mt-6 space-y-5">
                 <label htmlFor="pilot-region" className="block text-sm font-semibold text-foreground">지역
                   <select id="pilot-region" value={pilotRegion} onChange={(event) => { setPilotRegion(event.target.value); setPilotStationId(""); }} className="mt-2 min-h-[52px] w-full rounded-xl border border-border bg-input-background px-4 text-base text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15">

@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { LoginScreen, isPublicPilotAccessUrl, normalizeAuthLoginUrl } from "./LoginScreen";
+import { LoginScreen, isPublicPilotAccessUrl, isSameOriginUrl, normalizeAuthLoginUrl } from "./LoginScreen";
 
 afterEach(() => {
   cleanup();
@@ -61,7 +61,8 @@ describe("접속 모드 분리", () => {
       json: async () => pilotCatalog,
     });
     vi.stubGlobal("fetch", fetchMock);
-    render(<LoginScreen dataMode="LIVE_API" authLoginUrl="https://chemicheck119.site/auth/staging/pilot" onDemoLogin={vi.fn()} />);
+    const sameOriginPilotUrl = normalizeAuthLoginUrl("/auth/staging/pilot");
+    render(<LoginScreen dataMode="LIVE_API" authLoginUrl="/auth/staging/pilot" onDemoLogin={vi.fn()} />);
 
     await waitFor(() => expect(screen.getByLabelText("지역")).not.toBeDisabled());
     fireEvent.change(screen.getByLabelText("지역"), { target: { value: "경기" } });
@@ -70,15 +71,27 @@ describe("접속 모드 분리", () => {
     const button = screen.getByRole("button", { name: "선택한 소방서로 접속" });
     const form = button.closest("form");
     expect(form).toHaveAttribute("method", "post");
-    expect(form).toHaveAttribute("action", "https://chemicheck119.site/auth/staging/pilot");
+    expect(form).toHaveAttribute("action", sameOriginPilotUrl);
     expect(screen.getByLabelText("소방서")).toHaveAttribute("name", "stationId");
     expect(screen.getByText("경기도 수원시 장안구 정자천로 189번길 12")).toBeInTheDocument();
     expect(screen.getByText("소방청 공개 좌표 · 2024-09-01 기준")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://chemicheck119.site/auth/staging/pilot/stations",
+      `${window.location.origin}/auth/staging/pilot/stations`,
       expect.objectContaining({ method: "GET", credentials: "include" }),
     );
     expect(screen.queryByRole("link", { name: /운영 로그인/ })).not.toBeInTheDocument();
+  });
+
+  it("다른 origin의 미리보기에서는 403 폼 대신 실제 서비스 주소로 안내한다", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<LoginScreen dataMode="LIVE_API" authLoginUrl="https://chemicheck119.site/auth/staging/pilot" onDemoLogin={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "선택한 소방서로 접속" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /chemicheck119.site에서 계속/ })).toHaveAttribute("href", "https://chemicheck119.site/");
+    expect(screen.getByText(/서명 세션을 안전하게 발급/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("운영 세션 확인 중에는 로그인 이동 대신 차단 화면을 표시한다", () => {
@@ -135,5 +148,7 @@ describe("인증 URL 검증", () => {
     expect(normalizeAuthLoginUrl("data:text/html,bad", "https://app.example.test")).toBeNull();
     expect(isPublicPilotAccessUrl("https://app.example.test/auth/staging/pilot")).toBe(true);
     expect(isPublicPilotAccessUrl("https://app.example.test/auth/login")).toBe(false);
+    expect(isSameOriginUrl("/auth/staging/pilot", "https://app.example.test")).toBe(true);
+    expect(isSameOriginUrl("https://auth.example.test/login", "https://app.example.test")).toBe(false);
   });
 });
