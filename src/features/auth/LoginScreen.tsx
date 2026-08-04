@@ -215,7 +215,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
           </div>
         )}
 
-        <p className="mt-8 text-center text-[13px] text-muted-foreground">119 화학재난대응지원시스템 · 케미체크119</p>
+        <p className="mt-8 text-center text-[13px] text-muted-foreground">119 화학재난대응지원시스템 · 케미가드</p>
       </section>
     </main>
   );
