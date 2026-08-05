@@ -37,7 +37,7 @@ describe("접속 모드 분리", () => {
 
     expect(onDemoLogin).toHaveBeenCalledWith("경기 수원소방서");
     expect(screen.getByText(/실제 사용자 인증과 GPS가 아닙니다/)).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "케미가드 119 화학재난대응지원시스템" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "케미체크119 화학재난대응지원시스템" })).toBeInTheDocument();
   });
 
   it("Live 모드에 인증 URL이 없으면 로컬 선택과 운영 접속을 제공하지 않는다", () => {
