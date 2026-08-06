@@ -3,6 +3,7 @@ import type { IncidentReplayEnvelope } from "../api/intake";
 
 const RESPONDER_OFFSET = { latitude: -0.028, longitude: -0.042 };
 const EARTH_RADIUS_M = 6_371_000;
+export const PUBLIC_SYNTHETIC_ROUTE_DURATION_MS = 45_000;
 
 export interface PublicSyntheticResponderOrigin {
   latitude: number;
@@ -29,6 +30,73 @@ function distanceMeters(from: [number, number], to: [number, number]): number {
   const haversine = Math.sin(latitudeDelta / 2) ** 2
     + Math.cos(latitudeA) * Math.cos(latitudeB) * Math.sin(longitudeDelta / 2) ** 2;
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(haversine));
+}
+
+function positionAlongRoute(
+  coordinates: [number, number][],
+  progress: number,
+): [number, number] {
+  if (coordinates.length < 2) return coordinates[0] ?? [0, 0];
+  const segments = coordinates.slice(1).map((coordinate, index) => ({
+    from: coordinates[index],
+    to: coordinate,
+    length: distanceMeters(coordinates[index], coordinate),
+  }));
+  const totalLength = segments.reduce((sum, segment) => sum + segment.length, 0);
+  if (totalLength <= 0) return coordinates[coordinates.length - 1];
+
+  let remaining = totalLength * progress;
+  for (const segment of segments) {
+    if (remaining <= segment.length) {
+      const segmentProgress = segment.length <= 0 ? 1 : remaining / segment.length;
+      return interpolate(segment.from, segment.to, segmentProgress);
+    }
+    remaining -= segment.length;
+  }
+  return coordinates[coordinates.length - 1];
+}
+
+/**
+ * 공개 합성 경로 위의 차량 위치와 남은 거리·ETA를 함께 전진시킨다.
+ * 실제 GPS나 도로 길찾기 결과로 오인되지 않도록 DEMO_SIMULATION 경계는 유지한다.
+ */
+export function advancePublicSyntheticMapContext(
+  context: MapContext,
+  progress: number,
+  observedAt = new Date().toISOString(),
+): MapContext {
+  const route = context.route;
+  const coordinates = route.geometry?.type === "LineString"
+    ? route.geometry.coordinates as [number, number][]
+    : [];
+  if (route.providerMode !== "DEMO_SIMULATION" || coordinates.length < 2) return context;
+
+  const clampedProgress = Math.max(0, Math.min(1, progress));
+  const [longitude, latitude] = positionAlongRoute(coordinates, clampedProgress);
+  const totalDistanceM = route.totalDistanceM ?? 0;
+  const totalEtaSeconds = Math.max(180, Math.round(totalDistanceM / 500) * 60);
+  const percent = Math.round(clampedProgress * 100);
+  return {
+    ...context,
+    responderPosition: {
+      ...context.responderPosition,
+      latitude,
+      longitude,
+      observedAt,
+      source: "DEMO_SIMULATION",
+      label: clampedProgress >= 1 ? "합성 출동 차량 · 현장 도착" : `합성 출동 차량 · ${percent}%`,
+      isSimulation: true,
+    },
+    route: {
+      ...route,
+      remainingDistanceM: Math.max(0, Math.round(totalDistanceM * (1 - clampedProgress))),
+      etaSeconds: Math.max(0, Math.round(totalEtaSeconds * (1 - clampedProgress))),
+      progressRatio: clampedProgress,
+      message: clampedProgress >= 1
+        ? "공개 합성 차량이 사고지점에 도착했습니다. 실제 GPS·도로 경로가 아닙니다."
+        : `공개 합성 경로를 이동 중입니다. ${percent}% · 실제 GPS·도로 ETA가 아닙니다.`,
+    },
+  };
 }
 
 /**

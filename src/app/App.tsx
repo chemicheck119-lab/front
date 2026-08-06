@@ -6,6 +6,8 @@ import {
   LogOut,
   MapPin,
   Moon,
+  Navigation,
+  Play,
   Save,
   Sun,
   User,
@@ -54,7 +56,11 @@ import { SessionExpiredBanner } from "../features/auth/SessionExpiredBanner";
 import { adaptDirectEntryIssue, resolveInitialStation } from "../features/auth/accessMode";
 import { resetDemoSession as resetDemoDataSession } from "../fixtures/demo";
 import { contestLiveScenario } from "../demo/presentationScenario";
-import { buildPublicSyntheticMapContext } from "../demo/presentationMap";
+import {
+  advancePublicSyntheticMapContext,
+  buildPublicSyntheticMapContext,
+  PUBLIC_SYNTHETIC_ROUTE_DURATION_MS,
+} from "../demo/presentationMap";
 import { buildPublicSyntheticRecord, publicSyntheticRecordFileName } from "../demo/syntheticRecord";
 import {
   fullDemoStatusLabel,
@@ -372,14 +378,31 @@ export default function App() {
       ? { label: "위치 시연 대기", detail: "통합 데모에서 합성 경로를 표시합니다", tone: "waiting" as const, usableForRoute: false }
       : gpsPresentation;
 
-  const effectiveMapContext = useMemo(() => mergeResponderPosition(
-    mapContext ?? analysis?.agent?.mapContext ?? null,
-    responderLocation.position,
-    station,
-  ), [mapContext, analysis, responderLocation.position, station]);
+  const effectiveMapContext = useMemo(() => {
+    const context = mapContext ?? analysis?.agent?.mapContext ?? null;
+    if (syntheticScenario && context?.route.providerMode === "DEMO_SIMULATION") return context;
+    return mergeResponderPosition(context, responderLocation.position, station);
+  }, [mapContext, analysis, responderLocation.position, station, syntheticScenario]);
 
   useEffect(() => {
-    if (!apiConfig.movementEnabled || !incidentId || !responderLocation.position || runtimeDataMode !== "LIVE_API") return;
+    if (!syntheticScenario || mapContext?.route.providerMode !== "DEMO_SIMULATION") return;
+    const initialProgress = mapContext.route.progressRatio ?? 0;
+    const startedAt = Date.now() - initialProgress * PUBLIC_SYNTHETIC_ROUTE_DURATION_MS;
+    const timer = window.setInterval(() => {
+      const progress = Math.min(
+        1,
+        (Date.now() - startedAt) / PUBLIC_SYNTHETIC_ROUTE_DURATION_MS,
+      );
+      setMapContext((current) => current
+        ? advancePublicSyntheticMapContext(current, progress)
+        : current);
+      if (progress >= 1) window.clearInterval(timer);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [syntheticScenario, presentationReplay?.incidentId]);
+
+  useEffect(() => {
+    if (syntheticScenario || !apiConfig.movementEnabled || !incidentId || !responderLocation.position || runtimeDataMode !== "LIVE_API") return;
     const requestStartedAt = Date.now();
     if (requestStartedAt < nextMovementAllowedAt.current) return;
     const elapsed = requestStartedAt - lastMovementSentAt.current;
@@ -403,7 +426,7 @@ export default function App() {
       const issue = captureRequestIssue(caught);
       setMovementError(issue.kind === "SESSION_EXPIRED" ? null : userFacingError(caught));
     }).finally(() => finishOperation(operation.controller));
-  }, [incidentId, responderLocation.position, journeyState, useActive]);
+  }, [incidentId, responderLocation.position, journeyState, useActive, syntheticScenario]);
 
   useEffect(() => {
     if (!savedRecordId) return;
@@ -1119,6 +1142,19 @@ export default function App() {
         />
 
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-3">
+          {apiConfig.presentationScenarioEnabled && (
+            <section className="flex min-h-[64px] shrink-0 items-center gap-3 rounded-2xl border border-violet-500/30 bg-violet-500/5 px-4 py-2.5 shadow-sm" aria-label="전국 소방서 공개 합성 데모">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-600 text-white shadow-sm"><Navigation size={18} /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-violet-900 dark:text-violet-100">{station} 기준 전국 연동 데모</p>
+                <p className="mt-0.5 truncate text-[10px] text-muted-foreground">합성 지령 → 실제 BE·AI → CAMEO 검토 · 지도 차량은 공개 합성 경로를 따라 이동</p>
+              </div>
+              <button type="button" disabled={isFullDemoRunning(fullDemoStatus) || presentationReplayStatus === "WAITING" || loading} onClick={() => { void runFullPresentationDemo(); }} className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
+                <Play size={14} fill="currentColor" />
+                {isFullDemoRunning(fullDemoStatus) ? fullDemoStatusLabel(fullDemoStatus) : fullDemoStatus === "COMPLETED" ? "전국 데모 다시 실행" : fullDemoStatus === "ERROR" ? "전국 데모 재시도" : "전국 데모 시작"}
+              </button>
+            </section>
+          )}
           <section className="grid h-[86px] shrink-0 grid-cols-4 gap-3" aria-label="현장대응 요약">
             <StatusCard label="현재 단계" value={agentPhase ? PHASE_LABELS[agentPhase] : phaseFallback} detail={analysisStateLabel(analysis?.state)} tone="primary" />
             <StatusCard label="출동 상태" value={syntheticScenario ? "합성 출동 경로" : journeyLabel(journeyState)} detail={syntheticScenario ? "QA용 · 실제 출동 아님" : !apiConfig.movementEnabled ? "pilot 연동 전" : journeyState === "ARRIVED" || journeyState === "ON_SCENE" ? "현장 도착 확인" : "위치 갱신 대기"} tone="blue" />
@@ -1158,13 +1194,6 @@ export default function App() {
                   <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/45 px-3 py-2">
                     <p className="text-[10px] text-muted-foreground">이름·CAS가 가장 정확합니다. 색상만 입력하면 후보가 없을 수 있습니다.</p>
                     <button type="button" disabled={loading} onClick={() => { void handleSubmit("7681-52-9"); }} className="min-h-8 shrink-0 rounded-lg border border-border bg-card px-2.5 text-[10px] font-bold hover:bg-muted disabled:opacity-50">예시 CAS 검색</button>
-                  </div>
-                )}
-                {mode === "collision" && apiConfig.presentationScenarioEnabled && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <button type="button" disabled={isFullDemoRunning(fullDemoStatus) || presentationReplayStatus === "WAITING" || loading} onClick={() => { void runFullPresentationDemo(); }} className="min-h-11 rounded-lg bg-violet-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
-                      {isFullDemoRunning(fullDemoStatus) ? fullDemoStatusLabel(fullDemoStatus) : fullDemoStatus === "COMPLETED" ? "통합 데모 다시 시작" : fullDemoStatus === "ERROR" ? "통합 데모 재시도" : "통합 데모 시작"}
-                    </button>
                   </div>
                 )}
                 {fullDemoStatus !== "IDLE" && <FullDemoProgress status={fullDemoStatus} failedAt={fullDemoFailedAt} />}
