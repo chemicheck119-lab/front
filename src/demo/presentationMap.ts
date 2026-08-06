@@ -75,8 +75,9 @@ export function advancePublicSyntheticMapContext(
   const clampedProgress = Math.max(0, Math.min(1, progress));
   const [longitude, latitude] = positionAlongRoute(coordinates, clampedProgress);
   const totalDistanceM = route.totalDistanceM ?? 0;
+  const previousProgress = Math.max(0, Math.min(0.999, route.progressRatio ?? 0));
   const totalEtaSeconds = liveRoadRoute
-    ? Math.max(1, route.etaSeconds ?? 1)
+    ? Math.max(1, Math.round((route.etaSeconds ?? 1) / (1 - previousProgress)))
     : Math.max(180, Math.round(totalDistanceM / 500) * 60);
   const percent = Math.round(clampedProgress * 100);
   return {

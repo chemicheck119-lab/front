@@ -117,7 +117,8 @@ describe("공개 합성 시연 지도", () => {
       },
     };
 
-    const halfway = advancePublicSyntheticMapContext(liveRoadContext, 0.5);
+    const quarter = advancePublicSyntheticMapContext(liveRoadContext, 0.25);
+    const halfway = advancePublicSyntheticMapContext(quarter, 0.5);
 
     expect(halfway.route).toMatchObject({
       status: "AVAILABLE",
