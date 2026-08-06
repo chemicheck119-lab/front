@@ -149,6 +149,10 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
     || context?.responderPosition?.isSimulation
     || route?.providerMode === "DEMO_SIMULATION",
   );
+  const liveRoadRouteOnSyntheticIncident = Boolean(
+    context?.incidentPosition?.isSimulation
+    && (route?.providerMode === "LIVE_API" || route?.providerMode === "CACHED_API"),
+  );
   const unavailableMessage = !context?.incidentPosition
     ? "사고 좌표를 확인해야 지도를 맞출 수 있습니다."
     : route?.message ?? "현재 위치와 도로 경로를 확인하고 있습니다.";
@@ -177,7 +181,7 @@ export function IncidentMap({ context, isDark, gps }: IncidentMapProps) {
           </div>
           <p className="mt-1 max-w-[320px] text-xs text-muted-foreground">{context?.incidentPosition?.label ?? unavailableMessage}</p>
         </div>
-        {(runtimeDataMode === "DEMO_SIMULATION" || syntheticMap) && <span className="rounded-full border border-accent/40 bg-card/95 px-3 py-1.5 text-[11px] font-bold text-accent shadow">공개 합성 지도 · 실제 경로 아님</span>}
+        {(runtimeDataMode === "DEMO_SIMULATION" || syntheticMap) && <span className="rounded-full border border-accent/40 bg-card/95 px-3 py-1.5 text-[11px] font-bold text-accent shadow">{liveRoadRouteOnSyntheticIncident ? "공개 합성 사고·차량 · NAVER 실도로 경로" : "공개 합성 지도 · 실제 경로 아님"}</span>}
       </div>
 
       <div data-testid="map-route-summary" className="absolute bottom-4 right-16 z-10 w-[270px] max-w-[calc(100%-5rem)] rounded-xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-sm pointer-events-none">

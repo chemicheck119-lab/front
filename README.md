@@ -65,7 +65,7 @@ BE가 전달한 staging 설정은 `.env.staging`에 비밀값 없이 고정합�
 corepack pnpm build:staging
 ```
 
-현재 staging BFF는 `https://chemicheck119-be-staging-w6s6lwanpa-du.a.run.app`이며 운영 movement·record는 비활성화합니다. 공모전 staging은 `VITE_ENABLE_AUTH=false`로 로그인·세션 없이 `케미체크119 데모 상황실` 화면에 바로 진입합니다. 상단 `사용 종료`는 사고·대화·분석·입력값을 로컬에서 초기화하며, 인증 모드에서는 BE `POST /api/c2guard/v1/logout`을 먼저 호출합니다. AI 분석을 포함한 모든 서비스 요청은 모델 서버가 아니라 이 BFF만 호출합니다. 공개 물질검색·사고분석과 고정 합성 확인은 인증 없이 Live E2E가 가능하며 운영 confirmation·movement·record는 인증 범위를 유지합니다.
+현재 staging은 `https://chemicheck119.site`의 같은-origin BFF rewrite와 제한 파일럿 서명 세션을 사용합니다. 지역·소방서를 선택하면 안정적인 `stationId`와 공개 소방서 좌표로 진입하며, `사용 종료`는 BE `POST /api/c2guard/v1/logout`을 먼저 호출합니다. AI 분석과 네이버 길찾기를 포함한 모든 서비스 요청은 브라우저에서 외부 서버로 직접 가지 않고 BFF만 호출합니다. movement는 네이버 Directions 5의 실도로 GeoJSON·교통 ETA를 사용하고, 합성 데모에서는 신고·사고지점·확인·차량 이동이 합성임을 별도로 표시합니다.
 
 ## 환경변수와 보안
 

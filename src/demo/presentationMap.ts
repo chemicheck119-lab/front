@@ -57,8 +57,8 @@ function positionAlongRoute(
 }
 
 /**
- * 공개 합성 경로 위의 차량 위치와 남은 거리·ETA를 함께 전진시킨다.
- * 실제 GPS나 도로 길찾기 결과로 오인되지 않도록 DEMO_SIMULATION 경계는 유지한다.
+ * 공개 합성 차량 위치와 남은 거리·ETA를 시연 시간에 맞춰 전진시킨다.
+ * LIVE_API 경로는 도로 geometry/provenance를 보존하고 차량 이동만 합성임을 표시한다.
  */
 export function advancePublicSyntheticMapContext(
   context: MapContext,
@@ -69,12 +69,15 @@ export function advancePublicSyntheticMapContext(
   const coordinates = route.geometry?.type === "LineString"
     ? route.geometry.coordinates as [number, number][]
     : [];
-  if (route.providerMode !== "DEMO_SIMULATION" || coordinates.length < 2) return context;
+  const liveRoadRoute = route.providerMode === "LIVE_API" || route.providerMode === "CACHED_API";
+  if ((!liveRoadRoute && route.providerMode !== "DEMO_SIMULATION") || coordinates.length < 2) return context;
 
   const clampedProgress = Math.max(0, Math.min(1, progress));
   const [longitude, latitude] = positionAlongRoute(coordinates, clampedProgress);
   const totalDistanceM = route.totalDistanceM ?? 0;
-  const totalEtaSeconds = Math.max(180, Math.round(totalDistanceM / 500) * 60);
+  const totalEtaSeconds = liveRoadRoute
+    ? Math.max(1, route.etaSeconds ?? 1)
+    : Math.max(180, Math.round(totalDistanceM / 500) * 60);
   const percent = Math.round(clampedProgress * 100);
   return {
     ...context,
@@ -84,7 +87,9 @@ export function advancePublicSyntheticMapContext(
       longitude,
       observedAt,
       source: "DEMO_SIMULATION",
-      label: clampedProgress >= 1 ? "합성 출동 차량 · 현장 도착" : `합성 출동 차량 · ${percent}%`,
+      label: clampedProgress >= 1
+        ? liveRoadRoute ? "실도로 시연 차량 · 현장 도착" : "합성 출동 차량 · 현장 도착"
+        : liveRoadRoute ? `실도로 시연 차량 · ${percent}%` : `합성 출동 차량 · ${percent}%`,
       isSimulation: true,
     },
     route: {
@@ -92,9 +97,13 @@ export function advancePublicSyntheticMapContext(
       remainingDistanceM: Math.max(0, Math.round(totalDistanceM * (1 - clampedProgress))),
       etaSeconds: Math.max(0, Math.round(totalEtaSeconds * (1 - clampedProgress))),
       progressRatio: clampedProgress,
-      message: clampedProgress >= 1
-        ? "공개 합성 차량이 사고지점에 도착했습니다. 실제 GPS·도로 경로가 아닙니다."
-        : `공개 합성 경로를 이동 중입니다. ${percent}% · 실제 GPS·도로 ETA가 아닙니다.`,
+      message: liveRoadRoute
+        ? clampedProgress >= 1
+          ? "NAVER 실도로 경로의 합성 차량 시연이 도착했습니다. 실제 출동·GPS 기록은 아닙니다."
+          : `NAVER 실도로 경로 위 합성 차량 시연 ${percent}% · 실제 출동·GPS 기록은 아닙니다.`
+        : clampedProgress >= 1
+          ? "공개 합성 차량이 사고지점에 도착했습니다. 실제 GPS·도로 경로가 아닙니다."
+          : `공개 합성 경로를 이동 중입니다. ${percent}% · 실제 GPS·도로 ETA가 아닙니다.`,
     },
   };
 }

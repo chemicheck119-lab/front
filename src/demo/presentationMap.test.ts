@@ -91,4 +91,47 @@ describe("공개 합성 시연 지도", () => {
     expect(arrived.route.etaSeconds).toBe(0);
     expect(arrived.route.message).toContain("실제 GPS·도로 경로가 아닙니다");
   });
+
+  it("NAVER 실도로 geometry와 출처를 유지하고 차량 이동만 합성으로 표시한다", () => {
+    const synthetic = buildPublicSyntheticMapContext(envelope, {
+      latitude: 37.133,
+      longitude: 126.861,
+      label: "경기 화성소방서 출동 기준점",
+    });
+    const liveRoadContext = {
+      ...synthetic,
+      responderPosition: {
+        ...synthetic.responderPosition!,
+        source: "MANUAL_DISPATCH" as const,
+        isSimulation: false,
+      },
+      route: {
+        ...synthetic.route,
+        status: "AVAILABLE" as const,
+        provider: "NAVER_DIRECTIONS_5",
+        providerMode: "LIVE_API" as const,
+        routeId: "NAVER-LIVE-1",
+        etaSeconds: 420,
+        trafficApplied: true,
+        attribution: "NAVER Maps Directions 5",
+      },
+    };
+
+    const halfway = advancePublicSyntheticMapContext(liveRoadContext, 0.5);
+
+    expect(halfway.route).toMatchObject({
+      status: "AVAILABLE",
+      provider: "NAVER_DIRECTIONS_5",
+      providerMode: "LIVE_API",
+      trafficApplied: true,
+      attribution: "NAVER Maps Directions 5",
+      etaSeconds: 210,
+    });
+    expect(halfway.responderPosition).toMatchObject({
+      source: "DEMO_SIMULATION",
+      isSimulation: true,
+      label: "실도로 시연 차량 · 50%",
+    });
+    expect(halfway.route.message).toContain("NAVER 실도로 경로 위 합성 차량");
+  });
 });

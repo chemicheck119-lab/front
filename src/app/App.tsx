@@ -158,7 +158,7 @@ function FullDemoProgress({ status, failedAt }: {
         </li>
       ))}
     </ol>
-    <p className="mt-2 text-[9px] leading-relaxed text-violet-800 dark:text-violet-200">지도 위치·경로와 두 확인 단계는 QA용 공개 합성 데이터입니다. 실제 119 지령·대원 확인·도로 ETA가 아니며 운영 판단에 사용할 수 없습니다.</p>
+    <p className="mt-2 text-[9px] leading-relaxed text-violet-800 dark:text-violet-200">신고·사고지점·확인·차량 이동은 공개 합성입니다. 경로 카드가 NAVER_DIRECTIONS_5일 때 도로 geometry와 교통 ETA만 실 API 결과이며 실제 출동 기록은 아닙니다.</p>
   </>;
 
   if (status === "COMPLETED") {
@@ -178,7 +178,7 @@ function FullDemoProgress({ status, failedAt }: {
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-black text-violet-800 dark:text-violet-200">통합 연결 공개 합성 데모</p>
-          <p className="mt-0.5 text-[9px] text-muted-foreground">서버 분석·CAMEO는 실제 호출 · 신고·확인은 공개 합성</p>
+          <p className="mt-0.5 text-[9px] text-muted-foreground">서버 분석·CAMEO·NAVER 도로 경로는 실제 호출 · 신고·확인·차량은 공개 합성</p>
         </div>
         <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${status === "ERROR" ? "bg-primary/10 text-primary" : "bg-violet-500/15 text-violet-800 dark:text-violet-200"}`}>
           {fullDemoStatusLabel(status)}
@@ -372,20 +372,29 @@ export default function App() {
     ), [responderLocation, station, nowMs]);
 
   const syntheticScenario = Boolean(presentationReplay && presentationScenarioId);
-  const displayGpsPresentation = syntheticScenario
-    ? { label: "합성 출동 위치", detail: "QA용 경로 · 실제 GPS 아님", tone: "demo" as const, usableForRoute: true }
+  const movementResponderPosition = syntheticScenario
+    ? stationFallbackPosition ?? responderLocation.position
+    : responderLocation.position;
+  const livePresentationRoute = syntheticScenario
+    && (mapContext?.route.providerMode === "LIVE_API" || mapContext?.route.providerMode === "CACHED_API");
+  const displayGpsPresentation = livePresentationRoute
+    ? { label: "소방서 출동 기준", detail: "NAVER 실도로·교통 ETA · 차량 이동은 합성", tone: "demo" as const, usableForRoute: true }
+    : syntheticScenario
+      ? { label: "합성 출동 위치", detail: "실도로 경로 연결 전 · 실제 GPS 아님", tone: "demo" as const, usableForRoute: true }
     : apiConfig.presentationScenarioEnabled && !apiConfig.movementEnabled
       ? { label: "위치 시연 대기", detail: "통합 데모에서 합성 경로를 표시합니다", tone: "waiting" as const, usableForRoute: false }
       : gpsPresentation;
 
   const effectiveMapContext = useMemo(() => {
     const context = mapContext ?? analysis?.agent?.mapContext ?? null;
-    if (syntheticScenario && context?.route.providerMode === "DEMO_SIMULATION") return context;
-    return mergeResponderPosition(context, responderLocation.position, station);
-  }, [mapContext, analysis, responderLocation.position, station, syntheticScenario]);
+    if (syntheticScenario && (context?.route.providerMode === "DEMO_SIMULATION"
+        || context?.responderPosition?.isSimulation)) return context;
+    return mergeResponderPosition(context, movementResponderPosition, station);
+  }, [mapContext, analysis, movementResponderPosition, station, syntheticScenario]);
 
   useEffect(() => {
-    if (!syntheticScenario || mapContext?.route.providerMode !== "DEMO_SIMULATION") return;
+    if (!syntheticScenario || !mapContext?.route.providerMode
+        || !["DEMO_SIMULATION", "LIVE_API", "CACHED_API"].includes(mapContext.route.providerMode)) return;
     const initialProgress = mapContext.route.progressRatio ?? 0;
     const startedAt = Date.now() - initialProgress * PUBLIC_SYNTHETIC_ROUTE_DURATION_MS;
     const timer = window.setInterval(() => {
@@ -399,10 +408,13 @@ export default function App() {
       if (progress >= 1) window.clearInterval(timer);
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [syntheticScenario, presentationReplay?.incidentId]);
+  }, [syntheticScenario, presentationReplay?.incidentId, mapContext?.route.routeId]);
 
   useEffect(() => {
-    if (syntheticScenario || !apiConfig.movementEnabled || !incidentId || !responderLocation.position || runtimeDataMode !== "LIVE_API") return;
+    if (!apiConfig.movementEnabled || !incidentId || !analysis?.analysisId
+        || !movementResponderPosition || runtimeDataMode !== "LIVE_API") return;
+    if (syntheticScenario && (mapContext?.route.providerMode === "LIVE_API"
+        || mapContext?.route.providerMode === "CACHED_API")) return;
     const requestStartedAt = Date.now();
     if (requestStartedAt < nextMovementAllowedAt.current) return;
     const elapsed = requestStartedAt - lastMovementSentAt.current;
@@ -411,14 +423,19 @@ export default function App() {
     movementSequence.current += 1;
     const operation = beginOperation();
     updateMovement(incidentId, {
-      responderPosition: responderLocation.position,
+      responderPosition: movementResponderPosition,
       journeyState,
       clientSequence: movementSequence.current,
     }, operation.controller.signal).then((response) => {
       if (!isCurrentOperation(operation.generation)) return;
       setSessionExpired(null);
-      setMapContext(response.mapContext);
-      setMovementError(null);
+      const routeStatus = response.mapContext.route.status;
+      if (routeStatus === "AVAILABLE" || routeStatus === "DEMO_SIMULATION" || routeStatus === "ARRIVED") {
+        setMapContext(response.mapContext);
+        setMovementError(null);
+      } else {
+        setMovementError(response.mapContext.route.message);
+      }
       nextMovementAllowedAt.current = Date.now() + Math.max(1000, response.nextRefreshSeconds * 1000);
       if (response.mapContext.route.status === "ARRIVED") setJourneyState("ARRIVED");
     }).catch((caught) => {
@@ -426,7 +443,8 @@ export default function App() {
       const issue = captureRequestIssue(caught);
       setMovementError(issue.kind === "SESSION_EXPIRED" ? null : userFacingError(caught));
     }).finally(() => finishOperation(operation.controller));
-  }, [incidentId, responderLocation.position, journeyState, useActive, syntheticScenario]);
+  }, [incidentId, analysis?.analysisId, movementResponderPosition, journeyState, useActive,
+    syntheticScenario, mapContext?.route.providerMode]);
 
   useEffect(() => {
     if (!savedRecordId) return;
@@ -561,7 +579,9 @@ export default function App() {
       operationsContext: {
         dispatchStationName: replay?.stationDisplayName ?? station,
         journeyState,
-        responderPosition: responderLocation.position,
+        responderPosition: replay
+          ? stationFallbackPosition ?? responderLocation.position
+          : responderLocation.position,
       },
       evidenceTopK: 5,
     }, signal);
@@ -578,7 +598,10 @@ export default function App() {
     setLastIncidentText(text);
     setAnalysisIds((previous) => previous.includes(response.analysisId)
       ? previous : [...previous, response.analysisId]);
-    if (mapOverride) setMapContext(mapOverride);
+    if (mapOverride) setMapContext((current) =>
+      current?.route.providerMode === "LIVE_API" || current?.route.providerMode === "CACHED_API"
+        ? current
+        : mapOverride);
     else if (response.agent?.mapContext) setMapContext(response.agent.mapContext);
     setMessages((previous) => [...previous, makeMessage(
       "ASSISTANT",
@@ -1147,7 +1170,7 @@ export default function App() {
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-600 text-white shadow-sm"><Navigation size={18} /></span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black text-violet-900 dark:text-violet-100">{station} 기준 전국 연동 데모</p>
-                <p className="mt-0.5 truncate text-[10px] text-muted-foreground">합성 지령 → 실제 BE·AI → CAMEO 검토 · 지도 차량은 공개 합성 경로를 따라 이동</p>
+                <p className="mt-0.5 truncate text-[10px] text-muted-foreground">합성 지령 → 실제 BE·AI → CAMEO → NAVER 실도로·교통 ETA · 차량 이동만 합성</p>
               </div>
               <button type="button" disabled={isFullDemoRunning(fullDemoStatus) || presentationReplayStatus === "WAITING" || loading} onClick={() => { void runFullPresentationDemo(); }} className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60">
                 <Play size={14} fill="currentColor" />
@@ -1157,7 +1180,7 @@ export default function App() {
           )}
           <section className="grid h-[86px] shrink-0 grid-cols-4 gap-3" aria-label="현장대응 요약">
             <StatusCard label="현재 단계" value={agentPhase ? PHASE_LABELS[agentPhase] : phaseFallback} detail={analysisStateLabel(analysis?.state)} tone="primary" />
-            <StatusCard label="출동 상태" value={syntheticScenario ? "합성 출동 경로" : journeyLabel(journeyState)} detail={syntheticScenario ? "QA용 · 실제 출동 아님" : !apiConfig.movementEnabled ? "pilot 연동 전" : journeyState === "ARRIVED" || journeyState === "ON_SCENE" ? "현장 도착 확인" : "위치 갱신 대기"} tone="blue" />
+            <StatusCard label="출동 상태" value={livePresentationRoute ? "실도로 경로 시연" : syntheticScenario ? "합성 출동 경로" : journeyLabel(journeyState)} detail={livePresentationRoute ? "NAVER 경로 · 차량 이동은 합성" : syntheticScenario ? "QA용 · 실제 출동 아님" : !apiConfig.movementEnabled ? "pilot 연동 전" : journeyState === "ARRIVED" || journeyState === "ON_SCENE" ? "현장 도착 확인" : "위치 갱신 대기"} tone="blue" />
             <StatusCard label="ETA · 남은 거리" value={`${formatEta(route?.etaSeconds)} · ${formatDistance(route?.remainingDistanceM)}`} detail={route?.providerMode === "DEMO_SIMULATION" ? "합성 경로 · 실제 ETA 아님" : route?.provider ?? "도로 경로 없음"} tone="neutral" />
             <StatusCard label="위치 상태" value={displayGpsPresentation.label} detail={displayGpsPresentation.detail} tone={displayGpsPresentation.tone === "bad" ? "danger" : displayGpsPresentation.tone === "good" ? "green" : "neutral"} />
           </section>

@@ -2,7 +2,7 @@
 
 기준 계약: `chemicheck119-dashboard-bff-v1`
 
-BE 권위 기준: `develop@9685a8c2`
+BE 배포 기준: `develop@feda53d` / Cloud Run `chemicheck119-be-staging-rfeda53d1`
 
 AI 계약 기준: `chemicheck119/llm` PR #31, `main` 병합 완료
 
@@ -17,20 +17,20 @@ X-API-Key: BE Secret에서만 주입
 
 모델 API Key는 `VITE_*` 환경변수나 FE 요청에 포함하지 않습니다. 호출 구조는 항상 `FE → BE/BFF → AI`이며, BE는 모델의 camelCase 응답을 `chemicheck119-dashboard-bff-v1` 화면 계약으로 투영합니다.
 
-BE `develop`에는 세션·로그아웃·사고 분석·물질 검색·현장 확인·이동 갱신·기록 저장의 7개 operation 계약과 구현이 있습니다. FE도 같은 고정 OpenAPI와 client를 사용하며, movement·record는 staging Live E2E가 통과되기 전까지 기능 플래그로 비활성화합니다. 실제 배포 AI 서버와 API Key를 사용한 Live E2E 증적은 아직 없습니다.
+BE `develop`에는 세션·로그아웃·사고 분석·물질 검색·현장 확인·이동 갱신·기록 저장의 7개 operation 계약과 구현이 있습니다. FE도 같은 고정 OpenAPI와 client를 사용합니다. 실제 배포 AI/CAMEO와 NAVER Directions 5를 포함한 staging Live E2E를 통과했으며 movement·record 기능 플래그가 활성화돼 있습니다.
 
 ## 현재 연동 행렬
 
 | 영역 | 상태 | FE 처리 |
 |---|---|---|
 | CORS | 연동 완료 | `https://chemicheck119.site` exact origin 허용; preflight 200·미인증 401·외부 origin 403 실측 |
-| 현재 공모전 인증 | FE 비활성화·BE 변경 필요 | FE는 로그인·세션 없이 직접 진입하고 `사용 종료` 시 로컬 대응 상태를 초기화하며 `credentials: omit`; BE는 무인증 서비스 요청을 허용하도록 인증 필터를 비활성화해 재배포 필요 |
+| 현재 공모전 인증 | 제한 파일럿 연동 완료 | 전국 소방서 선택 후 HttpOnly 서명 세션 발급; `사용 종료`에서 BE 로그아웃 |
 | 사고 분석 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 물질 검색 | 연동 가능 | `VITE_BFF_BASE_URL` 기준 호출 |
 | 현장 확인 | 연동 가능 | 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 사고 분석 재호출 |
-| movement | FE·BE 구현 완료·검증 대기 | `준비 중` 표시; staging 도로 경로 검증 후 `VITE_ENABLE_MOVEMENT_API=true` |
-| record | FE·BE 구현 완료·검증 대기 | 저장은 `준비 중`; staging 영속성 검증 후 `VITE_ENABLE_RECORD_API=true` |
-| AI Live E2E | 증적 없음 | 실제 배포 AI URL·API Key가 준비된 환경에서 별도 검증 필요 |
+| movement | Live E2E 완료 | NAVER Directions 5 GeoJSON·교통 ETA 표시; 실패 시 기존 지도 유지 |
+| record | PostgreSQL 연동 완료 | 구조화 대응 결과 저장 활성화 |
+| AI Live E2E | 완료 | FE→BFF→AI→CAMEO 안전 게이트 0/2→1/2→2/2 검증 |
 
 ## 공모전 시연 전 필수 통합 시나리오
 
@@ -46,17 +46,17 @@ BE `develop`에는 세션·로그아웃·사고 분석·물질 검색·현장 �
 
 - FE는 서비스 BE/BFF만 호출합니다.
 - 모델 API의 `X-API-Key`와 길찾기 Provider Key는 BE Secret으로만 보관합니다.
-- 현재 공모전 staging은 인증을 사용하지 않으며 FE는 인증 쿠키를 전송하지 않습니다. 이 임시 정책은 운영 인증 체계가 아닙니다.
-- BE는 정확한 FE origin만 CORS로 허용하고, 인증 미사용 배포에서도 사고·확인 입력을 서버 계약으로 검증합니다.
+- 현재 공모전 staging은 제한 파일럿 HttpOnly 서명 세션을 사용합니다. 이는 실제 소방기관 SSO를 대체하는 운영 인증 체계가 아닙니다.
+- BE는 정확한 FE origin만 CORS로 허용하고, 세션이 있는 요청에서도 사고·확인 입력을 서버 계약으로 검증합니다.
 - 모든 응답은 `requestId`를 포함해 FE→BE→AI 로그를 연결합니다.
 - 과거 업체 취급 이력을 현재 재고로 바꾸어 표현하지 않습니다.
 - 사고물질·시설물질 CAS 두 개가 확인되기 전 CAMEO 규칙을 실행하지 않습니다.
 - BE 모델 응답 제한은 15초이며 FE 요청 제한은 20초로 두어 구조화된 `MODEL_TIMEOUT` 응답을 우선 수신합니다.
 - FE는 `develop@9685a8c2`의 OpenAPI 원본과 생성 타입을 고정하고 CI에서 7개 operation·세션 보안·필수 필드 드리프트를 검사합니다.
 
-## 0. 운영 로그인 후 세션 컨텍스트 (공모전 이후 보류)
+## 0. 로그인 후 세션 컨텍스트
 
-현재 공모전 staging에서는 인증을 사용하지 않지만 FE 인증 모드는 아래 세션 컨텍스트 계약에 연결돼 있습니다. `GET /session` 성공 전 대시보드 진입을 차단하고, `사용 종료` 시 `POST /logout`으로 HttpOnly 세션을 만료시킨 뒤 GPS·진행 요청·로컬 대응 상태를 정리합니다.
+현재 공모전 staging은 제한 파일럿 세션으로 아래 세션 컨텍스트 계약을 사용합니다. `GET /session` 성공 전 대시보드 진입을 차단하고, `사용 종료` 시 `POST /logout`으로 HttpOnly 세션을 만료시킨 뒤 GPS·진행 요청·로컬 대응 상태를 정리합니다. 실제 운영에서는 소방기관 SSO로 교체해야 합니다.
 
 구현 경로: `GET /api/c2guard/v1/session`
 
@@ -164,7 +164,7 @@ BE `develop`에는 세션·로그아웃·사고 분석·물질 검색·현장 �
 
 `POST /api/c2guard/v1/incidents/{incidentId}/movement`
 
-상태: FE·BE 구현 완료. FE는 명시적인 `준비 중` 상태를 표시하고 `VITE_ENABLE_MOVEMENT_API=true`가 staging GPS·도로 경로 검증을 통과한 환경에 설정되기 전까지 이 경로를 호출하지 않습니다.
+상태: FE·BE·NAVER Directions 5 연동 및 staging 검증 완료. 선택 소방서의 공개 좌표 또는 실제 브라우저 GPS를 BFF에 보내며, FE는 Provider Secret을 보관하지 않습니다.
 
 필요한 이유: 브라우저 GPS를 검증하고 서버측 길찾기 결과를 GeoJSON·ETA로 전달하기 위해 필요합니다. FE는 Key를 갖지 않습니다.
 
@@ -194,15 +194,16 @@ BE `develop`에는 세션·로그아웃·사고 분석·물질 검색·현장 �
 - 5분 이상 오래됨: `POSITION_STALE`; ETA 숨김
 - 경로 시작/끝 불일치: `ROUTE_ENDPOINT_MISMATCH`; 경로 숨김
 - Provider 장애: `ROUTE_UNAVAILABLE`; 직선 경로·가짜 ETA 금지
-- 발표 fixture: 반드시 `DEMO_SIMULATION`과 attribution 포함
+- 발표 입력: 신고·사고지점·확인·차량 이동은 공개 합성으로 표시
+- 발표 경로: provider가 `NAVER_DIRECTIONS_5`일 때 geometry·교통 ETA만 실 API 결과로 표시
 
 담당자 체크리스트:
 
 - [ ] 좌표 범위·시각·sequence 검증
 - [ ] 거리/시간 임계값 기반 재탐색으로 요금·rate limit 보호
 - [ ] GeoJSON 좌표 순서 `[longitude, latitude]`
-- [ ] Provider Key를 Secret으로 보관
-- [ ] attribution 반환
+- [x] Provider Key를 GCP Secret Manager에 보관
+- [x] attribution 반환
 
 ## 3. 물질 후보 검색
 
