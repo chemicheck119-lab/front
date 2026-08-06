@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { IncidentReplayEnvelope } from "../api/intake";
-import { buildPublicSyntheticMapContext } from "./presentationMap";
+import {
+  advancePublicSyntheticMapContext,
+  buildPublicSyntheticMapContext,
+} from "./presentationMap";
 
 const envelope: IncidentReplayEnvelope = {
   schemaVersion: "chemicheck119-incident-envelope-v1",
@@ -51,5 +54,41 @@ describe("공개 합성 시연 지도", () => {
     expect(context.route.totalDistanceM).toBeGreaterThan(1000);
     expect(context.route.etaSeconds).toBeGreaterThanOrEqual(180);
     expect(context.route.message).toContain("실제 도로·교통 ETA가 아닙니다");
+  });
+
+  it("합성 차량을 경로 위에서 전진시키고 남은 거리와 ETA를 함께 줄인다", () => {
+    const context = buildPublicSyntheticMapContext(envelope, {
+      latitude: 37.133,
+      longitude: 126.861,
+      label: "경기 화성소방서 출동 기준점",
+    });
+    const halfway = advancePublicSyntheticMapContext(
+      context,
+      0.5,
+      "2026-08-02T12:00:20+09:00",
+    );
+    const arrived = advancePublicSyntheticMapContext(
+      context,
+      1,
+      "2026-08-02T12:00:40+09:00",
+    );
+
+    expect(halfway.responderPosition).toMatchObject({
+      source: "DEMO_SIMULATION",
+      isSimulation: true,
+      label: "합성 출동 차량 · 50%",
+    });
+    expect(halfway.route.status).toBe("DEMO_SIMULATION");
+    expect(halfway.route.progressRatio).toBe(0.5);
+    expect(halfway.route.remainingDistanceM).toBe(Math.round((context.route.totalDistanceM ?? 0) / 2));
+    expect(halfway.route.etaSeconds).toBe(Math.round((context.route.etaSeconds ?? 0) / 2));
+    expect(arrived.responderPosition).toMatchObject({
+      latitude: envelope.location.latitude,
+      longitude: envelope.location.longitude,
+      label: "합성 출동 차량 · 현장 도착",
+    });
+    expect(arrived.route.remainingDistanceM).toBe(0);
+    expect(arrived.route.etaSeconds).toBe(0);
+    expect(arrived.route.message).toContain("실제 GPS·도로 경로가 아닙니다");
   });
 });
