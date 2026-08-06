@@ -17,6 +17,7 @@ describe("지도 위치·경로 상태", () => {
   it("실제 또는 명시적 시연 GeoJSON 경로만 렌더링한다", () => {
     expect(canRenderRoute({ status: "AVAILABLE", geometry: { type: "LineString", coordinates: [[126, 37], [127, 37]] }, progressRatioIsProbability: false, message: "ok" })).toBe(true);
     expect(canRenderRoute({ status: "ROUTE_UNAVAILABLE", progressRatioIsProbability: false, message: "none" })).toBe(false);
+    expect(formatEta(0)).toBe("도착");
     expect(formatEta(480)).toBe("8분");
     expect(formatDistance(4000)).toBe("4.0km");
   });

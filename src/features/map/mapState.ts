@@ -39,6 +39,7 @@ export function canRenderRoute(route: RouteSnapshot): boolean {
 
 export function formatEta(seconds?: number | null): string {
   if (seconds == null || seconds < 0) return "—";
+  if (seconds === 0) return "도착";
   if (seconds < 60) return "1분 미만";
   return `${Math.ceil(seconds / 60)}분`;
 }
