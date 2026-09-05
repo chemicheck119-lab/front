@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 저장소 체크아웃
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: pnpm 설정
         uses: pnpm/action-setup@v4
