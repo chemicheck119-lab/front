@@ -18,10 +18,12 @@ const generatedHeader = `/**
 const expectedOperations = [
   ["/api/c2guard/v1/session", "get"],
   ["/api/c2guard/v1/logout", "post"],
+  ["/api/c2guard/v1/transcriptions", "post"],
   ["/api/c2guard/v1/incidents/analyze", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/confirmations", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/movement", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/record", "post"],
+  ["/api/c2guard/v1/incidents/{incidentId}/transcriptions", "post"],
   ["/api/c2guard/v1/substances/discover", "post"],
 ];
 const expectedPaths = [...new Set(expectedOperations.map(([path]) => path))];
@@ -41,7 +43,7 @@ const source = JSON.parse(sourceText);
 const contractHash = createHash("sha256").update(contractText).digest("hex");
 assertContract(contractHash === source.sha256, "고정 OpenAPI 파일이 출처 메타데이터와 다릅니다. 계약과 source.json을 함께 갱신하세요.");
 assertContract(contract["x-contract-version"] === source.contractVersion, "x-contract-version이 고정 계약 버전과 다릅니다.");
-assertContract(source.repository === "chemicheck119/BE_Repository", "권위 저장소가 예상 값과 다릅니다.");
+assertContract(source.repository === "chemicheck119-lab/back", "권위 저장소가 예상 값과 다릅니다.");
 assertContract(typeof source.commit === "string" && /^[0-9a-f]{40}$/.test(source.commit), "출처 commit은 전체 SHA여야 합니다.");
 
 const actualPaths = Object.keys(contract.paths ?? {}).sort();
@@ -52,6 +54,22 @@ for (const [path, method] of expectedOperations) {
   assertContract(Boolean(operation), `${path} ${method.toUpperCase()} 계약이 없습니다.`);
   assertContract(operation.security?.some((entry) => Object.hasOwn(entry, "ServiceSession")), `${path}에 ServiceSession 보안 경계가 없습니다.`);
   assertContract(operation["x-model-api-direct-browser-call-allowed"] === false, `${path}가 브라우저의 모델 API 직접 호출을 허용합니다.`);
+}
+
+for (const path of [
+  "/api/c2guard/v1/transcriptions",
+  "/api/c2guard/v1/incidents/{incidentId}/transcriptions",
+]) {
+  const operation = contract.paths?.[path]?.post;
+  assertContract(operation?.["x-speech-api-direct-browser-call-allowed"] === false, `${path}가 브라우저의 Speech API 직접 호출을 허용합니다.`);
+  assertContract(operation?.["x-audio-retained"] === false, `${path}가 원본 음성을 보관합니다.`);
+}
+
+const speechResponse = contract.components?.schemas?.DashboardSpeechTranscriptionResponse;
+assertContract(speechResponse?.properties?.requiresResponderReview?.const === true, "전사문은 대원 검토가 필수여야 합니다.");
+const speechSafety = contract.components?.schemas?.DashboardSpeechSafetyBoundary?.properties;
+for (const field of ["chemicalIdentificationPerformed", "casConfirmationPerformed", "riskAssessmentPerformed"]) {
+  assertContract(speechSafety?.[field]?.const === false, `전사 응답의 ${field}는 false여야 합니다.`);
 }
 
 const sessionScheme = contract.components?.securitySchemes?.ServiceSession;

@@ -1,8 +1,8 @@
 {
-  "repository": "chemicheck119/BE_Repository",
-  "commit": "6fd9c92742da22442c2a806acd2c8eb7b21efe8a",
+  "repository": "chemicheck119-lab/back",
+  "commit": "3d0a770518054213b15ec0c815bda24ca16f0640",
   "path": "contracts/dashboard-bff-v1.openapi.json",
-  "sha256": "5ce3832e3d1163137d9e560224fd0f24a7167b46faaa1b0e39741a904bffbc52",
+  "sha256": "a128f7de82280b7934166e3a5921005d6e15862fcc9ce4a730b2972fe243c830",
   "contractVersion": "chemicheck119-dashboard-bff-v1",
-  "sourceUrl": "https://github.com/chemicheck119/BE_Repository/blob/6fd9c92742da22442c2a806acd2c8eb7b21efe8a/contracts/dashboard-bff-v1.openapi.json"
+  "sourceUrl": "https://github.com/chemicheck119-lab/back/blob/3d0a770518054213b15ec0c815bda24ca16f0640/contracts/dashboard-bff-v1.openapi.json"
 }

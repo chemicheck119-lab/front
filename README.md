@@ -15,9 +15,10 @@
 | 물질검색 | FE·BE 연동 가능 | 이름/CAS/관찰 특징 후보와 공식 근거 표시 |
 | 확인 게이트 | FE·BE 구현 완료 | 두 CAS 확인 전 규칙 차단, `0/2→2/2` 현장 체크포인트와 역할·근거·확인 시각 기록 |
 | 기록 저장 | 운영 연동 대기·공개 데모 QA 가능 | 공개 합성 데모는 서버 저장 대신 감사 ID가 포함된 JSON을 로컬로 내보냄 |
+| 음성 전사 | 부분 구현 또는 개발용 데모 | 인증 환경에서 microphone/PCM WAV를 BFF로 전송하고 편집 가능한 검토 초안만 생성 |
 | 좌측 현장 도구 | UI·화면 상태 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
-| 실제 BE/BFF | 7개 operation 계약 동기화 | `develop@9685a8c2` 기준 세션·로그아웃·분석·검색·확인·movement·record |
-| BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·7개 operation·세션 보안·생성 타입을 `pnpm check`에서 검증 |
+| 실제 BE/BFF | 9개 operation 계약 동기화 | `develop@3d0a7705` 기준 기존 7개 + 접수 전/사고 후 음성 전사 |
+| BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·9개 operation·세션/Speech 안전 경계·생성 타입을 `pnpm check`에서 검증 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `오프라인 시연` 배지를 고정 표시 |
 | 공모전 Live 시나리오 | 단계형·자동 QA 흐름 구현 | 상황실 SSE → 대원 지령 확인 또는 자동 QA → 실제 AI → 합성 확인 1/2·2/2 → CAMEO → QA JSON |
@@ -86,6 +87,8 @@ corepack pnpm build:staging
 - `VITE_ENABLE_PRESENTATION_SCENARIO`: BE의 공개 합성 지령 SSE 수신 UI. `VITE_ENABLE_DEMO_MODE=false`이고 BFF URL이 있을 때만 활성화
 - `VITE_ENABLE_MOVEMENT_API`: BE movement 배포가 검증된 환경에서만 `true`
 - `VITE_ENABLE_RECORD_API`: BE record 배포가 검증된 환경에서만 `true`
+- `VITE_ENABLE_SPEECH_API`: 인증된 BE→private Speech API 배포가 검증된 환경에서만 `true`
+- `VITE_SPEECH_TIMEOUT_MS`: BE의 Speech timeout 45초보다 긴 client timeout. 기본 50초
 
 `VITE_*` 값은 브라우저 번들에 그대로 노출됩니다. 모델 API Key, 길찾기 API Key, 영구 토큰 등 비밀정보를 절대 넣지 않습니다. 브라우저는 모델 API를 직접 호출하지 않으며 모든 운영 요청은 BE/BFF를 거칩니다.
 
@@ -101,7 +104,7 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 
 ## BFF 경로
 
-권위 기준은 BE `develop@9685a8c2`입니다. 모든 요청은 `VITE_BFF_BASE_URL`을 사용하며 인증 쿠키는 인증 기능이 활성화된 환경에서만 포함합니다.
+권위 기준은 BE `develop@3d0a7705`입니다. 모든 요청은 `VITE_BFF_BASE_URL`을 사용하며 인증 쿠키는 인증 기능이 활성화된 환경에서만 포함합니다.
 
 동일 커밋의 OpenAPI 원본과 생성 타입을 저장소에 고정했습니다. 갱신 절차는 [BFF 계약 동기화](./contracts/README.md), 출처 메타데이터는 [dashboard-bff-v1.source.json](./contracts/dashboard-bff-v1.source.json)을 참고합니다.
 
@@ -111,12 +114,14 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 | `POST /auth/staging/pilot` | 선택한 안정적 `stationId`로 공개 파일럿 세션 발급 요청 |
 | `GET /api/c2guard/v1/session` | 인증 모드 진입 게이트와 사용자·소방서 컨텍스트 연동 완료 |
 | `POST /api/c2guard/v1/logout` | 인증 모드 사용 종료 연동 완료 |
+| `POST /api/c2guard/v1/transcriptions` | 신고 접수 전 음성 전사 client·검토 UX 구현; 배포 검증 대기 |
 | `POST /api/c2guard/v1/incidents/analyze` | 연동 가능 |
 | `POST /api/c2guard/v1/substances/discover` | 연동 가능 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/confirmations` | 연동 가능; 성공 후 `reanalyzeRequired=true`이면 같은 `incidentId`로 재분석 |
 | `POST /api/c2guard/v1/intake/replays/{incidentId}/confirmations/{role}` | staging 공개 합성 시연 전용; 요청 본문·임의 CAS 없이 고정 확인 1/2·2/2 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/movement` | FE·BE 구현 완료; staging 활성화 검증 대기 |
 | `POST /api/c2guard/v1/incidents/{incidentId}/record` | FE·BE 구현 완료; staging 영속성 검증 대기 |
+| `POST /api/c2guard/v1/incidents/{incidentId}/transcriptions` | 사고 생성 후 음성 전사 client·검토 UX 구현; 배포 검증 대기 |
 
 현재 FE는 확인 성공 후 동일 사고를 재분석하며 BE 계약과 일치합니다. 운영 movement·record는 명시적 기능 플래그가 없으면 Live 요청을 보내지 않습니다. 공개 합성 데모에서는 실제 연동을 사칭하지 않는 합성 경로·ETA와 로컬 QA JSON으로 화면 동작을 검증합니다.
 
@@ -179,6 +184,8 @@ corepack pnpm build:sites:staging
 ## 알려진 한계
 
 - 실제 배포 AI 서버와 API Key를 사용한 공개 물질검색·사고분석 Live E2E는 검증됐지만, 기관 사용자·지령 시스템 연계는 아직 없습니다.
+- 음성 녹음·전사 UX와 FE→BE 계약은 구현했지만 실제 Pad microphone, private Speech Cloud Run,
+  현장 무전 정확도와 사용자 효과는 검증하지 않았습니다.
 - 현재 공모전 staging은 공개 물질검색·사고분석과 replay incident의 고정 합성 confirmation만 인증 없이 허용하며 운영 confirmation·movement·record는 보호됩니다.
 - Cloud SQL 영속화는 배포됐지만 보호된 confirmation·movement·record 전체 E2E와 실제 길찾기 Provider는 아직 운영 연동 전입니다.
 - 저장소의 기존 로고 이미지에는 `케미가드` 표기가 남아 있습니다. 서비스 표시명 확정 후 별도 디자인 자산 교체가 필요합니다.

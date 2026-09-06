@@ -42,6 +42,11 @@ export const apiConfig = {
     && import.meta.env.VITE_ENABLE_PRESENTATION_SCENARIO === "true",
   movementEnabled: demoEnabled || import.meta.env.VITE_ENABLE_MOVEMENT_API === "true",
   recordEnabled: demoEnabled || import.meta.env.VITE_ENABLE_RECORD_API === "true",
+  speechEnabled: !demoEnabled
+    && authEnabled
+    && normalizedBaseUrl.length > 0
+    && import.meta.env.VITE_ENABLE_SPEECH_API === "true",
+  speechTimeoutMs: positiveNumber(import.meta.env.VITE_SPEECH_TIMEOUT_MS, 50000),
 };
 
 export const runtimeDataMode: DataMode = apiConfig.demoEnabled ? "DEMO_SIMULATION" : apiConfig.baseUrl ? "LIVE_API" : "UNAVAILABLE";

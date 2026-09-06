@@ -48,6 +48,9 @@ describe("BFF 오류 매핑", () => {
     [503, "MODEL_SERVICE_UNAVAILABLE", "SERVICE_UNAVAILABLE"],
     [504, "MODEL_TIMEOUT", "TIMEOUT"],
     [504, "ROUTE_UNAVAILABLE", "NO_ROUTE"],
+    [429, "SPEECH_BUSY", "SPEECH_BUSY"],
+    [503, "SPEECH_SERVICE_UNAVAILABLE", "SPEECH_UNAVAILABLE"],
+    [422, "SPEECH_CONTRACT_VIOLATION", "SAFETY"],
   ] as const)("HTTP %s / %s를 %s 상태로 구분한다", async (status, code, kind) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(failedResponse(status, code)));
 

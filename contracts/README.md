@@ -1,6 +1,6 @@
 # BFF 계약 동기화
 
-FE의 고정 기준은 `chemicheck119/BE_Repository@9685a8c2bbd048c1f79cb69770ba92dd7877a50b`의 `contracts/dashboard-bff-v1.openapi.json`입니다.
+FE의 고정 기준은 `chemicheck119-lab/back@3d0a770518054213b15ec0c815bda24ca16f0640`의 `contracts/dashboard-bff-v1.openapi.json`입니다.
 
 - `dashboard-bff-v1.openapi.json`: 권위 커밋에서 가져온 OpenAPI 원본
 - `dashboard-bff-v1.source.json`: 저장소·전체 commit SHA·원본 해시·URL
@@ -12,7 +12,9 @@ FE의 고정 기준은 `chemicheck119/BE_Repository@9685a8c2bbd048c1f79cb69770ba
 pnpm contract:check
 ```
 
-이 검사는 원본 SHA-256, 계약 버전, 정확한 5개 BFF 경로, `ServiceSession` 쿠키 보안, 브라우저의 모델 API 직접 호출 금지, 현장 확인 필수 필드와 생성 타입 동기화를 확인합니다. `pnpm check`와 `develop` CI에도 포함됩니다.
+이 검사는 원본 SHA-256, 계약 버전, 정확한 9개 BFF operation, `ServiceSession` 쿠키 보안,
+브라우저의 Model/Speech API 직접 호출 금지, 음성 비저장·검토 필수 경계, 현장 확인 필수
+필드와 생성 타입 동기화를 확인합니다. `pnpm check`와 `develop` CI에도 포함됩니다.
 
 ## 기준 커밋 갱신
 

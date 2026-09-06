@@ -10,6 +10,8 @@ export type ApiErrorKind =
   | "CONFIRMATION_REQUIRED"
   | "NO_EVIDENCE"
   | "NO_ROUTE"
+  | "SPEECH_BUSY"
+  | "SPEECH_UNAVAILABLE"
   | "SERVICE_UNAVAILABLE"
   | "SERVER"
   | "NETWORK"
@@ -33,6 +35,9 @@ function errorKind(status: number, code?: string): ApiErrorKind {
   if (status === 403) return "AUTH";
   if (code === "MODEL_TIMEOUT") return "TIMEOUT";
   if (code === "MODEL_SERVICE_UNAVAILABLE") return "SERVICE_UNAVAILABLE";
+  if (code === "SPEECH_BUSY") return "SPEECH_BUSY";
+  if (code === "SPEECH_SERVICE_UNAVAILABLE") return "SPEECH_UNAVAILABLE";
+  if (code === "SPEECH_CONTRACT_VIOLATION") return "SAFETY";
   if (code === "INCIDENT_REFERENCE_CONFLICT" || status === 409) return "CONFLICT";
   if (code === "MODEL_CONTRACT_VIOLATION") return "SERVER";
   if (code?.includes("CONFIRMATION")) return "CONFIRMATION_REQUIRED";
@@ -45,7 +50,16 @@ function errorKind(status: number, code?: string): ApiErrorKind {
   return "SERVER";
 }
 
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+export interface ApiRequestPolicy {
+  timeoutMs?: number;
+  retry503?: boolean;
+}
+
+export async function apiRequest<T>(
+  path: string,
+  init: RequestInit = {},
+  policy: ApiRequestPolicy = {},
+): Promise<T> {
   if (!apiConfig.baseUrl) throw new ApiError("NETWORK", "BFF 주소가 설정되지 않았습니다.");
 
   const controller = new AbortController();
@@ -57,9 +71,10 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const timer = window.setTimeout(() => {
     timedOut = true;
     controller.abort();
-  }, apiConfig.timeoutMs);
+  }, policy.timeoutMs ?? apiConfig.timeoutMs);
   try {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    const maximumAttempts = policy.retry503 === false ? 1 : 2;
+    for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
       const response = await fetch(`${apiConfig.baseUrl}${path}`, {
         ...init,
         signal: controller.signal,
@@ -71,7 +86,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       if (!response.ok) {
         const code = body.error?.code as string | undefined;
         const retryable = Boolean(body.error?.retryable);
-        if (response.status === 503 && retryable && attempt === 0) continue;
+        if (response.status === 503 && retryable && attempt + 1 < maximumAttempts) continue;
         throw new ApiError(errorKind(response.status, code), body.error?.message ?? "요청을 처리할 수 없습니다.", requestId, retryable);
       }
       return body as T;
@@ -107,6 +122,8 @@ export function toUserFacingError(error: unknown): UserFacingErrorInfo {
     CONFIRMATION_REQUIRED: "사고물질과 시설물질의 현장 확인이 필요합니다.",
     NO_EVIDENCE: "공개 근거가 부족합니다. 현장 MSDS를 확인해주세요.",
     NO_ROUTE: "도로 경로를 불러올 수 없습니다.",
+    SPEECH_BUSY: "음성 전사 요청이 많습니다. 잠시 후 직접 다시 시도해주세요.",
+    SPEECH_UNAVAILABLE: "음성 전사 서비스를 사용할 수 없습니다. 직접 입력을 계속 사용할 수 있습니다.",
     SERVICE_UNAVAILABLE: "분석 서비스에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
     SERVER: "서버에서 요청을 처리하지 못했습니다.",
     NETWORK: "네트워크에 연결할 수 없습니다.",
