@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_BFF_BASE_URL?: string;
   readonly VITE_API_TIMEOUT_MS?: string;
+  readonly VITE_SPEECH_TIMEOUT_MS?: string;
   readonly VITE_MAP_STYLE_URL?: string;
   readonly VITE_MAP_DARK_STYLE_URL?: string;
   readonly VITE_MAP_PUBLIC_TOKEN?: string;
@@ -17,6 +18,7 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_PRESENTATION_SCENARIO?: string;
   readonly VITE_ENABLE_MOVEMENT_API?: string;
   readonly VITE_ENABLE_RECORD_API?: string;
+  readonly VITE_ENABLE_SPEECH_API?: string;
 }
 
 interface ImportMeta {

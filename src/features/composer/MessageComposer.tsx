@@ -1,5 +1,6 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Search, Send } from "lucide-react";
+import { VoiceTranscriptionControl } from "../speech/VoiceTranscriptionControl";
 
 type ComposerMode = "collision" | "substance";
 
@@ -8,7 +9,10 @@ interface MessageComposerProps {
   value: string;
   loading: boolean;
   unavailable: boolean;
+  speechEnabled?: boolean;
+  incidentId?: string | null;
   onChange: (value: string) => void;
+  onSpeechTranscribed?: (value: string) => void;
   onSubmit: (value: string) => void;
 }
 
@@ -17,14 +21,18 @@ export function MessageComposer({
   value,
   loading,
   unavailable,
+  speechEnabled = false,
+  incidentId = null,
   onChange,
+  onSpeechTranscribed,
   onSubmit,
 }: MessageComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isComposing = useRef(false);
   const compositionText = useRef("");
   const deferredSubmitTimer = useRef<number | null>(null);
-  const submitDisabled = !value.trim() || loading || unavailable;
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const submitDisabled = !value.trim() || loading || unavailable || voiceBusy;
 
   useEffect(() => () => {
     if (deferredSubmitTimer.current !== null) {
@@ -33,7 +41,7 @@ export function MessageComposer({
   }, []);
 
   function submit(rawValue: string) {
-    if (!rawValue.trim() || loading || unavailable) return;
+    if (!rawValue.trim() || loading || unavailable || voiceBusy) return;
     onSubmit(rawValue);
   }
 
@@ -78,41 +86,56 @@ export function MessageComposer({
   }
 
   return (
-    <div className="flex items-end gap-2">
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(event) => {
-          if (isComposing.current && event.target.value.length >= compositionText.current.length) {
-            compositionText.current = event.target.value;
-          }
-          onChange(event.target.value);
-        }}
-        onCompositionStart={(event) => {
-          isComposing.current = true;
-          compositionText.current = event.currentTarget.value;
-        }}
-        onCompositionEnd={(event) => {
-          isComposing.current = false;
-          if (event.currentTarget.value.length >= compositionText.current.length) {
+    <div>
+      {speechEnabled && mode === "collision" && (
+        <VoiceTranscriptionControl
+          incidentId={incidentId}
+          disabled={loading || unavailable}
+          onBusyChange={setVoiceBusy}
+          onTranscribed={(text) => {
+            const nextValue = value.trim() ? `${value.trim()}\n${text}` : text;
+            if (onSpeechTranscribed) onSpeechTranscribed(nextValue);
+            else onChange(nextValue);
+            window.setTimeout(() => textareaRef.current?.focus(), 0);
+          }}
+        />
+      )}
+      <div className="flex items-end gap-2">
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(event) => {
+            if (isComposing.current && event.target.value.length >= compositionText.current.length) {
+              compositionText.current = event.target.value;
+            }
+            onChange(event.target.value);
+          }}
+          onCompositionStart={(event) => {
+            isComposing.current = true;
             compositionText.current = event.currentTarget.value;
-          }
-          if (deferredSubmitTimer.current === null) compositionText.current = "";
-        }}
-        onKeyDown={handleKeyDown}
-        rows={2}
-        className="min-h-[60px] flex-1 resize-none rounded-xl border border-border bg-input-background px-4 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground focus:border-primary"
-        placeholder={mode === "collision" ? "신고 내용과 확인된 상황을 입력하세요…" : "물질명·CAS·화학식 또는 색·냄새·상태 입력…"}
-      />
-      <button
-        type="button"
-        onClick={handleButtonClick}
-        disabled={submitDisabled}
-        className="flex h-[60px] min-w-[112px] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-40"
-        aria-label={mode === "collision" ? "사고 분석" : "물질 검색"}
-      >
-        {mode === "collision" ? <><Send size={15} />분석 시작</> : <><Search size={15} />검색</>}
-      </button>
+          }}
+          onCompositionEnd={(event) => {
+            isComposing.current = false;
+            if (event.currentTarget.value.length >= compositionText.current.length) {
+              compositionText.current = event.currentTarget.value;
+            }
+            if (deferredSubmitTimer.current === null) compositionText.current = "";
+          }}
+          onKeyDown={handleKeyDown}
+          rows={2}
+          className="min-h-[60px] flex-1 resize-none rounded-xl border border-border bg-input-background px-4 py-3 text-sm leading-relaxed outline-none placeholder:text-muted-foreground focus:border-primary"
+          placeholder={mode === "collision" ? "신고 내용과 확인된 상황을 입력하세요…" : "물질명·CAS·화학식 또는 색·냄새·상태 입력…"}
+        />
+        <button
+          type="button"
+          onClick={handleButtonClick}
+          disabled={submitDisabled}
+          className="flex h-[60px] min-w-[112px] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-40"
+          aria-label={mode === "collision" ? "사고 분석" : "물질 검색"}
+        >
+          {mode === "collision" ? <><Send size={15} />분석 시작</> : <><Search size={15} />검색</>}
+        </button>
+      </div>
     </div>
   );
 }

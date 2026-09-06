@@ -248,6 +248,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("collision");
   const [journeyState, setJourneyState] = useState<JourneyState>("EN_ROUTE");
   const [input, setInput] = useState("");
+  const [incidentInputType, setIncidentInputType] = useState<"MANUAL_TEXT" | "VOICE_TRANSCRIPT">("MANUAL_TEXT");
   const [facilityName, setFacilityName] = useState("");
   const [address, setAddress] = useState("");
   const [resolvedIncidentAddress, setResolvedIncidentAddress] = useState<ResolvedIncidentAddress | null>(null);
@@ -562,7 +563,7 @@ export default function App() {
     return analyzeIncident({
       incidentId: targetIncidentId,
       text,
-      inputType: replay ? "DISPATCH_TEXT" : "MANUAL_TEXT",
+      inputType: replay ? "DISPATCH_TEXT" : incidentInputType,
       occurredAt: replay?.occurredAt ?? nowIso(),
       location: {
         facilityName: replay?.facilityName ?? (facilityName || null),
@@ -752,6 +753,7 @@ export default function App() {
     setIncidentId(null);
     setLastIncidentText("");
     setInput("");
+    setIncidentInputType("MANUAL_TEXT");
     setFacilityName("");
     setAddress("");
     setResolvedIncidentAddress(null);
@@ -1106,6 +1108,9 @@ export default function App() {
         setMapContext(null);
       }
     }
+    if (!value || (!input.trim() && value.trim())) {
+      setIncidentInputType("MANUAL_TEXT");
+    }
     setInput(value);
   }
 
@@ -1255,7 +1260,14 @@ export default function App() {
                   value={input}
                   loading={loading}
                   unavailable={runtimeDataMode === "UNAVAILABLE"}
+                  speechEnabled={apiConfig.speechEnabled}
+                  incidentId={incidentId}
                   onChange={changeIncidentInput}
+                  onSpeechTranscribed={(value) => {
+                    clearPresentationReplayForManualEdit();
+                    setIncidentInputType("VOICE_TRANSCRIPT");
+                    setInput(value);
+                  }}
                   onSubmit={(value) => { void handleSubmit(value); }}
                 />
                 {loading && <p className="mt-1.5 text-[10px] text-muted-foreground">{mode === "collision" ? "신고·시설 이력·확인 게이트를 점검 중입니다…" : "물질 후보와 공식 근거를 검색 중입니다…"}</p>}

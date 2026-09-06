@@ -121,6 +121,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/c2guard/v1/incidents/{incidentId}/transcriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 사고 범위 인증 후 제한된 WAV 음성을 전사 */
+        post: operations["transcribe_incident_audio_api_c2guard_v1_incidents_incidentId_transcriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/transcriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 인증 후 신고 접수 전 제한된 WAV 음성을 전사 */
+        post: operations["transcribe_pre_incident_audio_api_c2guard_v1_transcriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1626,6 +1660,76 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        DashboardSpeechQualitySignals: {
+            avgLogProbability: number;
+            noSpeechProbability: number;
+            compressionRatio: number;
+            /** @constant */
+            calibratedCorrectnessProbability: false;
+        };
+        DashboardSpeechSegment: {
+            startSeconds: number;
+            endSeconds: number;
+            text: string;
+            qualitySignals: components["schemas"]["DashboardSpeechQualitySignals"];
+        };
+        DashboardSpeechTranscript: {
+            text: string;
+            segments: components["schemas"]["DashboardSpeechSegment"][];
+            audioSeconds: number;
+            voicedSeconds: number;
+        };
+        DashboardSpeechInput: {
+            /** @constant */
+            mediaType: "audio/wav";
+            channels: number;
+            /** @constant */
+            sampleWidthBits: 16;
+            sampleRateHz: number;
+            durationSeconds: number;
+            /** @constant */
+            audioRetained: false;
+        };
+        DashboardSpeechRuntime: {
+            serviceVersion: string;
+            model: string;
+            actualDevice: string;
+            actualComputeType: string;
+            processingSeconds: number;
+            realTimeFactor: number;
+            /** @constant */
+            hotwordsUsed: false;
+        };
+        DashboardSpeechSafetyBoundary: {
+            /** @constant */
+            uncertaintyPreserved: true;
+            /** @constant */
+            qualitySignalsAreCalibratedProbabilities: false;
+            /** @constant */
+            chemicalIdentificationPerformed: false;
+            /** @constant */
+            casConfirmationPerformed: false;
+            /** @constant */
+            riskAssessmentPerformed: false;
+            /** @constant */
+            decisionSupportOnly: true;
+        };
+        DashboardSpeechTranscriptionResponse: {
+            /** @constant */
+            schemaVersion: "chemicheck119-dashboard-bff-v1";
+            requestId: string;
+            /** @description 신고 접수 전 전사는 null이며 사고 생성 후 경로에서만 incident ID를 반환 */
+            incidentId: string | null;
+            /** @enum {string} */
+            status: "TRANSCRIBED" | "ABSTAINED_NO_TRANSCRIPT";
+            abstained: boolean;
+            /** @constant */
+            requiresResponderReview: true;
+            transcript: components["schemas"]["DashboardSpeechTranscript"];
+            input: components["schemas"]["DashboardSpeechInput"];
+            runtime: components["schemas"]["DashboardSpeechRuntime"];
+            safetyBoundary: components["schemas"]["DashboardSpeechSafetyBoundary"];
+        };
     };
     responses: never;
     parameters: never;
@@ -2140,6 +2244,222 @@ export interface operations {
                 };
             };
             /** @description Gateway Timeout (MODEL_TIMEOUT, retryable=true) */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    transcribe_incident_audio_api_c2guard_v1_incidents_incidentId_transcriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "audio/wav": string;
+                "audio/x-wav": string;
+                "audio/wave": string;
+            };
+        };
+        responses: {
+            /** @description Bounded transcription requiring responder review */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSpeechTranscriptionResponse"];
+                };
+            };
+            /** @description Audio read failure */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Forbidden incident scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description AUDIO_SIZE_OUT_OF_RANGE */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unsupported WAV media type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description INVALID_WAV or SPEECH_CONTRACT_VIOLATION */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description SPEECH_BUSY, retryable=true */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description SPEECH_SERVICE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description SPEECH_TIMEOUT, retryable=true */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    transcribe_pre_incident_audio_api_c2guard_v1_transcriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "audio/wav": string;
+                "audio/x-wav": string;
+                "audio/wave": string;
+            };
+        };
+        responses: {
+            /** @description Bounded transcription requiring responder review */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSpeechTranscriptionResponse"];
+                };
+            };
+            /** @description Audio read failure */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Forbidden incident scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description AUDIO_SIZE_OUT_OF_RANGE */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unsupported WAV media type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description INVALID_WAV or SPEECH_CONTRACT_VIOLATION */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description SPEECH_BUSY, retryable=true */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description SPEECH_SERVICE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description SPEECH_TIMEOUT, retryable=true */
             504: {
                 headers: {
                     [name: string]: unknown;

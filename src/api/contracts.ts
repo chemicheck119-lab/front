@@ -1,6 +1,6 @@
 /**
  * chemicheck119-dashboard-bff-v1 화면 사용 타입.
- * 권위 원본: BE_Repository 6fd9c927 / contracts/dashboard-bff-v1.openapi.json
+ * 권위 원본: chemicheck119-lab/back 3d0a7705 / contracts/dashboard-bff-v1.openapi.json
  * FE는 이 계약을 표시용으로만 사용하고 모델 API를 직접 호출하지 않는다.
  */
 import type { components as DashboardBffComponents } from "./generated/dashboard-bff";
@@ -9,6 +9,7 @@ type DashboardBffSchemas = DashboardBffComponents["schemas"];
 
 export type DataMode = "LIVE_API" | "CACHED_API" | "DEMO_SIMULATION" | "UNAVAILABLE";
 export type SessionContextResponse = DashboardBffSchemas["DashboardSessionContextResponse"];
+export type SpeechTranscriptionResponse = DashboardBffSchemas["DashboardSpeechTranscriptionResponse"];
 export type JourneyState = "DISPATCHED" | "EN_ROUTE" | "ARRIVED" | "ON_SCENE";
 export type AgentPhase =
   | "INCIDENT_INTAKE"

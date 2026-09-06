@@ -62,3 +62,19 @@ describe("한글 IME 입력 제출", () => {
     expect(textarea).toHaveValue("");
   });
 });
+
+describe("음성 입력 안전 경계", () => {
+  it("Speech 기능을 끄면 녹음 control을 노출하지 않는다", () => {
+    render(<MessageComposer mode="collision" value="" loading={false}
+      unavailable={false} speechEnabled={false} onChange={vi.fn()} onSubmit={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "음성 녹음 시작" })).not.toBeInTheDocument();
+  });
+
+  it("물질 검색 mode에서는 전사문이 물질 확정으로 오해되지 않도록 녹음을 숨긴다", () => {
+    render(<MessageComposer mode="substance" value="" loading={false}
+      unavailable={false} speechEnabled onChange={vi.fn()} onSubmit={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "음성 녹음 시작" })).not.toBeInTheDocument();
+  });
+});
