@@ -162,7 +162,9 @@ corepack pnpm check
 
 ### Develop staging 배포
 
-`develop` 검증본은 OpenAI Sites의 비공개 배포와 Firebase Hosting 공개 배포로 게시합니다. 현재 공모전 staging 번들은 로그인 없이 BFF에 직접 연결하고, 운영 연결 실패를 fixture로 자동 대체하지 않습니다.
+`develop` 검증본은 OpenAI Sites의 비공개 배포와 Firebase Hosting 공개 배포로 게시합니다.
+현재 공모전 staging 번들은 소방서 선택 후 발급되는 제한 파일럿 서명 세션으로 BFF에
+연결하고, 운영 연결 실패를 fixture로 자동 대체하지 않습니다.
 
 ```bash
 corepack pnpm build:sites:staging
@@ -170,7 +172,10 @@ corepack pnpm build:sites:staging
 
 배포 패키지는 정적 SPA fallback과 보안 응답 헤더를 제공하는 Worker를 포함합니다. Sites 프로젝트 식별자만 `.openai/hosting.json`에 보관하고 비밀값은 저장소에 기록하지 않습니다.
 
-팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run 서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. 현재 두 배포는 인증 미사용 staging 번들을 사용하며, 공개 물질검색·사고분석은 BFF·AI Live 경로를 호출합니다.
+팀 통합 배포는 BE staging과 같은 GCP 프로젝트 `chemi-check`를 사용합니다. 공개 develop
+origin은 Firebase Hosting에 연결한 `https://chemicheck119.site`이며, 서울 리전의 Cloud Run
+서비스 `chemicheck119-fe-develop`은 예비 주소로 유지합니다. staging 번들은 인증을
+활성화하며 물질검색·사고분석·음성 전사는 서명 세션을 거쳐 BFF의 Live 경로를 호출합니다.
 
 ## 데이터 의미와 안전 경계
 
@@ -183,10 +188,13 @@ corepack pnpm build:sites:staging
 
 ## 알려진 한계
 
-- 실제 배포 AI 서버와 API Key를 사용한 공개 물질검색·사고분석 Live E2E는 검증됐지만, 기관 사용자·지령 시스템 연계는 아직 없습니다.
-- 음성 녹음·전사 UX와 FE→BE 계약은 구현했지만 실제 Pad microphone, private Speech Cloud Run,
+- 배포된 AI 서버와 API Key를 사용한 물질검색·사고분석 Live E2E는 제한 파일럿 서명
+  세션에서 검증됐지만, 기관 사용자·지령 시스템 연계는 아직 없습니다.
+- 음성 녹음·전사 UX와 FE→BE→private Speech Cloud Run 연결은 구현했습니다. AIHub 광주
+  신고 Validation 30.16초 1건의 개발용 smoke와 요청 경계만 확인했으며 실제 Pad microphone,
   현장 무전 정확도와 사용자 효과는 검증하지 않았습니다.
-- 현재 공모전 staging은 공개 물질검색·사고분석과 replay incident의 고정 합성 confirmation만 인증 없이 허용하며 운영 confirmation·movement·record는 보호됩니다.
+- 현재 공모전 staging은 공개 무인 API를 허용하지 않습니다. 발급된 제한 파일럿 서명
+  세션 안에서 고정 합성 replay·confirmation과 보호된 analysis·movement·record를 사용합니다.
 - Cloud SQL 영속화는 배포됐지만 보호된 confirmation·movement·record 전체 E2E와 실제 길찾기 Provider는 아직 운영 연동 전입니다.
 - 저장소의 기존 로고 이미지에는 `케미가드` 표기가 남아 있습니다. 서비스 표시명 확정 후 별도 디자인 자산 교체가 필요합니다.
 
@@ -196,6 +204,6 @@ corepack pnpm build:sites:staging
 - 실제 로그인 방식: SSO, 인증 Gateway, 별도 로그인 API
 - 새로고침·장시간 방치·명시적 로그아웃 시 사고 화면 보존·민감정보 제거 정책
 - 표시명과 분리된 안정적인 `stationId`
-- movement·record는 현재 `준비 중`으로 표시하며, BE 배포 확인 후 환경별 기능 플래그 활성화
+- 파일럿 이후 movement·record의 운영 보존기간·복구·감사 정책
 
 팀·인프라 결정과 임시 개발값은 [팀·인프라 결정 목록](./docs/TEAM_INFRA_DECISIONS.md)에서 관리합니다.
