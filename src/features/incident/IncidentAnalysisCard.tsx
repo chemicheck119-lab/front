@@ -9,6 +9,9 @@ interface IncidentAnalysisCardProps {
   analysis: IncidentAnalysisResponse | null;
   onConfirm: (role: "INCIDENT" | "FACILITY", casNumber: string, displayName: string) => void;
   confirmingRole: "INCIDENT" | "FACILITY" | null;
+  onCancel?: (role: "INCIDENT" | "FACILITY", confirmationId: string) => void;
+  activeConfirmationIds?: Partial<Record<"INCIDENT" | "FACILITY", string>>;
+  cancellingRole?: "INCIDENT" | "FACILITY" | null;
   confirmationMode?: "FIELD" | "PUBLIC_SYNTHETIC";
 }
 
@@ -101,7 +104,15 @@ function ConfirmationWorkflow({ analysis, confirmationMode }: {
   );
 }
 
-export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole, confirmationMode = "FIELD" }: IncidentAnalysisCardProps) {
+export function IncidentAnalysisCard({
+  analysis,
+  onConfirm,
+  confirmingRole,
+  onCancel,
+  activeConfirmationIds = {},
+  cancellingRole = null,
+  confirmationMode = "FIELD",
+}: IncidentAnalysisCardProps) {
   if (!analysis) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-secondary/40 p-4 text-center">
@@ -170,12 +181,34 @@ export function IncidentAnalysisCard({ analysis, onConfirm, confirmingRole, conf
             <p className="mt-1 truncate text-[11px] font-bold">{incidentCandidate?.surfaceText ?? "후보 없음"}</p>
             <p className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">{incidentCandidate?.candidates[0]?.casNumber ? `CAS ${incidentCandidate.candidates[0].casNumber}` : "라벨 확인 필요"}</p>
             <p className="mt-1 text-[9px] font-bold">{analysis.confirmationGate.incidentConfirmed ? (confirmationMode === "PUBLIC_SYNTHETIC" ? "✓ 합성 확인 완료" : "✓ 현장 확인됨") : "확인 필요"}</p>
+            {confirmationMode === "FIELD" && analysis.confirmationGate.incidentConfirmed && activeConfirmationIds.INCIDENT && onCancel && (
+              <button
+                type="button"
+                data-testid="cancel-INCIDENT"
+                disabled={confirmingRole !== null || cancellingRole !== null}
+                onClick={() => onCancel("INCIDENT", activeConfirmationIds.INCIDENT!)}
+                className="mt-2 min-h-8 rounded-md border border-border bg-card px-2 text-[9px] font-bold disabled:opacity-50"
+              >
+                {cancellingRole === "INCIDENT" ? "취소 중…" : "확인 취소"}
+              </button>
+            )}
           </div>
           <div className={`rounded-lg border p-2.5 ${analysis.confirmationGate.facilityConfirmed ? "border-emerald-500/30 bg-emerald-500/10" : "border-amber-500/30 bg-amber-500/10"}`}>
             <p className="text-[9px] font-bold text-muted-foreground">시설물질</p>
             <p className="mt-1 truncate text-[11px] font-bold">{facilityCandidate?.surfaceText ?? "현재 존재 미확인"}</p>
             <p className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">{facilityCandidate?.candidates[0]?.casNumber ? `CAS ${facilityCandidate.candidates[0].casNumber}` : "현장 확인 필요"}</p>
             <p className="mt-1 text-[9px] font-bold">{analysis.confirmationGate.facilityConfirmed ? (confirmationMode === "PUBLIC_SYNTHETIC" ? "✓ 합성 확인 완료" : "✓ 현장 확인됨") : "확인 필요"}</p>
+            {confirmationMode === "FIELD" && analysis.confirmationGate.facilityConfirmed && activeConfirmationIds.FACILITY && onCancel && (
+              <button
+                type="button"
+                data-testid="cancel-FACILITY"
+                disabled={confirmingRole !== null || cancellingRole !== null}
+                onClick={() => onCancel("FACILITY", activeConfirmationIds.FACILITY!)}
+                className="mt-2 min-h-8 rounded-md border border-border bg-card px-2 text-[9px] font-bold disabled:opacity-50"
+              >
+                {cancellingRole === "FACILITY" ? "취소 중…" : "확인 취소"}
+              </button>
+            )}
           </div>
           <div className={`rounded-lg border p-2.5 ${completed ? completed.riskLevel === "HIGH" ? "border-primary/40 bg-primary/10" : "border-emerald-500/30 bg-emerald-500/10" : "border-border bg-muted/55"}`}>
             <p className="text-[9px] font-bold text-muted-foreground">충돌 위험</p>

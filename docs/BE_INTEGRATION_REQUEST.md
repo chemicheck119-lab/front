@@ -253,6 +253,11 @@ BE `develop`에는 세션·로그아웃·사고 분석·물질 검색·현장 �
 
 FE는 성공 응답의 `reanalyzeRequired=true`를 받으면 동일한 `incidentId`와 기존 신고문으로 사고 분석을 다시 호출합니다. 현재 구현은 BE 계약과 일치합니다.
 
+확인 취소는 `DELETE /api/c2guard/v1/incidents/{incidentId}/confirmations/{role}/{confirmationId}`를
+사용합니다. FE는 로컬에서 보관한 현재 활성 ID만 보내며, 성공 즉시 과거 analysis와 위험 표시를
+제거한 뒤 재분석합니다. BE는 exact active ID가 아니면 409로 거부하고 삭제 대신 `CANCELLED`와
+별도 감사 이벤트를 남깁니다. 구현·내부 PostgreSQL 회귀는 완료됐지만 staging 배포 검증은 아직입니다.
+
 오류 처리: 다른 사고·중복·권한 오류를 구조화하고, 실패 시 FE는 확인된 것으로 표시하지 않습니다.
 
 담당자 체크리스트:
@@ -260,6 +265,7 @@ FE는 성공 응답의 `reanalyzeRequired=true`를 받으면 동일한 `incident
 - [ ] 인증 사용자·사고·역할·CAS·근거·서버 시각 저장
 - [ ] 사진/문서 진위를 모델이 보증한 것으로 기록하지 않음
 - [ ] 확인 성공 후 재분석에서 저장 레코드 사용
+- [ ] 확인 취소 후 이전 충돌 결과를 숨기고 2-CAS Gate 재잠금
 
 ## 5. 전체 대응 기록 저장
 

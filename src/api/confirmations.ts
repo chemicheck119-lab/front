@@ -1,6 +1,10 @@
 import { apiConfig } from "./config";
 import { apiRequest } from "./client";
-import type { ConfirmationRequest, ConfirmationResponse } from "./contracts";
+import type {
+  ConfirmationCancellationResponse,
+  ConfirmationRequest,
+  ConfirmationResponse,
+} from "./contracts";
 import { makeDemoConfirmation } from "../fixtures/demo";
 
 export async function confirmSubstance(incidentId: string, payload: ConfirmationRequest, signal?: AbortSignal): Promise<ConfirmationResponse> {
@@ -10,4 +14,16 @@ export async function confirmSubstance(incidentId: string, payload: Confirmation
     body: JSON.stringify(payload),
     signal,
   });
+}
+
+export async function cancelConfirmation(
+  incidentId: string,
+  role: ConfirmationRequest["role"],
+  confirmationId: string,
+  signal?: AbortSignal,
+): Promise<ConfirmationCancellationResponse> {
+  return apiRequest<ConfirmationCancellationResponse>(
+    `/api/c2guard/v1/incidents/${encodeURIComponent(incidentId)}/confirmations/${role}/${encodeURIComponent(confirmationId)}`,
+    { method: "DELETE", signal },
+  );
 }
