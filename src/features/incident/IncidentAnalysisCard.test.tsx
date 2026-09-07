@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDemoAnalysis, makeDemoConfirmation, resetDemoSession } from "../../fixtures/demo";
 import { IncidentAnalysisCard } from "./IncidentAnalysisCard";
@@ -59,15 +59,40 @@ describe("사고 분석 현장 확인 흐름", () => {
     expect(completedResult.compareDocumentPosition(candidateDetails) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("실제 활성 confirmation ID가 있을 때만 정확한 역할과 ID로 취소를 요청한다", () => {
+    makeDemoConfirmation("INCIDENT", "7681-52-9");
+    makeDemoConfirmation("FACILITY", "7647-01-0");
+    const onCancel = vi.fn();
+    render(
+      <IncidentAnalysisCard
+        analysis={getDemoAnalysis()}
+        onConfirm={vi.fn()}
+        confirmingRole={null}
+        onCancel={onCancel}
+        activeConfirmationIds={{
+          INCIDENT: "CFM-INCIDENT-1",
+          FACILITY: "CFM-FACILITY-1",
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("cancel-FACILITY"));
+
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onCancel).toHaveBeenCalledWith("FACILITY", "CFM-FACILITY-1");
+  });
+
   it("공개 합성 시연 확인을 실제 현장 확인으로 표시하지 않는다", () => {
     makeDemoConfirmation("INCIDENT", "7681-52-9");
     makeDemoConfirmation("FACILITY", "7647-01-0");
-    render(<IncidentAnalysisCard analysis={getDemoAnalysis()} onConfirm={vi.fn()} confirmingRole={null} confirmationMode="PUBLIC_SYNTHETIC" />);
+    render(<IncidentAnalysisCard analysis={getDemoAnalysis()} onConfirm={vi.fn()} confirmingRole={null} activeConfirmationIds={{ INCIDENT: "CFM-1", FACILITY: "CFM-2" }} confirmationMode="PUBLIC_SYNTHETIC" />);
 
     expect(screen.getByRole("region", { name: "현장 확인 3단계" })).toHaveTextContent("공개 합성 확인 게이트");
     expect(screen.getByRole("region", { name: "현장 확인 3단계" })).toHaveTextContent("필수 CAS 2/2 합성 확인");
     expect(screen.getAllByText("합성 확인 완료").length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText("현장 확인됨")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("cancel-INCIDENT")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("cancel-FACILITY")).not.toBeInTheDocument();
   });
 
   it("공개 합성 시연의 잠금 안내와 다음 행동을 운영 현장 기록처럼 표현하지 않는다", () => {

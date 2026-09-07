@@ -24,7 +24,7 @@ import {
 import { analyzeIncident } from "../api/incidents";
 import { updateMovement } from "../api/movement";
 import { discoverSubstances } from "../api/substances";
-import { confirmSubstance } from "../api/confirmations";
+import { cancelConfirmation, confirmSubstance } from "../api/confirmations";
 import { saveIncidentRecord, shouldResetAfterSave } from "../api/records";
 import { ApiError, toUserFacingError, userFacingError, type UserFacingErrorInfo } from "../api/client";
 import type {
@@ -87,6 +87,11 @@ interface ConfirmationTarget {
   role: "INCIDENT" | "FACILITY";
   casNumber: string;
   displayName: string;
+}
+
+interface ConfirmationCancellationTarget {
+  role: ConfirmationTarget["role"];
+  confirmationId: string;
 }
 
 const CONFIRMATION_OPTIONS: Array<{ value: ConfirmationRequest["confirmationBasis"]; label: string }> = [
@@ -264,7 +269,10 @@ export default function App() {
   const [materialResult, setMaterialResult] = useState<MaterialDiscoveryResponse | null>(null);
   const [messages, setMessages] = useState<Message[]>([makeMessage("SYSTEM", "신고 내용을 입력하면 현장대응 절차를 시작합니다.")]);
   const [analysisIds, setAnalysisIds] = useState<string[]>([]);
-  const [confirmationIds, setConfirmationIds] = useState<string[]>([]);
+  const [confirmationIdsByRole, setConfirmationIdsByRole] = useState<
+    Partial<Record<ConfirmationTarget["role"], string>>
+  >({});
+  const confirmationIds = Object.values(confirmationIdsByRole);
   const [conversationStartedAt, setConversationStartedAt] = useState(nowIso());
   const [incidentId, setIncidentId] = useState<string | null>(null);
   const [lastIncidentText, setLastIncidentText] = useState("");
@@ -285,6 +293,8 @@ export default function App() {
   const [confirmationBasis, setConfirmationBasis] = useState<ConfirmationRequest["confirmationBasis"]>("CONTAINER_LABEL");
   const [confirmationObservedAt, setConfirmationObservedAt] = useState(() => toConfirmationDateTimeInput());
   const [confirmingRole, setConfirmingRole] = useState<"INCIDENT" | "FACILITY" | null>(null);
+  const [cancellationTarget, setCancellationTarget] = useState<ConfirmationCancellationTarget | null>(null);
+  const [cancellingRole, setCancellingRole] = useState<ConfirmationTarget["role"] | null>(null);
   const [nowMs, setNowMs] = useState(Date.now());
   const movementSequence = useRef(0);
   const lastMovementSentAt = useRef(0);
@@ -708,7 +718,10 @@ export default function App() {
           }, operation.controller.signal);
       if (!isCurrentOperation(operation.generation)) return;
       setSessionExpired(null);
-      setConfirmationIds((previous) => previous.includes(response.confirmationId) ? previous : [...previous, response.confirmationId]);
+      setConfirmationIdsByRole((previous) => ({
+        ...previous,
+        [response.role]: response.confirmationId,
+      }));
       setMessages((previous) => [...previous, makeMessage(
         "SYSTEM",
         presentationReplay
@@ -736,6 +749,45 @@ export default function App() {
     setConfirmationTarget(target);
   }
 
+  async function handleCancelConfirmation() {
+    if (!cancellationTarget || !incidentId || cancellingRole || presentationReplay) return;
+    const operation = beginOperation();
+    setCancellingRole(cancellationTarget.role);
+    setError(null);
+    try {
+      const response = await cancelConfirmation(
+        incidentId,
+        cancellationTarget.role,
+        cancellationTarget.confirmationId,
+        operation.controller.signal,
+      );
+      if (!isCurrentOperation(operation.generation)) return;
+      setSessionExpired(null);
+      setConfirmationIdsByRole((previous) => {
+        const next = { ...previous };
+        delete next[response.role];
+        return next;
+      });
+      setAnalysis(null);
+      setAnalysisIds([]);
+      setMessages((previous) => [...previous, makeMessage(
+        "SYSTEM",
+        `${response.role === "INCIDENT" ? "사고물질" : "시설물질"} 현장 확인을 취소했습니다. 이전 충돌 결과를 숨기고 다시 분석합니다.`,
+      )]);
+      setCancellationTarget(null);
+      if (response.reanalyzeRequired && lastIncidentText) {
+        await runAnalysis(lastIncidentText, false);
+      }
+    } catch (caught) {
+      if (!isCurrentOperation(operation.generation) || operation.controller.signal.aborted) return;
+      const issue = captureRequestIssue(caught);
+      setError(issue.kind === "SESSION_EXPIRED" ? null : issue);
+    } finally {
+      finishOperation(operation.controller);
+      if (isCurrentOperation(operation.generation)) setCancellingRole(null);
+    }
+  }
+
   function resetSession() {
     cancelActiveOperations();
     if (recordResetTimer.current !== null) {
@@ -748,7 +800,7 @@ export default function App() {
     setMaterialResult(null);
     setMessages([makeMessage("SYSTEM", "새 사고 신고 내용을 입력해주세요.")]);
     setAnalysisIds([]);
-    setConfirmationIds([]);
+    setConfirmationIdsByRole({});
     setConversationStartedAt(nowIso());
     setIncidentId(null);
     setLastIncidentText("");
@@ -1009,8 +1061,10 @@ export default function App() {
         envelope.incidentId, "INCIDENT", operation.controller.signal,
       );
       if (!isCurrentOperation(operation.generation)) return;
-      setConfirmationIds((previous) => previous.includes(incidentConfirmation.confirmationId)
-        ? previous : [...previous, incidentConfirmation.confirmationId]);
+      setConfirmationIdsByRole((previous) => ({
+        ...previous,
+        INCIDENT: incidentConfirmation.confirmationId,
+      }));
       setMessages((previous) => [...previous, makeMessage(
         "SYSTEM",
         `합성 사고물질 확인 1/2 · ${incidentConfirmation.displayName}(${incidentConfirmation.casNumber}). ${incidentConfirmation.disclosure}`,
@@ -1037,8 +1091,10 @@ export default function App() {
         envelope.incidentId, "FACILITY", operation.controller.signal,
       );
       if (!isCurrentOperation(operation.generation)) return;
-      setConfirmationIds((previous) => previous.includes(facilityConfirmation.confirmationId)
-        ? previous : [...previous, facilityConfirmation.confirmationId]);
+      setConfirmationIdsByRole((previous) => ({
+        ...previous,
+        FACILITY: facilityConfirmation.confirmationId,
+      }));
       setMessages((previous) => [...previous, makeMessage(
         "SYSTEM",
         `합성 시설물질 확인 2/2 · ${facilityConfirmation.displayName}(${facilityConfirmation.casNumber}). ${facilityConfirmation.disclosure}`,
@@ -1248,7 +1304,15 @@ export default function App() {
                 {mode === "collision" ? (
                   <>
                     {(loading || analysis?.agent) && <AgentPanel agent={analysis?.agent} loading={loading} syntheticMode={syntheticScenario} />}
-                    <IncidentAnalysisCard analysis={analysis} onConfirm={(role, casNumber, displayName) => openConfirmation({ role, casNumber, displayName })} confirmingRole={confirmingRole} confirmationMode={syntheticScenario ? "PUBLIC_SYNTHETIC" : "FIELD"} />
+                    <IncidentAnalysisCard
+                      analysis={analysis}
+                      onConfirm={(role, casNumber, displayName) => openConfirmation({ role, casNumber, displayName })}
+                      confirmingRole={confirmingRole}
+                      onCancel={(role, confirmationId) => setCancellationTarget({ role, confirmationId })}
+                      activeConfirmationIds={confirmationIdsByRole}
+                      cancellingRole={cancellingRole}
+                      confirmationMode={syntheticScenario ? "PUBLIC_SYNTHETIC" : "FIELD"}
+                    />
                     {messages.length > 1 && <details className="rounded-xl border border-border bg-secondary/30"><summary className="cursor-pointer px-3 py-2.5 text-[11px] font-semibold">대화·상태 기록 {messages.length}건</summary><div className="space-y-2 border-t border-border p-3">{messages.slice(-6).map((message) => <div key={message.messageId} className={`rounded-lg p-2 text-[10px] leading-relaxed ${message.role === "USER" ? "ml-8 bg-primary/10" : "mr-8 bg-card border border-border"}`}><p className="font-semibold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "에이전트" : "시스템"}</p><p className="mt-0.5">{message.text}</p></div>)}</div></details>}
                   </>
                 ) : <SubstanceResults result={materialResult} incidentAvailable={Boolean(incidentId)} onUseCandidate={(candidate) => openConfirmation({ role: "INCIDENT", casNumber: candidate.casNumber, displayName: candidate.displayName })} />}
@@ -1301,6 +1365,40 @@ export default function App() {
             <p className="rounded-xl bg-accent/10 p-3 text-[11px] leading-relaxed text-accent">{presentationReplay ? "고정된 공개 합성 시나리오 확인을 적용하고 서버 재분석을 실행합니다. 실제 대원 확인·운영 기록·기관 지령이 아닙니다." : "이 작업은 AI 후보 승인이 아니라 현장 확인 레코드 생성입니다. 직접 확인한 근거와 시각만 기록해주세요."}</p>
             {error && <ErrorNotice error={error} />}
             <div className="flex gap-2"><button onClick={() => setConfirmationTarget(null)} disabled={Boolean(confirmingRole)} className="min-h-11 flex-1 rounded-xl border border-border font-semibold">취소</button><button onClick={() => void handleConfirm()} disabled={Boolean(confirmingRole) || (!presentationReplay && !confirmationDateTimeToIso(confirmationObservedAt))} className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50">{confirmingRole ? "적용 중…" : presentationReplay ? "합성 확인 적용 후 재분석" : "현장 확인 기록 저장"}</button></div>
+          </div>
+        </DialogShell>
+      )}
+
+      {cancellationTarget && (
+        <DialogShell title="현장 확인 취소" onClose={() => !cancellingRole && setCancellationTarget(null)}>
+          <div className="space-y-4 p-5">
+            <p className="text-sm leading-relaxed">
+              {cancellationTarget.role === "INCIDENT" ? "사고물질" : "시설물질"} 확인을 취소하면
+              현재 충돌 결과를 즉시 숨기고, 해당 CAS가 없는 상태로 다시 분석합니다.
+            </p>
+            <p className="rounded-xl bg-accent/10 p-3 text-[11px] leading-relaxed text-accent">
+              확인 기록은 삭제되지 않고 취소 사용자·시각과 함께 감사 이력으로 보존됩니다.
+              다시 확인하기 전까지 Rule Engine은 잠깁니다.
+            </p>
+            {error && <ErrorNotice error={error} />}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCancellationTarget(null)}
+                disabled={Boolean(cancellingRole)}
+                className="min-h-11 flex-1 rounded-xl border border-border font-semibold disabled:opacity-50"
+              >
+                유지
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCancelConfirmation()}
+                disabled={Boolean(cancellingRole)}
+                className="min-h-11 flex-1 rounded-xl bg-primary font-semibold text-white disabled:opacity-50"
+              >
+                {cancellingRole ? "취소 기록 중…" : "확인 취소 후 재분석"}
+              </button>
+            </div>
           </div>
         </DialogShell>
       )}

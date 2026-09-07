@@ -70,6 +70,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/c2guard/v1/incidents/{incidentId}/confirmations/{role}/{confirmationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 활성 현장 물질 확인 취소와 감사 이력 생성 */
+        delete: operations["cancel_confirmation_api_c2guard_v1_incidents__incidentId__confirmations__role___confirmationId__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/c2guard/v1/incidents/{incidentId}/movement": {
         parameters: {
             query?: never;
@@ -576,6 +593,43 @@ export interface components {
              * @constant
              */
             schemaVersion: "chemicheck119-dashboard-bff-v1";
+        };
+        /** DashboardConfirmationCancellationResponse */
+        DashboardConfirmationCancellationResponse: {
+            /**
+             * Cancelledat
+             * Format: date-time
+             */
+            cancelledAt: string;
+            /** Confirmationid */
+            confirmationId: string;
+            /** Incidentid */
+            incidentId: string;
+            /**
+             * Reanalyzerequired
+             * @default true
+             * @constant
+             */
+            reanalyzeRequired: true;
+            /** Requestid */
+            requestId: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "INCIDENT" | "FACILITY";
+            /**
+             * Schemaversion
+             * @default chemicheck119-dashboard-bff-v1
+             * @constant
+             */
+            schemaVersion: "chemicheck119-dashboard-bff-v1";
+            /**
+             * Status
+             * @default CANCELLED
+             * @constant
+             */
+            status: "CANCELLED";
         };
         /** DashboardConversationMessage */
         DashboardConversationMessage: {
@@ -1971,6 +2025,75 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    cancel_confirmation_api_c2guard_v1_incidents__incidentId__confirmations__role___confirmationId__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidentId: string;
+                role: "INCIDENT" | "FACILITY";
+                confirmationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardConfirmationCancellationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

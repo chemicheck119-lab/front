@@ -21,6 +21,7 @@ const expectedOperations = [
   ["/api/c2guard/v1/transcriptions", "post"],
   ["/api/c2guard/v1/incidents/analyze", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/confirmations", "post"],
+  ["/api/c2guard/v1/incidents/{incidentId}/confirmations/{role}/{confirmationId}", "delete"],
   ["/api/c2guard/v1/incidents/{incidentId}/movement", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/record", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/transcriptions", "post"],
