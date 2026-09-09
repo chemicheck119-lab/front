@@ -17,7 +17,7 @@
 | 기록 저장 | 운영 연동 대기·공개 데모 QA 가능 | 공개 합성 데모는 서버 저장 대신 감사 ID가 포함된 JSON을 로컬로 내보냄 |
 | 음성 전사 | 부분 구현 또는 개발용 데모 | 인증 환경에서 microphone/PCM WAV를 BFF로 전송하고 편집 가능한 검토 초안만 생성 |
 | 좌측 현장 도구 | UI·화면 상태 연동 완료 | 상황실 연결 확인, CAS 공식자료, 미저장 현재 기록 |
-| 실제 BE/BFF | 10개 operation 계약 동기화 | `develop@e959a25b` 기준 확인 취소를 포함한 인증 BFF 계약 |
+| 실제 BE/BFF | 10개 operation 계약 동기화 | `develop@b982674e` 기준 확인 취소·Speech provenance를 포함한 인증 BFF 계약 |
 | BFF 계약 드리프트 | 자동 검증 | 고정 OpenAPI 해시·10개 operation·세션/Speech 안전 경계·생성 타입을 `pnpm check`에서 검증 |
 | 실제 길찾기 | 미연동 | movement 구현과 서버측 길찾기 Provider 설정 필요 |
 | 시연 모드 | 구현 완료 | 모든 화면에 `오프라인 시연` 배지를 고정 표시 |
@@ -104,7 +104,7 @@ BFF 요청은 `VITE_ENABLE_AUTH=true`인 환경에서만 인증 세션 쿠키를
 
 ## BFF 경로
 
-권위 기준은 BE `develop@e959a25b`입니다. 모든 요청은 `VITE_BFF_BASE_URL`을 사용하며 인증 쿠키는 인증 기능이 활성화된 환경에서만 포함합니다.
+권위 기준은 BE `develop@b982674e`입니다. 모든 요청은 `VITE_BFF_BASE_URL`을 사용하며 인증 쿠키는 인증 기능이 활성화된 환경에서만 포함합니다.
 
 동일 커밋의 OpenAPI 원본과 생성 타입을 저장소에 고정했습니다. 갱신 절차는 [BFF 계약 동기화](./contracts/README.md), 출처 메타데이터는 [dashboard-bff-v1.source.json](./contracts/dashboard-bff-v1.source.json)을 참고합니다.
 

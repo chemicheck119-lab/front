@@ -189,6 +189,19 @@ describe("인증된 음성 전사 client", () => {
       .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
   });
 
+  it("새 provenance 필드가 일부만 존재하는 응답은 legacy로 취급하지 않는다", () => {
+    const invalid = response({
+      runtime: { ...response().runtime, modelArtifactVerified: false },
+    });
+    const runtime = invalid.runtime as unknown as Record<string, unknown>;
+    delete runtime.modelRepository;
+    delete runtime.modelRevision;
+    delete runtime.modelBinSha256;
+
+    expect(() => assertSafeTranscription(invalid))
+      .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+  });
+
   it("파일 크기와 형식을 추론 요청 전에 검사한다", () => {
     expect(() => validateWavUpload(new Blob([], { type: "audio/wav" })))
       .toThrowError(expect.objectContaining({ kind: "VALIDATION" }));

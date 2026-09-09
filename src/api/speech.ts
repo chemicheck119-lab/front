@@ -19,22 +19,31 @@ export function assertSafeTranscription(
   response: SpeechTranscriptionResponse,
 ): SpeechTranscriptionResponse {
   const rawRuntime = response.runtime as unknown as Record<string, unknown>;
-  const hasModelArtifactVerified = Object.prototype.hasOwnProperty.call(
-    rawRuntime,
+  const provenanceFields = [
+    "serviceGitCommit",
+    "modelRepository",
+    "modelRevision",
+    "modelBinSha256",
     "modelArtifactVerified",
-  );
+  ] as const;
+  const provenancePresence = provenanceFields.map((field) => (
+    Object.prototype.hasOwnProperty.call(rawRuntime, field)
+  ));
+  const legacyProvenanceShape = provenancePresence.every((present) => !present);
+  const currentProvenanceShape = provenancePresence.every(Boolean);
   const runtime = {
     ...response.runtime,
     serviceGitCommit: response.runtime.serviceGitCommit ?? null,
     modelRepository: response.runtime.modelRepository ?? null,
     modelRevision: response.runtime.modelRevision ?? null,
     modelBinSha256: response.runtime.modelBinSha256 ?? null,
-    modelArtifactVerified: hasModelArtifactVerified
+    modelArtifactVerified: currentProvenanceShape
       ? response.runtime.modelArtifactVerified
       : false,
   };
-  const verificationFlagValid = !hasModelArtifactVerified
-    || typeof rawRuntime.modelArtifactVerified === "boolean";
+  const verificationFlagValid = legacyProvenanceShape
+    || (currentProvenanceShape
+      && typeof rawRuntime.modelArtifactVerified === "boolean");
   const gitCommitValid = runtime.serviceGitCommit === null
     || (typeof runtime.serviceGitCommit === "string"
       && /^[0-9a-f]{40}$/.test(runtime.serviceGitCommit));
@@ -47,7 +56,8 @@ export function assertSafeTranscription(
   const noModelProvenance = runtime.modelRepository === null
     && runtime.modelRevision === null
     && runtime.modelBinSha256 === null;
-  const provenanceConsistent = verificationFlagValid
+  const provenanceConsistent = (legacyProvenanceShape || currentProvenanceShape)
+    && verificationFlagValid
     && gitCommitValid
     && ((runtime.modelArtifactVerified === true && completeModelProvenance)
       || (runtime.modelArtifactVerified === false && noModelProvenance));
