@@ -18,6 +18,27 @@ export function validateWavUpload(audio: Blob) {
 export function assertSafeTranscription(
   response: SpeechTranscriptionResponse,
 ): SpeechTranscriptionResponse {
+  const runtime = {
+    ...response.runtime,
+    serviceGitCommit: response.runtime.serviceGitCommit ?? null,
+    modelRepository: response.runtime.modelRepository ?? null,
+    modelRevision: response.runtime.modelRevision ?? null,
+    modelBinSha256: response.runtime.modelBinSha256 ?? null,
+    modelArtifactVerified: response.runtime.modelArtifactVerified ?? false,
+  };
+  const gitCommitValid = runtime.serviceGitCommit === null
+    || /^[0-9a-f]{40}$/.test(runtime.serviceGitCommit);
+  const completeModelProvenance = runtime.modelRepository !== null
+    && /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(runtime.modelRepository)
+    && runtime.modelRevision !== null
+    && /^[0-9a-f]{40}$/.test(runtime.modelRevision)
+    && runtime.modelBinSha256 !== null
+    && /^[0-9a-f]{64}$/.test(runtime.modelBinSha256);
+  const noModelProvenance = runtime.modelRepository === null
+    && runtime.modelRevision === null
+    && runtime.modelBinSha256 === null;
+  const provenanceConsistent = gitCommitValid
+    && (runtime.modelArtifactVerified ? completeModelProvenance : noModelProvenance);
   const safe = response.schemaVersion === "chemicheck119-dashboard-bff-v1"
     && response.requiresResponderReview === true
     && response.input.audioRetained === false
@@ -27,7 +48,8 @@ export function assertSafeTranscription(
     && response.safetyBoundary.chemicalIdentificationPerformed === false
     && response.safetyBoundary.casConfirmationPerformed === false
     && response.safetyBoundary.riskAssessmentPerformed === false
-    && response.safetyBoundary.decisionSupportOnly === true;
+    && response.safetyBoundary.decisionSupportOnly === true
+    && provenanceConsistent;
   const stateConsistent = response.status === "TRANSCRIBED"
     ? !response.abstained && response.transcript.text.trim().length > 0
     : response.status === "ABSTAINED_NO_TRANSCRIPT"
@@ -40,7 +62,7 @@ export function assertSafeTranscription(
       false,
     );
   }
-  return response;
+  return { ...response, runtime };
 }
 
 export async function transcribeIncidentAudio(

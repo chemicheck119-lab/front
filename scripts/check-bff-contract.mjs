@@ -72,6 +72,12 @@ const speechSafety = contract.components?.schemas?.DashboardSpeechSafetyBoundary
 for (const field of ["chemicalIdentificationPerformed", "casConfirmationPerformed", "riskAssessmentPerformed"]) {
   assertContract(speechSafety?.[field]?.const === false, `전사 응답의 ${field}는 false여야 합니다.`);
 }
+const speechRuntime = contract.components?.schemas?.DashboardSpeechRuntime;
+const speechRuntimeRequired = new Set(speechRuntime?.required ?? []);
+for (const field of ["serviceGitCommit", "modelRepository", "modelRevision", "modelBinSha256", "modelArtifactVerified"]) {
+  assertContract(speechRuntimeRequired.has(field), `DashboardSpeechRuntime.${field}가 필수가 아닙니다.`);
+}
+assertContract(speechRuntime?.properties?.modelArtifactVerified?.type === "boolean", "modelArtifactVerified는 boolean이어야 합니다.");
 
 const sessionScheme = contract.components?.securitySchemes?.ServiceSession;
 assertContract(sessionScheme?.type === "apiKey" && sessionScheme?.in === "cookie", "ServiceSession은 HttpOnly 세션 쿠키 계약이어야 합니다.");

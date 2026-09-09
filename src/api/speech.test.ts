@@ -34,7 +34,12 @@ function response(overrides: Partial<SpeechTranscriptionResponse> = {}): SpeechT
     },
     runtime: {
       serviceVersion: "0.1.0",
+      serviceGitCommit: "7".repeat(40),
       model: "faster-whisper-small",
+      modelRepository: "Systran/faster-whisper-small",
+      modelRevision: "5".repeat(40),
+      modelBinSha256: "6".repeat(64),
+      modelArtifactVerified: true,
       actualDevice: "cpu",
       actualComputeType: "int8",
       processingSeconds: 0.2,
@@ -134,6 +139,32 @@ describe("인증된 음성 전사 client", () => {
 
     expect(() => assertSafeTranscription(response({
       input: { ...response().input, audioRetained: true as false },
+    }))).toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+  });
+
+  it("모델 provenance의 legacy 누락은 미검증으로 정규화하고 모순은 차단한다", () => {
+    const legacy = response();
+    const legacyRuntime = legacy.runtime as unknown as Record<string, unknown>;
+    delete legacyRuntime.serviceGitCommit;
+    delete legacyRuntime.modelRepository;
+    delete legacyRuntime.modelRevision;
+    delete legacyRuntime.modelBinSha256;
+    delete legacyRuntime.modelArtifactVerified;
+
+    const normalized = assertSafeTranscription(legacy);
+    expect(normalized.runtime).toMatchObject({
+      serviceGitCommit: null,
+      modelRepository: null,
+      modelRevision: null,
+      modelBinSha256: null,
+      modelArtifactVerified: false,
+    });
+
+    expect(() => assertSafeTranscription(response({
+      runtime: { ...response().runtime, modelArtifactVerified: false },
+    }))).toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+    expect(() => assertSafeTranscription(response({
+      runtime: { ...response().runtime, modelBinSha256: "not-a-sha256" },
     }))).toThrowError(expect.objectContaining({ kind: "SAFETY" }));
   });
 

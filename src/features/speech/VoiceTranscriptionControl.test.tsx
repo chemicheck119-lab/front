@@ -33,7 +33,7 @@ function successfulResponse(): SpeechTranscriptionResponse {
     requiresResponderReview: true,
     transcript: { text: "아세톤 누출 의심", segments: [], audioSeconds: 1, voicedSeconds: 1 },
     input: { mediaType: "audio/wav", channels: 1, sampleWidthBits: 16, sampleRateHz: 16000, durationSeconds: 1, audioRetained: false },
-    runtime: { serviceVersion: "0.1.0", model: "small", actualDevice: "cpu", actualComputeType: "int8", processingSeconds: 0.2, realTimeFactor: 0.2, hotwordsUsed: false },
+    runtime: { serviceVersion: "0.1.0", serviceGitCommit: null, model: "small", modelRepository: null, modelRevision: null, modelBinSha256: null, modelArtifactVerified: false, actualDevice: "cpu", actualComputeType: "int8", processingSeconds: 0.2, realTimeFactor: 0.2, hotwordsUsed: false },
     safetyBoundary: { uncertaintyPreserved: true, qualitySignalsAreCalibratedProbabilities: false, chemicalIdentificationPerformed: false, casConfirmationPerformed: false, riskAssessmentPerformed: false, decisionSupportOnly: true },
   };
 }

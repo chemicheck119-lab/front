@@ -1746,7 +1746,13 @@ export interface components {
         };
         DashboardSpeechRuntime: {
             serviceVersion: string;
+            serviceGitCommit: string | null;
             model: string;
+            modelRepository: string | null;
+            modelRevision: string | null;
+            modelBinSha256: string | null;
+            /** @description 배포 컨테이너의 model.bin이 고정 manifest와 일치했는지 여부이며 전사 정확도나 현장 안전성 검증을 뜻하지 않습니다. */
+            modelArtifactVerified: boolean;
             actualDevice: string;
             actualComputeType: string;
             processingSeconds: number;
