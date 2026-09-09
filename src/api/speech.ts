@@ -38,7 +38,8 @@ export function assertSafeTranscription(
     && runtime.modelRevision === null
     && runtime.modelBinSha256 === null;
   const provenanceConsistent = gitCommitValid
-    && (runtime.modelArtifactVerified ? completeModelProvenance : noModelProvenance);
+    && ((runtime.modelArtifactVerified === true && completeModelProvenance)
+      || (runtime.modelArtifactVerified === false && noModelProvenance));
   const safe = response.schemaVersion === "chemicheck119-dashboard-bff-v1"
     && response.requiresResponderReview === true
     && response.input.audioRetained === false

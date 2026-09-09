@@ -168,6 +168,16 @@ describe("인증된 음성 전사 client", () => {
     }))).toThrowError(expect.objectContaining({ kind: "SAFETY" }));
   });
 
+  it("modelArtifactVerified의 boolean 외 값은 차단한다", () => {
+    for (const invalidValue of ["false", 1]) {
+      const invalid = response();
+      (invalid.runtime as unknown as Record<string, unknown>).modelArtifactVerified = invalidValue;
+
+      expect(() => assertSafeTranscription(invalid))
+        .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+    }
+  });
+
   it("파일 크기와 형식을 추론 요청 전에 검사한다", () => {
     expect(() => validateWavUpload(new Blob([], { type: "audio/wav" })))
       .toThrowError(expect.objectContaining({ kind: "VALIDATION" }));
