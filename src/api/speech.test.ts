@@ -169,13 +169,24 @@ describe("인증된 음성 전사 client", () => {
   });
 
   it("modelArtifactVerified의 boolean 외 값은 차단한다", () => {
-    for (const invalidValue of ["false", 1]) {
+    for (const invalidValue of ["false", 1, null]) {
       const invalid = response();
       (invalid.runtime as unknown as Record<string, unknown>).modelArtifactVerified = invalidValue;
 
       expect(() => assertSafeTranscription(invalid))
         .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
     }
+  });
+
+  it("배열로 위조된 모델 provenance는 문자열로 강제 변환하지 않는다", () => {
+    const invalid = response();
+    const runtime = invalid.runtime as unknown as Record<string, unknown>;
+    runtime.modelRepository = ["Systran/faster-whisper-small"];
+    runtime.modelRevision = ["a".repeat(40)];
+    runtime.modelBinSha256 = ["b".repeat(64)];
+
+    expect(() => assertSafeTranscription(invalid))
+      .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
   });
 
   it("파일 크기와 형식을 추론 요청 전에 검사한다", () => {

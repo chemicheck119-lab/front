@@ -18,26 +18,37 @@ export function validateWavUpload(audio: Blob) {
 export function assertSafeTranscription(
   response: SpeechTranscriptionResponse,
 ): SpeechTranscriptionResponse {
+  const rawRuntime = response.runtime as unknown as Record<string, unknown>;
+  const hasModelArtifactVerified = Object.prototype.hasOwnProperty.call(
+    rawRuntime,
+    "modelArtifactVerified",
+  );
   const runtime = {
     ...response.runtime,
     serviceGitCommit: response.runtime.serviceGitCommit ?? null,
     modelRepository: response.runtime.modelRepository ?? null,
     modelRevision: response.runtime.modelRevision ?? null,
     modelBinSha256: response.runtime.modelBinSha256 ?? null,
-    modelArtifactVerified: response.runtime.modelArtifactVerified ?? false,
+    modelArtifactVerified: hasModelArtifactVerified
+      ? response.runtime.modelArtifactVerified
+      : false,
   };
+  const verificationFlagValid = !hasModelArtifactVerified
+    || typeof rawRuntime.modelArtifactVerified === "boolean";
   const gitCommitValid = runtime.serviceGitCommit === null
-    || /^[0-9a-f]{40}$/.test(runtime.serviceGitCommit);
-  const completeModelProvenance = runtime.modelRepository !== null
+    || (typeof runtime.serviceGitCommit === "string"
+      && /^[0-9a-f]{40}$/.test(runtime.serviceGitCommit));
+  const completeModelProvenance = typeof runtime.modelRepository === "string"
     && /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(runtime.modelRepository)
-    && runtime.modelRevision !== null
+    && typeof runtime.modelRevision === "string"
     && /^[0-9a-f]{40}$/.test(runtime.modelRevision)
-    && runtime.modelBinSha256 !== null
+    && typeof runtime.modelBinSha256 === "string"
     && /^[0-9a-f]{64}$/.test(runtime.modelBinSha256);
   const noModelProvenance = runtime.modelRepository === null
     && runtime.modelRevision === null
     && runtime.modelBinSha256 === null;
-  const provenanceConsistent = gitCommitValid
+  const provenanceConsistent = verificationFlagValid
+    && gitCommitValid
     && ((runtime.modelArtifactVerified === true && completeModelProvenance)
       || (runtime.modelArtifactVerified === false && noModelProvenance));
   const safe = response.schemaVersion === "chemicheck119-dashboard-bff-v1"
