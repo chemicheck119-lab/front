@@ -34,7 +34,12 @@ function response(overrides: Partial<SpeechTranscriptionResponse> = {}): SpeechT
     },
     runtime: {
       serviceVersion: "0.1.0",
+      serviceGitCommit: "7".repeat(40),
       model: "faster-whisper-small",
+      modelRepository: "Systran/faster-whisper-small",
+      modelRevision: "5".repeat(40),
+      modelBinSha256: "6".repeat(64),
+      modelArtifactVerified: true,
       actualDevice: "cpu",
       actualComputeType: "int8",
       processingSeconds: 0.2,
@@ -135,6 +140,77 @@ describe("인증된 음성 전사 client", () => {
     expect(() => assertSafeTranscription(response({
       input: { ...response().input, audioRetained: true as false },
     }))).toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+  });
+
+  it("모델 provenance의 legacy 누락은 미검증으로 정규화하고 모순은 차단한다", () => {
+    const legacy = response();
+    const legacyRuntime = legacy.runtime as unknown as Record<string, unknown>;
+    delete legacyRuntime.serviceGitCommit;
+    delete legacyRuntime.modelRepository;
+    delete legacyRuntime.modelRevision;
+    delete legacyRuntime.modelBinSha256;
+    delete legacyRuntime.modelArtifactVerified;
+
+    const normalized = assertSafeTranscription(legacy);
+    expect(normalized.runtime).toMatchObject({
+      serviceGitCommit: null,
+      modelRepository: null,
+      modelRevision: null,
+      modelBinSha256: null,
+      modelArtifactVerified: false,
+    });
+
+    expect(() => assertSafeTranscription(response({
+      runtime: { ...response().runtime, modelArtifactVerified: false },
+    }))).toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+    expect(() => assertSafeTranscription(response({
+      runtime: { ...response().runtime, modelBinSha256: "not-a-sha256" },
+    }))).toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+  });
+
+  it("modelArtifactVerified의 boolean 외 값은 차단한다", () => {
+    for (const invalidValue of ["false", 1, null]) {
+      const invalid = response();
+      (invalid.runtime as unknown as Record<string, unknown>).modelArtifactVerified = invalidValue;
+
+      expect(() => assertSafeTranscription(invalid))
+        .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+    }
+  });
+
+  it("배열로 위조된 모델 provenance는 문자열로 강제 변환하지 않는다", () => {
+    const invalid = response();
+    const runtime = invalid.runtime as unknown as Record<string, unknown>;
+    runtime.modelRepository = ["Systran/faster-whisper-small"];
+    runtime.modelRevision = ["a".repeat(40)];
+    runtime.modelBinSha256 = ["b".repeat(64)];
+
+    expect(() => assertSafeTranscription(invalid))
+      .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+  });
+
+  it("modelRepository는 OpenAPI의 최대 160자 경계를 지킨다", () => {
+    const boundary = response();
+    boundary.runtime.modelRepository = `${"a".repeat(79)}/${"b".repeat(80)}`;
+    expect(() => assertSafeTranscription(boundary)).not.toThrow();
+
+    const overLimit = response();
+    overLimit.runtime.modelRepository = `${"a".repeat(80)}/${"b".repeat(80)}`;
+    expect(() => assertSafeTranscription(overLimit))
+      .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+  });
+
+  it("새 provenance 필드가 일부만 존재하는 응답은 legacy로 취급하지 않는다", () => {
+    const invalid = response({
+      runtime: { ...response().runtime, modelArtifactVerified: false },
+    });
+    const runtime = invalid.runtime as unknown as Record<string, unknown>;
+    delete runtime.modelRepository;
+    delete runtime.modelRevision;
+    delete runtime.modelBinSha256;
+
+    expect(() => assertSafeTranscription(invalid))
+      .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
   });
 
   it("파일 크기와 형식을 추론 요청 전에 검사한다", () => {

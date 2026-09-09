@@ -5,6 +5,7 @@ import type { SpeechTranscriptionResponse } from "./contracts";
 export const MAX_SPEECH_AUDIO_BYTES = 16 * 1024 * 1024;
 
 const WAV_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave"]);
+const MAX_MODEL_REPOSITORY_LENGTH = 160;
 
 export function validateWavUpload(audio: Blob) {
   if (audio.size <= 0 || audio.size > MAX_SPEECH_AUDIO_BYTES) {
@@ -18,6 +19,50 @@ export function validateWavUpload(audio: Blob) {
 export function assertSafeTranscription(
   response: SpeechTranscriptionResponse,
 ): SpeechTranscriptionResponse {
+  const rawRuntime = response.runtime as unknown as Record<string, unknown>;
+  const provenanceFields = [
+    "serviceGitCommit",
+    "modelRepository",
+    "modelRevision",
+    "modelBinSha256",
+    "modelArtifactVerified",
+  ] as const;
+  const provenancePresence = provenanceFields.map((field) => (
+    Object.prototype.hasOwnProperty.call(rawRuntime, field)
+  ));
+  const legacyProvenanceShape = provenancePresence.every((present) => !present);
+  const currentProvenanceShape = provenancePresence.every(Boolean);
+  const runtime = {
+    ...response.runtime,
+    serviceGitCommit: response.runtime.serviceGitCommit ?? null,
+    modelRepository: response.runtime.modelRepository ?? null,
+    modelRevision: response.runtime.modelRevision ?? null,
+    modelBinSha256: response.runtime.modelBinSha256 ?? null,
+    modelArtifactVerified: currentProvenanceShape
+      ? response.runtime.modelArtifactVerified
+      : false,
+  };
+  const verificationFlagValid = legacyProvenanceShape
+    || (currentProvenanceShape
+      && typeof rawRuntime.modelArtifactVerified === "boolean");
+  const gitCommitValid = runtime.serviceGitCommit === null
+    || (typeof runtime.serviceGitCommit === "string"
+      && /^[0-9a-f]{40}$/.test(runtime.serviceGitCommit));
+  const completeModelProvenance = typeof runtime.modelRepository === "string"
+    && runtime.modelRepository.length <= MAX_MODEL_REPOSITORY_LENGTH
+    && /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(runtime.modelRepository)
+    && typeof runtime.modelRevision === "string"
+    && /^[0-9a-f]{40}$/.test(runtime.modelRevision)
+    && typeof runtime.modelBinSha256 === "string"
+    && /^[0-9a-f]{64}$/.test(runtime.modelBinSha256);
+  const noModelProvenance = runtime.modelRepository === null
+    && runtime.modelRevision === null
+    && runtime.modelBinSha256 === null;
+  const provenanceConsistent = (legacyProvenanceShape || currentProvenanceShape)
+    && verificationFlagValid
+    && gitCommitValid
+    && ((runtime.modelArtifactVerified === true && completeModelProvenance)
+      || (runtime.modelArtifactVerified === false && noModelProvenance));
   const safe = response.schemaVersion === "chemicheck119-dashboard-bff-v1"
     && response.requiresResponderReview === true
     && response.input.audioRetained === false
@@ -27,7 +72,8 @@ export function assertSafeTranscription(
     && response.safetyBoundary.chemicalIdentificationPerformed === false
     && response.safetyBoundary.casConfirmationPerformed === false
     && response.safetyBoundary.riskAssessmentPerformed === false
-    && response.safetyBoundary.decisionSupportOnly === true;
+    && response.safetyBoundary.decisionSupportOnly === true
+    && provenanceConsistent;
   const stateConsistent = response.status === "TRANSCRIBED"
     ? !response.abstained && response.transcript.text.trim().length > 0
     : response.status === "ABSTAINED_NO_TRANSCRIPT"
@@ -40,7 +86,7 @@ export function assertSafeTranscription(
       false,
     );
   }
-  return response;
+  return { ...response, runtime };
 }
 
 export async function transcribeIncidentAudio(
