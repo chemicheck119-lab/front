@@ -189,6 +189,17 @@ describe("인증된 음성 전사 client", () => {
       .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
   });
 
+  it("modelRepository는 OpenAPI의 최대 160자 경계를 지킨다", () => {
+    const boundary = response();
+    boundary.runtime.modelRepository = `${"a".repeat(79)}/${"b".repeat(80)}`;
+    expect(() => assertSafeTranscription(boundary)).not.toThrow();
+
+    const overLimit = response();
+    overLimit.runtime.modelRepository = `${"a".repeat(80)}/${"b".repeat(80)}`;
+    expect(() => assertSafeTranscription(overLimit))
+      .toThrowError(expect.objectContaining({ kind: "SAFETY" }));
+  });
+
   it("새 provenance 필드가 일부만 존재하는 응답은 legacy로 취급하지 않는다", () => {
     const invalid = response({
       runtime: { ...response().runtime, modelArtifactVerified: false },

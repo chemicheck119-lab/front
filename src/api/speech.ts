@@ -5,6 +5,7 @@ import type { SpeechTranscriptionResponse } from "./contracts";
 export const MAX_SPEECH_AUDIO_BYTES = 16 * 1024 * 1024;
 
 const WAV_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave"]);
+const MAX_MODEL_REPOSITORY_LENGTH = 160;
 
 export function validateWavUpload(audio: Blob) {
   if (audio.size <= 0 || audio.size > MAX_SPEECH_AUDIO_BYTES) {
@@ -48,6 +49,7 @@ export function assertSafeTranscription(
     || (typeof runtime.serviceGitCommit === "string"
       && /^[0-9a-f]{40}$/.test(runtime.serviceGitCommit));
   const completeModelProvenance = typeof runtime.modelRepository === "string"
+    && runtime.modelRepository.length <= MAX_MODEL_REPOSITORY_LENGTH
     && /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/.test(runtime.modelRepository)
     && typeof runtime.modelRevision === "string"
     && /^[0-9a-f]{40}$/.test(runtime.modelRevision)
