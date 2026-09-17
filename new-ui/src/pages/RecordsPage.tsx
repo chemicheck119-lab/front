@@ -1,83 +1,108 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/records.css";
+import {
+  fetchRecordDetail,
+  fetchRecords,
+  RecordApiError,
+  type RecordDetail,
+  type RecordSummary,
+} from "../api/records";
 
-type RecordItem = {
-  id: number;
-  title: string;
-  content: string;
-};
+function formatSavedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
-const sampleRecords: RecordItem[] = [
-  {
-    id: 1,
-    title: "2026.09.16 21:08",
-    content: `사고 유형: 화재
-시설명: 울산 ○○화학
-사고 위치: 울산광역시 ○○구 ○○로
+function formatRecordDetail(record: RecordDetail): string {
+  const lines: string[] = [];
+  lines.push(`시설명: ${record.facilityName}`);
+  lines.push(`시설 주소: ${record.facilityAddress}`);
+  lines.push("");
+  lines.push(`확인된 사고 화학물질: ${record.incidentSubstanceName} (CAS ${record.incidentSubstanceCas})`);
+  lines.push("");
+  lines.push(`수행된 조치: ${record.performedActions.length > 0 ? record.performedActions.join(", ") : "없음"}`);
+  lines.push(`추가 고려사항: ${record.additionalFactors.length > 0 ? record.additionalFactors.join(", ") : "없음"}`);
+  lines.push("");
+  lines.push(`브리핑 적용 상태: ${record.briefApplicationStatus}`);
+  lines.push(`최종 대응 결과: ${record.finalResponseOutcome}`);
 
-신고 내용:
-공장 내부에서 화재가 발생했으며 화학물질 누출 가능성이 확인되었습니다.
+  if (record.conflictRisk) {
+    const risk = record.conflictRisk;
+    lines.push("");
+    lines.push("물질 반응 위험:");
+    lines.push(`${risk.facilitySubstanceName} (CAS ${risk.facilitySubstanceCas})와의 반응 위험도 ${risk.riskLevelKo}`);
+    lines.push(risk.briefText);
+    if (!risk.expertReviewed) lines.push("(전문 검수 전 정보입니다.)");
+  }
 
-확인된 화학물질:
-차아염소산나트륨
+  if (record.messages.length > 0) {
+    lines.push("");
+    lines.push("AI 현장 대응 질의 기록:");
+    for (const message of [...record.messages].sort((a, b) => a.sequence - b.sequence)) {
+      lines.push(`${message.role === "USER" ? "대원" : "AI"}: ${message.text}`);
+    }
+  }
 
-현장 관찰정보:
-연기, 액체 누출
-
-초기 대응 분석:
-사고물질과 시설 취급물질 간 반응 가능성이 확인되었습니다.
-현장 접근 전 보호장비를 착용하고 물질 간 접촉을 방지해야 합니다.
-
-AI 현장 대응 질의 기록:
-대원: 화재 진압 시 물을 사용해도 됩니까?
-AI: 현재 확인된 사고정보와 화학물질 대응자료를 기준으로 직접적인 물질 접촉을 피하고 현장 상황을 추가로 확인해야 합니다.`,
-  },
-  {
-    id: 2,
-    title: "2026.09.16 18:42",
-    content: `사고 유형: 누출
-시설명: 울산 △△산업
-사고 위치: 울산광역시 ○○구
-
-신고 내용:
-시설 내부에서 화학물질 누출 신고가 접수되었습니다.
-
-확인된 화학물질:
-염산
-
-초기 대응 분석:
-누출 지역 접근을 제한하고 적절한 보호장비를 착용해야 합니다.`,
-  },
-  {
-    id: 3,
-    title: "2026.09.15 14:21",
-    content: `사고 유형: 화재
-시설명: 울산 □□공장
-
-신고 내용:
-공장 설비에서 화재가 발생했습니다.
-
-대응 기록:
-현장 정보 확인 후 초기 대응 분석을 수행했습니다.`,
-  },
-];
+  return lines.join("\n");
+}
 
 export default function RecordsPage() {
   const navigate = useNavigate();
-  const [selectedRecord, setSelectedRecord] =
-    useState<RecordItem | null>(null);
+  const [records, setRecords] = useState<RecordSummary[]>([]);
+  const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
+  const [listError, setListError] = useState("");
+
+  const [selectedDetail, setSelectedDetail] = useState<RecordDetail | null>(null);
+  const [detailState, setDetailState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [detailError, setDetailError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchRecords()
+      .then((result) => {
+        if (cancelled) return;
+        setRecords(result);
+        setListState("ready");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setListError(error instanceof RecordApiError ? error.message : "기록을 불러오지 못했습니다.");
+        setListState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const openRecord = (recordId: string) => {
+    setDetailState("loading");
+    setDetailError("");
+    fetchRecordDetail(recordId)
+      .then((detail) => {
+        setSelectedDetail(detail);
+        setDetailState("ready");
+      })
+      .catch((error: unknown) => {
+        setDetailError(error instanceof RecordApiError ? error.message : "상세 기록을 불러오지 못했습니다.");
+        setDetailState("error");
+      });
+  };
+
+  const closeDetail = () => {
+    setSelectedDetail(null);
+    setDetailState("idle");
+    setDetailError("");
+  };
 
   /* 상세 기록 화면 */
-  if (selectedRecord) {
+  if (detailState !== "idle") {
     return (
       <div className="records-page">
         <header className="records-header">
-          <button
-            type="button"
-            className="records-back-button"
-            onClick={() => setSelectedRecord(null)}
-          >
+          <button type="button" className="records-back-button" onClick={closeDetail}>
             ← 대응 기록 목록
           </button>
 
@@ -85,13 +110,18 @@ export default function RecordsPage() {
         </header>
 
         <main className="record-detail">
-          <div className="record-detail-title">
-            {selectedRecord.title}
-          </div>
+          {detailState === "loading" && <div className="record-content">불러오는 중입니다...</div>}
 
-          <pre className="record-content">
-            {selectedRecord.content}
-          </pre>
+          {detailState === "error" && <div className="record-content">{detailError}</div>}
+
+          {detailState === "ready" && selectedDetail && (
+            <>
+              <div className="record-detail-title">
+                {formatSavedAt(selectedDetail.savedAt)} · {selectedDetail.facilityName}
+              </div>
+              <pre className="record-content">{formatRecordDetail(selectedDetail)}</pre>
+            </>
+          )}
         </main>
       </div>
     );
@@ -101,11 +131,7 @@ export default function RecordsPage() {
   return (
     <div className="records-page">
       <header className="records-header">
-        <button
-          type="button"
-          className="records-back-button"
-          onClick={() => navigate("/main")}
-        >
+        <button type="button" className="records-back-button" onClick={() => navigate("/main")}>
           ← 메인화면
         </button>
 
@@ -115,22 +141,30 @@ export default function RecordsPage() {
       <main className="records-container">
         <div className="records-list-header">
           <h2>저장된 대응 기록</h2>
-          <span>{sampleRecords.length}건</span>
+          <span>{listState === "ready" ? `${records.length}건` : ""}</span>
         </div>
 
-        <div className="records-list">
-          {sampleRecords.map((record) => (
-            <button
-              type="button"
-              key={record.id}
-              className="record-list-item"
-              onClick={() => setSelectedRecord(record)}
-            >
-              <span>{record.title}</span>
-              <span className="record-arrow">›</span>
-            </button>
-          ))}
-        </div>
+        {listState === "loading" && <div className="record-content">불러오는 중입니다...</div>}
+
+        {listState === "error" && <div className="record-content">{listError}</div>}
+
+        {listState === "ready" && (
+          <div className="records-list">
+            {records.map((record) => (
+              <button
+                type="button"
+                key={record.recordId}
+                className="record-list-item"
+                onClick={() => openRecord(record.recordId)}
+              >
+                <span>
+                  {formatSavedAt(record.savedAt)} · {record.facilityName}
+                </span>
+                <span className="record-arrow">›</span>
+              </button>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
