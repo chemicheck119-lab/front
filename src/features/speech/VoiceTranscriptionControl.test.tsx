@@ -68,6 +68,26 @@ describe("Pad 음성 전사 control", () => {
     expect(onBusyChange).toHaveBeenLastCalledWith(false);
   });
 
+  it("전사 응답이 오기 전에는 검토 callback을 호출하지 않는다", async () => {
+    let resolveTranscription: ((response: SpeechTranscriptionResponse) => void) | undefined;
+    transcribeMock.mockImplementation(() => new Promise((resolve) => {
+      resolveTranscription = resolve;
+    }));
+    const onTranscribed = vi.fn();
+    render(<VoiceTranscriptionControl disabled={false}
+      onBusyChange={vi.fn()} onTranscribed={onTranscribed} />);
+
+    fireEvent.change(screen.getByLabelText("PCM WAV 파일 선택"), {
+      target: { files: [new File([new Uint8Array(44)], "pending.wav", { type: "audio/wav" })] },
+    });
+
+    await waitFor(() => expect(transcribeMock).toHaveBeenCalledOnce());
+    expect(onTranscribed).not.toHaveBeenCalled();
+
+    resolveTranscription?.(successfulResponse());
+    await waitFor(() => expect(onTranscribed).toHaveBeenCalledWith("아세톤 누출 의심"));
+  });
+
   it("Speech 기권 시 빈 전사문을 입력하지 않는다", async () => {
     transcribeMock.mockResolvedValue({
       ...successfulResponse(),
