@@ -215,6 +215,19 @@
   background: #eef3f7;
 }
 
+.problem-heading {
+  width: min(860px, 100%);
+  margin-bottom: clamp(28px, 5vh, 56px);
+}
+
+.problem-heading h2 {
+  margin: 0;
+  color: #203f68;
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 1.16;
+  letter-spacing: -0.06em;
+}
+
 
 /* 카드 */
 
@@ -311,6 +324,14 @@
     min-height: max(100svh, 720px);
 
     padding: 80px 20px 100px;
+  }
+
+  .problem-heading {
+    margin-bottom: 28px;
+  }
+
+  .problem-heading h2 {
+    font-size: clamp(28px, 8vw, 38px);
   }
 
   .problem-card {
