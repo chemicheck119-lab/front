@@ -63,6 +63,48 @@ ClawOps Voice Agent SDK
 
 저수준 Stream은 G.711 mu-law 8kHz mono와 WebSocket 인증·IP allowlist·pacing을 직접 관리해야 하므로 2차 범위로 둔다.
 
+## 브라우저 Speech와의 역할 분리
+
+두 음성 경로는 같은 기능으로 합치지 않는다.
+
+```text
+브라우저 음성
+  -> 우리 Speech API
+  -> 전사 초안
+  -> 사용자 검토
+
+전화 음성
+  -> ClawOps transcript
+  -> gateway/BFF
+  -> 상황판 실시간 표시
+  -> 통화 종료 후 사용자 검토
+```
+
+브라우저 음성은 우리 faster-whisper 모델을 검증하는 경로이고, 전화 음성은 ClawOps의
+실시간 통화 transcript를 검증하는 경로다. 전화 transcript를 브라우저 Speech API로
+재전송하거나, 두 결과를 자동으로 합쳐 확정 텍스트를 만들지 않는다.
+
+## Transcript 이벤트 계약
+
+gateway가 BFF/SSE로 전달하는 최소 이벤트는 다음 의미를 갖는다.
+
+```json
+{
+  "type": "call.transcript",
+  "callId": "CA-EXAMPLE",
+  "phase": "INTERIM",
+  "role": "user",
+  "text": "공장 탱크에서 누출이 발생했습니다.",
+  "requiresReview": true
+}
+```
+
+- `INTERIM`은 화면에 임시 문장으로만 표시하고 분석에 사용하지 않는다.
+- `FINAL`도 자동 분석하지 않고 사용자의 검토를 기다린다.
+- `callId`와 로그인 session/incident의 연결은 서버에서 검증한다.
+- `text` 전문은 일반 로그에 기록하지 않는다.
+- 통화가 종료되면 gateway는 최종 transcript와 통화 상태만 전달하고, 프론트가 분석 시작을 결정한다.
+
 ## Go/No-Go
 
 ### Go
