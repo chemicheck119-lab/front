@@ -216,7 +216,7 @@ export default function StartSection() {
   };
 
   return (
-    <section className="start-section">
+    <section className="start-section" id="start">
       <div className="start-background" />
 
       <div className="start-content">
