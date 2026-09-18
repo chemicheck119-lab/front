@@ -31,6 +31,16 @@ interface DispatchContact {
 
 export type DispatchStreamStatus = "IDLE" | "WAITING" | "RECEIVED" | "ERROR";
 
+export type PhoneTranscriptPhase = "INTERIM" | "FINAL";
+
+export interface PhoneTranscript {
+  callId: string;
+  phase: PhoneTranscriptPhase;
+  role: "user" | "assistant";
+  text: string;
+  receivedAt: string;
+}
+
 export interface DispatchPreview {
   receivedAt: string;
   stationDisplayName: string;
@@ -58,6 +68,7 @@ interface FieldToolsPanelProps {
   dispatchStreamStatus: DispatchStreamStatus;
   dispatchPreview: DispatchPreview | null;
   dispatchAccepted: boolean;
+  phoneTranscript?: PhoneTranscript | null;
   localExportAvailable?: boolean;
   syntheticMode?: boolean;
   onRequestSave: () => void;
@@ -184,6 +195,7 @@ export function FieldToolsPanel({
   dispatchStreamStatus,
   dispatchPreview,
   dispatchAccepted,
+  phoneTranscript = null,
   localExportAvailable = false,
   syntheticMode = false,
   onRequestSave,
@@ -283,6 +295,27 @@ export function FieldToolsPanel({
               <button type="button" onClick={() => { onAcceptDispatch(); closeDialog(); }} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary/90"><Check size={14} />지령 확인 및 대응화면에 반영</button>
             ) : (
               <p className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-500/10 p-3 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"><Check size={13} />대응화면에 반영했습니다. 분석 버튼은 별도로 실행하세요.</p>
+            )}
+          </section>
+
+          <section className="mt-4 rounded-xl border border-border bg-card p-4" aria-label="전화 전사 초안">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground">전화 전사 초안</p>
+                <p className="mt-1 text-sm font-bold">{phoneTranscript ? "통화 내용 수신" : "수신 대기"}</p>
+              </div>
+              {phoneTranscript && <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[9px] font-bold text-amber-800 dark:text-amber-200">검토 필요</span>}
+            </div>
+            {phoneTranscript ? (
+              <>
+                <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-xs leading-relaxed">{phoneTranscript.text}</p>
+                <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+                  {phoneTranscript.phase === "INTERIM" ? "임시 전사입니다. 통화가 끝나기 전까지 분석에 사용하지 않습니다." : "최종 전사 초안입니다. 소방대원이 확인·수정한 뒤 분석에 사용하세요."}
+                </p>
+                <p className="mt-2 truncate font-mono text-[9px] text-muted-foreground">통화 ID {phoneTranscript.callId}</p>
+              </>
+            ) : (
+              <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">ClawOps 통화가 연결되면 신고자 발화가 여기에 표시됩니다.</p>
             )}
           </section>
 
