@@ -7,6 +7,7 @@ export default function OpenSection() {
       <div className="open-image" />
 
       <div className="open-title">
+        <p className="open-kicker">CHEMICAL INCIDENT RESPONSE SUPPORT</p>
         <motion.h1
           initial={{ opacity: 0, y: 35 }}
           animate={{ opacity: 1, y: 0 }}
@@ -15,7 +16,9 @@ export default function OpenSection() {
             ease: [0.22, 1, 0.36, 1],
           }}
         >
-          케미체크 119
+          화학사고 대응의 첫 판단을
+          <br />
+          더 빠르고 안전하게
         </motion.h1>
 
         <motion.p
@@ -28,9 +31,15 @@ export default function OpenSection() {
             ease: [0.22, 1, 0.36, 1],
           }}
         >
-          화학재난대응지원서비스 : 119 상황실의 판단을 더 빠르게,
-          현장을 더 안전하게
+          케미체크119가 흩어진 현장 정보를 연결하고
+          <br />
+          초기 대응을 위한 근거를 준비합니다.
         </motion.p>
+
+        <a className="open-cta" href="#start">
+          대응 시작하기
+          <span aria-hidden="true">↓</span>
+        </a>
       </div>
 
       <motion.div
@@ -47,9 +56,9 @@ export default function OpenSection() {
         }}
       >
         <p>
-          화학사고 발생 시 흩어진 정보를 한곳에서 확인하고,
+          신고 접수부터 현장 대응까지,
           <br />
-          사고 물질 추정부터 초기 대응 검토까지 빠르게 지원합니다.
+          필요한 정보를 한 흐름으로 확인합니다.
         </p>
       </motion.div>
     </section>
