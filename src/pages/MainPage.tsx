@@ -13,12 +13,6 @@ const observationTypes = [
   "색상",
 ];
 
-type ChatMessage = {
-  id: number;
-  role: "user" | "assistant";
-  content: string;
-};
-
 export default function MainPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,16 +45,6 @@ export default function MainPage() {
      Analysis
   ========================= */
 
-  const [showAnalysis, setShowAnalysis] = useState(false);
-
-  /* =========================
-     Chat
-  ========================= */
-
-  const [question, setQuestion] = useState("");
-
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-
   const handleObservation = (observation: string) => {
     setSelectedObservations((prev) =>
       prev.includes(observation)
@@ -68,59 +52,6 @@ export default function MainPage() {
         : [...prev, observation],
     );
   };
-
-  const handleAnalyze = () => {
-    /*
-      TODO API 연결 시
-      이 부분에서 사고 분석 API 호출
-    */
-
-    setShowAnalysis(true);
-  };
-
-  const handleSendQuestion = () => {
-    const trimmedQuestion = question.trim();
-
-    if (!trimmedQuestion) return;
-
-    const userMessage: ChatMessage = {
-      id: Date.now(),
-      role: "user",
-      content: trimmedQuestion,
-    };
-
-    /*
-      TODO API 연결 시
-      아래 mockAssistantMessage 대신
-      API response를 messages에 추가
-    */
-
-    const mockAssistantMessage: ChatMessage = {
-      id: Date.now() + 1,
-      role: "assistant",
-      content:
-        "현재 사고정보와 확인된 화학물질을 기준으로 대응 정보를 확인했습니다. 현장 접근 전 보호장비를 착용하고, 물질의 누출 및 반응 가능성을 우선 확인하세요.",
-    };
-
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
-      mockAssistantMessage,
-    ]);
-
-    setQuestion("");
-  };
-
-  const handleQuestionKeyDown = (
-  event: React.KeyboardEvent<HTMLInputElement>,
-) => {
-  if (event.nativeEvent.isComposing) return;
-
-  if (event.key === "Enter") {
-    event.preventDefault();
-    handleSendQuestion();
-  }
-};
 
   return (
     <div className="main-page">
@@ -356,13 +287,9 @@ export default function MainPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              className="analyze-button"
-              onClick={handleAnalyze}
-            >
-              사고정보 저장 및 분석
-            </button>
+              <button type="button" className="analyze-button" disabled>
+                분석 API 연결 후 사용 가능
+              </button>
           </div>
         </section>
 
@@ -375,148 +302,14 @@ export default function MainPage() {
             <h2>초기 대응 분석</h2>
           </div>
 
-          {!showAnalysis ? (
-            /* 분석 전 */
-
-            <div className="analysis-empty">
-              <div className="analysis-info-icon">
-                i
-              </div>
-
-              <p>
-                사고정보 저장 및 분석 후
-                <br />
-                결과가 표시됩니다.
-              </p>
-            </div>
-          ) : (
-            /* =========================
-               분석 후 MOCK UI
-            ========================= */
-
-            <div className="analysis-result">
-              {/* 사고 요약 */}
-
-              <div className="analysis-summary">
-                <span className="analysis-status-dot" />
-
-                <div>
-                  <strong>초기 대응 분석 완료</strong>
-
-                  <p>
-                    입력된 사고정보를 기반으로
-                    초기 대응 정보를 확인했습니다.
-                  </p>
-                </div>
-              </div>
-
-              {/* 우선 확인 물질 */}
-
-              <div className="analysis-result-section">
-                <div className="analysis-result-title">
-                  <span className="result-number">
-                    01
-                  </span>
-
-                  <h3>우선 확인 물질</h3>
-                </div>
-
-                <div className="substance-card">
-                  <div className="substance-top">
-                    <strong>
-                      차아염소산나트륨
-                    </strong>
-
-                    <span className="confidence-badge">
-                      확인 필요
-                    </span>
-                  </div>
-
-                  <p>
-                    신고 내용 및 현장 관찰정보를
-                    기반으로 우선 확인이 필요한
-                    물질입니다.
-                  </p>
-                </div>
-              </div>
-
-              {/* 주의 대응 */}
-
-              <div className="analysis-result-section">
-                <div className="analysis-result-title">
-                  <span className="result-number">
-                    02
-                  </span>
-
-                  <h3>
-                    주의가 필요한 대응
-                  </h3>
-                </div>
-
-                <div className="warning-card">
-                  <div className="warning-card-title">
-                    <span className="warning-icon">
-                      !
-                    </span>
-
-                    <strong>
-                      물질 간 반응 위험 확인
-                    </strong>
-                  </div>
-
-                  <p>
-                    사고 물질과 시설 취급 물질의
-                    접촉 가능성을 확인하고,
-                    반응성이 확인되기 전까지
-                    직접적인 혼합을 피하세요.
-                  </p>
-                </div>
-              </div>
-
-              {/* 권고 초기 대응 */}
-
-              <div className="analysis-result-section">
-                <div className="analysis-result-title">
-                  <span className="result-number">
-                    03
-                  </span>
-
-                  <h3>
-                    권고 초기 대응
-                  </h3>
-                </div>
-
-                <ul className="response-list">
-                  <li>
-                    현장 접근 전 적절한
-                    보호장비를 착용하세요.
-                  </li>
-
-                  <li>
-                    누출 범위와 주변 화학물질을
-                    우선 확인하세요.
-                  </li>
-
-                  <li>
-                    물질이 확정되지 않은 경우
-                    추가 현장정보를 확인하세요.
-                  </li>
-                </ul>
-              </div>
-
-              {/* 근거 */}
-
-              <div className="analysis-source">
-                <span>
-                  근거
-                </span>
-
-                <p>
-                  KOSHA · CAMEO 기반 대응자료
-                </p>
-              </div>
-            </div>
-          )}
+          <div className="analysis-empty">
+            <div className="analysis-info-icon">i</div>
+            <p>
+              분석 API 연결 후
+              <br />
+              검증된 결과가 표시됩니다.
+            </p>
+          </div>
         </section>
 
         {/* =========================
@@ -539,71 +332,13 @@ export default function MainPage() {
               Chat
           ========================= */}
 
-          <div className="chat-area">
-            {messages.length === 0 ? (
-              /* 채팅 전 */
-
-              <div className="ai-empty">
-                <div className="search-icon" />
-
-                <p>
-                  화학물질 정보나 대응 방법을
-                  질문하세요.
-                </p>
-              </div>
-            ) : (
-              /* 채팅 후 */
-
-              <div className="chat-message-list">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`chat-message-row ${
-                      message.role === "user"
-                        ? "user"
-                        : "assistant"
-                    }`}
-                  >
-                    <div
-                      className={`chat-bubble ${
-                        message.role === "user"
-                          ? "user-bubble"
-                          : "assistant-bubble"
-                      }`}
-                    >
-                      {message.content}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 입력창 */}
-
-          <div className="ai-bottom">
-            <div className="ai-input-row">
-              <input
-                type="text"
-                value={question}
-                onChange={(e) =>
-                  setQuestion(e.target.value)
-                }
-                onKeyDown={handleQuestionKeyDown}
-                placeholder="화학 질문을 입력하세요"
-              />
-
-              <button
-                type="button"
-                className="send-button"
-                aria-label="질문 전송"
-                onClick={handleSendQuestion}
-              >
-                <span className="send-arrow">
-                  ➤
-                </span>
-              </button>
-            </div>
+          <div className="ai-empty ai-disabled-state">
+            <div className="search-icon" />
+            <p>
+              분석 API 연결 후
+              <br />
+              소방대원 검토용 기능을 사용할 수 있습니다.
+            </p>
           </div>
         </section>
       </main>
