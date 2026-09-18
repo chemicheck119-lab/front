@@ -1,0 +1,1425 @@
+/* =========================
+   Main Page
+========================= */
+
+.main-page {
+  width: 100%;
+  height: 100vh;
+
+  background: #f3f6fa;
+  color: #202b3c;
+
+  overflow: hidden;
+}
+
+
+/* =========================
+   Header
+========================= */
+
+.main-header {
+  width: 100%;
+  height: 68px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 34px;
+
+  background: #203f68;
+  color: #ffffff;
+
+  flex-shrink: 0;
+}
+
+.main-header-left {
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 20px;
+
+  min-width: 0;
+}
+
+.main-logo {
+  display: flex;
+  align-items: center;
+
+  flex-shrink: 0;
+}
+
+.main-logo img {
+  display: block;
+
+  width: 310px;
+  max-height: 48px;
+
+  object-fit: contain;
+}
+
+.header-divider {
+  width: 1px;
+  height: 28px;
+
+  flex-shrink: 0;
+
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.station-badge {
+  padding: 7px 14px;
+
+  border: 1px solid rgba(119, 187, 220, 0.5);
+  border-radius: 6px;
+
+  background: rgba(61, 121, 157, 0.25);
+
+  color: #9fc0d6;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+.header-date {
+  color: #a8bfd8;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+
+/* =========================
+   Save Button
+========================= */
+
+.save-button {
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 0 14px;
+
+  border: 1px solid #15ef45;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: #15ef45;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+}
+
+.save-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+
+/* =========================
+   Main Workspace
+   3개 섹션 동일 너비
+========================= */
+
+.main-workspace {
+  width: 100%;
+  height: calc(100vh - 68px);
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 24px;
+
+  padding: 24px;
+
+  overflow: hidden;
+}
+
+
+/* =========================
+   Common Panel
+========================= */
+
+.main-panel {
+  width: 100%;
+  height: 100%;
+
+  min-width: 0;
+  min-height: 0;
+
+  background: #ffffff;
+
+  border: 1px solid #c8d5e5;
+  border-radius: 5px;
+
+  overflow: hidden;
+}
+
+
+/* =========================
+   Panel Title
+========================= */
+
+.panel-title {
+  height: 62px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 26px;
+
+  border-bottom: 1px solid #d6e0eb;
+
+  flex-shrink: 0;
+}
+
+.panel-title h2,
+.ai-header h2 {
+  margin: 0;
+
+  font-size: 17px;
+  font-weight: 750;
+
+  letter-spacing: -0.4px;
+}
+
+
+/* =========================
+   Incident Panel
+========================= */
+
+.incident-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* =========================
+   Incident Form
+========================= */
+
+.incident-form {
+  flex: 1;
+
+  min-height: 0;
+
+  padding: 18px 26px 20px;
+}
+
+
+/* =========================
+   Form Group
+========================= */
+
+.form-group {
+  width: 100%;
+
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #52647b;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  letter-spacing: -0.3px;
+}
+
+
+/* =========================
+   Inputs
+========================= */
+
+.form-group input,
+.form-group textarea,
+.ai-input-row input {
+  width: 100%;
+
+  border: 1px solid #c8d5e5;
+  border-radius: 5px;
+
+  background: #ffffff;
+
+  color: #26364a;
+
+  font-family: inherit;
+
+  outline: none;
+
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.form-group input {
+  height: 42px;
+
+  padding: 0 15px;
+
+  font-size: 14px;
+}
+
+.form-group textarea {
+  height: 66px;
+
+  padding: 11px 15px;
+
+  resize: none;
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder,
+.ai-input-row input::placeholder {
+  color: #8e9aaa;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.ai-input-row input:focus {
+  border-color: #244a78;
+
+  box-shadow:
+    0 0 0 3px rgba(36, 74, 120, 0.08);
+}
+
+
+/* =========================
+   Incident Type
+========================= */
+
+.incident-type-list {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+
+  gap: 8px;
+}
+
+
+/* 기본 상태 */
+
+.incident-type-button {
+  height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 5px;
+
+  border: 1px solid #c8d5e5;
+  border-radius: 5px;
+
+  background: #ffffff;
+  color: #28384d;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+
+/* 마우스를 올렸을 때
+   아주 연한 회색 */
+
+.incident-type-button:hover {
+  background: #f7f8fa;
+}
+
+
+/* 클릭해서 선택된 상태
+   네이비 + 흰색 글씨 */
+
+.incident-type-button.selected {
+  background: #203f68;
+  border-color: #203f68;
+
+  color: #ffffff;
+
+  font-weight: 700;
+}
+
+
+/* 선택된 버튼은
+   hover해도 네이비 유지 */
+
+.incident-type-button.selected:hover {
+  background: #203f68;
+  border-color: #203f68;
+
+  color: #ffffff;
+}
+
+
+/* =========================
+   Chemical Input
+========================= */
+
+.chemical-input-row {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr) auto;
+
+  gap: 10px;
+}
+
+.chemical-add-button {
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 5px;
+
+  padding: 0 14px;
+
+  border: 1px solid #c8d5e5;
+  border-radius: 5px;
+
+  background: #ffffff;
+
+  color: #26364a;
+
+  font-size: 14px;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.chemical-add-button span {
+  font-size: 18px;
+}
+
+
+/* =========================
+   Observation
+========================= */
+
+.observation-list {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 7px;
+}
+
+.observation-button {
+  min-height: 36px;
+
+  padding: 0 13px;
+
+  border: 1px solid #c8d5e5;
+  border-radius: 5px;
+
+  background: #ffffff;
+
+  color: #35465b;
+
+  font-size: 14px;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.observation-button:hover {
+  background: #f4f7fa;
+}
+
+.observation-button.selected {
+  border-color: #244a78;
+
+  background: #edf3f9;
+
+  color: #203f68;
+
+  font-weight: 650;
+}
+
+
+/* =========================
+   Analyze Button
+========================= */
+
+.analyze-button {
+  width: 100%;
+  height: 46px;
+
+  margin-top: 0;
+
+  border: 0;
+  border-radius: 5px;
+
+  background: #203f68;
+
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    transform 100ms ease;
+}
+
+.analyze-button:hover {
+  background: #183657;
+}
+
+.analyze-button:active {
+  transform: scale(0.99);
+}
+
+
+/* =========================
+   Analysis Panel
+========================= */
+
+.analysis-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.analysis-empty {
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: flex-start;
+
+  padding-top: 120px;
+
+  color: #8da0ba;
+
+  text-align: center;
+}
+
+.analysis-info-icon {
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 16px;
+
+  border: 3px solid #d0dbe8;
+  border-radius: 50%;
+
+  color: #9fb0c5;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.analysis-empty p {
+  margin: 0;
+
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+
+/* =========================
+   AI Panel
+========================= */
+
+.ai-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* =========================
+   AI Header
+========================= */
+
+.ai-header {
+  min-height: 105px;
+
+  padding: 22px 26px 18px;
+
+  border-bottom: 1px solid #d6e0eb;
+
+  flex-shrink: 0;
+}
+
+.ai-header p {
+  margin: 6px 0 0;
+
+  color: #8ca0bb;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =========================
+   AI Empty Area
+========================= */
+
+.ai-empty {
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  color: #8da0ba;
+}
+
+.ai-empty p {
+  margin: 18px 0 0;
+
+  font-size: 14px;
+
+  text-align: center;
+}
+
+
+/* =========================
+   Search Icon
+========================= */
+
+.search-icon {
+  position: relative;
+
+  width: 38px;
+  height: 38px;
+
+  border: 3px solid #91a4be;
+  border-radius: 50%;
+}
+
+.search-icon::after {
+  content: "";
+
+  position: absolute;
+
+  width: 15px;
+  height: 3px;
+
+  right: -11px;
+  bottom: -5px;
+
+  border-radius: 3px;
+
+  background: #91a4be;
+
+  transform: rotate(45deg);
+}
+
+
+/* =========================
+   AI Bottom
+========================= */
+
+.ai-bottom {
+  flex-shrink: 0;
+
+  padding: 14px 26px 18px;
+
+  border-top: 1px solid #d6e0eb;
+}
+
+
+/* =========================
+   Quick Questions
+========================= */
+
+.quick-question-list {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 8px;
+
+  margin-bottom: 16px;
+}
+
+.quick-question-list button {
+  height: 36px;
+
+  padding: 0 13px;
+
+  border: 1px solid #c8d5e5;
+  border-radius: 5px;
+
+  background: #ffffff;
+
+  color: #40536b;
+
+  font-size: 13px;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.quick-question-list button:hover {
+  background: #f4f7fa;
+}
+
+
+/* =========================
+   AI Input
+========================= */
+
+.ai-input-row {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr) 52px;
+
+  gap: 10px;
+}
+
+.ai-input-row input {
+  height: 50px;
+
+  padding: 0 17px;
+
+  font-size: 14px;
+}
+
+.send-button {
+  width: 52px;
+  height: 50px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 5px;
+
+  background: #203f68;
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    transform 100ms ease;
+}
+
+.send-button:hover {
+  background: #183657;
+}
+
+.send-button:active {
+  transform: scale(0.96);
+}
+
+.send-arrow {
+  display: block;
+
+  font-size: 22px;
+
+  transform: rotate(-45deg);
+}
+
+
+/* =========================
+   작은 높이 PC 대응
+========================= */
+
+@media (max-height: 800px) {
+
+  .main-header {
+    height: 62px;
+  }
+
+  .main-workspace {
+    height: calc(100vh - 62px);
+
+    padding: 16px;
+
+    gap: 16px;
+  }
+
+  .panel-title {
+    height: 52px;
+
+    padding: 0 20px;
+  }
+
+  .incident-form {
+    padding: 14px 20px;
+  }
+
+  .form-group {
+    margin-bottom: 11px;
+  }
+
+  .form-group label {
+    margin-bottom: 5px;
+
+    font-size: 13px;
+  }
+
+  .form-group input {
+    height: 38px;
+  }
+
+  .form-group textarea {
+    height: 56px;
+  }
+
+  .incident-type-button {
+    height: 40px;
+
+    font-size: 13px;
+  }
+
+  .chemical-add-button {
+    height: 38px;
+  }
+
+  .observation-button {
+    min-height: 32px;
+
+    font-size: 13px;
+  }
+
+  .analyze-button {
+    height: 42px;
+  }
+
+  .analysis-empty {
+    padding-top: 80px;
+  }
+
+  .ai-header {
+    min-height: 90px;
+
+    padding: 17px 20px 14px;
+  }
+
+  .ai-bottom {
+    padding: 12px 20px 14px;
+  }
+
+  .quick-question-list {
+    margin-bottom: 12px;
+  }
+
+  .quick-question-list button {
+    height: 32px;
+
+    font-size: 12px;
+  }
+
+  .ai-input-row input,
+  .send-button {
+    height: 44px;
+  }
+}
+
+
+/* =========================
+   작은 너비 PC 대응
+   3개 패널은 계속 유지
+========================= */
+
+@media (max-width: 1200px) {
+
+  .main-header {
+    padding: 0 20px;
+  }
+
+  .main-header-left {
+    gap: 12px;
+  }
+
+  .main-logo img {
+    width: 240px;
+  }
+
+  .station-badge {
+    padding: 6px 10px;
+
+    font-size: 12px;
+  }
+
+  .header-date {
+    font-size: 12px;
+  }
+
+  .main-workspace {
+    padding: 16px;
+
+    gap: 16px;
+  }
+
+  .panel-title {
+    padding: 0 20px;
+  }
+
+  .incident-form {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .ai-header {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .ai-bottom {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .incident-type-list {
+    gap: 5px;
+  }
+
+  .incident-type-button {
+    padding: 0 3px;
+
+    font-size: 12px;
+  }
+}
+
+/* =========================================
+   ANALYSIS RESULT
+========================================= */
+
+.analysis-result {
+  flex: 1;
+
+  min-height: 0;
+
+  padding: 22px 24px;
+
+  overflow-y: auto;
+}
+
+
+/* 분석 완료 */
+
+.analysis-summary {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  padding: 15px 16px;
+
+  margin-bottom: 24px;
+
+  border: 1px solid #d7e3ef;
+  border-radius: 6px;
+
+  background: #f7fafc;
+}
+
+.analysis-status-dot {
+  width: 9px;
+  height: 9px;
+
+  margin-top: 5px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #4d8a69;
+}
+
+.analysis-summary strong {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #26394f;
+
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.analysis-summary p {
+  margin: 0;
+
+  color: #7b8b9f;
+
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+
+/* 결과 Section */
+
+.analysis-result-section {
+  margin-bottom: 24px;
+}
+
+.analysis-result-title {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 11px;
+}
+
+.result-number {
+  color: #8294aa;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.analysis-result-title h3 {
+  margin: 0;
+
+  color: #30445b;
+
+  font-size: 14px;
+  font-weight: 750;
+
+  letter-spacing: -0.3px;
+}
+
+
+/* 물질 */
+
+.substance-card {
+  padding: 15px 16px;
+
+  border: 1px solid #e7b8b8;
+  border-radius: 6px;
+
+  background: #fff7f7;
+}
+
+.substance-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 8px;
+}
+
+.substance-top strong {
+  color: #b42323;
+
+  font-size: 14px;
+}
+
+.confidence-badge {
+  padding: 4px 8px;
+
+  border-radius: 4px;
+
+  background: #fbe8e8;
+
+  color: #b42323;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.substance-card p {
+  margin: 0;
+
+  color: #75869a;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+
+/* 위험 */
+
+.warning-card {
+  padding: 15px 16px;
+
+  border: 1px solid #e3d5bd;
+  border-radius: 6px;
+
+  background: #fdfbf7;
+}
+
+.warning-card-title {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  margin-bottom: 9px;
+}
+
+.warning-icon {
+  width: 20px;
+  height: 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #f1e3c7;
+
+  color: #8a6730;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.warning-card-title strong {
+  color: #5d4d35;
+
+  font-size: 13px;
+}
+
+.warning-card p {
+  margin: 0;
+
+  color: #7e705d;
+
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+
+/* 대응 리스트 */
+
+.response-list {
+  margin: 0;
+
+  padding: 14px 17px 14px 34px;
+
+  border: 1px solid #d3deea;
+  border-radius: 6px;
+
+  background: #ffffff;
+}
+
+.response-list li {
+  margin-bottom: 8px;
+
+  color: #5d6f84;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.response-list li:last-child {
+  margin-bottom: 0;
+}
+
+
+/* 근거 */
+
+.analysis-source {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding-top: 15px;
+
+  border-top: 1px solid #e1e7ee;
+}
+
+.analysis-source span {
+  padding: 4px 7px;
+
+  border-radius: 4px;
+
+  background: #edf2f7;
+
+  color: #718096;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.analysis-source p {
+  margin: 0;
+
+  color: #8b99aa;
+
+  font-size: 11px;
+}
+
+
+/* =========================================
+   CHAT AREA
+========================================= */
+
+.chat-area {
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+
+  overflow: hidden;
+}
+
+
+/* 기존 empty 화면을
+   chat-area 내부에서 꽉 채움 */
+
+.chat-area .ai-empty {
+  width: 100%;
+  height: 100%;
+}
+
+
+/* 메시지 리스트 */
+
+.chat-message-list {
+  width: 100%;
+  height: 100%;
+
+  padding: 22px 24px;
+
+  overflow-y: auto;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 15px;
+}
+
+
+/* 한 줄 */
+
+.chat-message-row {
+  width: 100%;
+
+  display: flex;
+}
+
+
+/* 사용자 오른쪽 */
+
+.chat-message-row.user {
+  justify-content: flex-end;
+}
+
+
+/* AI 왼쪽 */
+
+.chat-message-row.assistant {
+  justify-content: flex-start;
+}
+
+
+/* 공통 말풍선 */
+
+.chat-bubble {
+  max-width: 78%;
+
+  padding: 12px 15px;
+
+  border-radius: 10px;
+
+  color: #34465b;
+
+  font-size: 13px;
+  line-height: 1.65;
+
+  white-space: pre-wrap;
+
+  word-break: keep-all;
+}
+
+
+/* 사용자
+   연한 회색 */
+
+.user-bubble {
+  background: #e7eaee;
+
+  border-bottom-right-radius: 3px;
+}
+
+
+/* AI
+   사용자보다 더 연한 회색 */
+
+.assistant-bubble {
+  background: #f4f5f7;
+
+  border-bottom-left-radius: 3px;
+}
+
+
+/* =========================================
+   CHAT INPUT
+========================================= */
+
+.ai-bottom {
+  flex-shrink: 0;
+
+  padding: 16px 24px 18px;
+
+  border-top: 1px solid #d6e0eb;
+
+  background: #ffffff;
+}
+
+.ai-input-row {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr) 52px;
+
+  gap: 10px;
+}
+
+.ai-input-row input {
+  width: 100%;
+  height: 50px;
+
+  padding: 0 17px;
+
+  border: 1px solid #c8d5e5;
+  border-radius: 5px;
+
+  background: #ffffff;
+
+  color: #26364a;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  outline: none;
+}
+
+.ai-input-row input::placeholder {
+  color: #9aa6b4;
+}
+
+.ai-input-row input:focus {
+  border-color: #244a78;
+
+  box-shadow:
+    0 0 0 3px rgba(36, 74, 120, 0.08);
+}
+
+
+/* =========================================
+   Scrollbar
+   가운데 결과 / 오른쪽 채팅만 스크롤
+========================================= */
+
+.analysis-result::-webkit-scrollbar,
+.chat-message-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.analysis-result::-webkit-scrollbar-thumb,
+.chat-message-list::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+
+  background: #cbd4df;
+}
+
+.analysis-result::-webkit-scrollbar-track,
+.chat-message-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.record-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.records-link-button {
+
+  height: 38px;
+
+  padding: 0 14px;
+
+  border: 1px solid #ffffff;
+
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: #ffffff;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+
+}
+
+.records-link-button:hover {
+
+  background: rgba(255, 255, 255, 0.08);
+
+}
