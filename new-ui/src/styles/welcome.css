@@ -602,6 +602,9 @@
   width: 100%;
   min-height: 100svh;
 
+  display: grid;
+  place-items: center;
+
   overflow: hidden;
 
   background: #e8eef2;
@@ -613,19 +616,14 @@
 .start-background {
   position: absolute;
 
-  left: 0;
-  right: 0;
-  bottom: 0;
-
-  height: 720px;
+  inset: 0;
 
   background:
     linear-gradient(
       to bottom,
-      #f4f6fa 0%,
-      rgba(244, 246, 250, 0.92) 15%,
-      rgba(244, 246, 250, 0.55) 55%,
-      rgba(244, 246, 250, 0.35) 100%
+      rgba(244, 246, 250, 0.9) 0%,
+      rgba(244, 246, 250, 0.74) 42%,
+      rgba(244, 246, 250, 0.52) 100%
     ),
     url("/images/chemicheck-img-2.png");
 
@@ -647,9 +645,9 @@
 
   width: 100%;
 
-  justify-content: flex-start;
-  min-height: 100svh;
-  padding: clamp(96px, 14vh, 160px) 24px 72px;
+  justify-content: center;
+  min-height: auto;
+  padding: 72px 24px;
 }
 
 
@@ -668,7 +666,7 @@
 /* Login Card */
 
 .login-card {
-  margin-top: clamp(48px, 8vh, 96px);
+  margin-top: clamp(32px, 5vh, 56px);
 
   width: 360px;
 
@@ -838,12 +836,11 @@
   }
 
   .start-background {
-    height: 600px;
+    background-position: 62% center;
   }
 
   .start-content {
-    min-height: 100%;
-    padding: 72px 20px 96px;
+    padding: 64px 20px;
   }
 
   .start-content > h2 {
