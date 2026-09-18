@@ -18,7 +18,6 @@ function WelcomePage() {
       ),
     );
     const previousScrollRestoration = window.history.scrollRestoration;
-    window.history.scrollRestoration = "manual";
     let wheelLocked = false;
     let unlockTimer: number | undefined;
 
