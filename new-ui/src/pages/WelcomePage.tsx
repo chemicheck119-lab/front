@@ -54,7 +54,7 @@ function WelcomePage() {
         if (unlockTimer) window.clearTimeout(unlockTimer);
         unlockTimer = window.setTimeout(() => {
           wheelLocked = false;
-        }, 900);
+        }, 180);
         return;
       }
 
@@ -85,7 +85,7 @@ function WelcomePage() {
 
       unlockTimer = window.setTimeout(() => {
         wheelLocked = false;
-      }, 900);
+      }, 520);
     };
 
     window.addEventListener("scroll", saveCurrentSlide, { passive: true });
