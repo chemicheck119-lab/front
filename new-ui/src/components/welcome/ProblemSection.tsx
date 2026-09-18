@@ -27,6 +27,20 @@ const problemItems = [
 export default function ProblemSection() {
   return (
     <section className="problem-section">
+      <motion.div
+        className="problem-heading"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.5 }}
+      >
+        <p className="section-kicker">THE CHALLENGE</p>
+        <h2>
+          현장은 기다려주지 않지만,
+          <br />
+          정보는 흩어져 있습니다.
+        </h2>
+      </motion.div>
+
       {/* Problem 카드 */}
       <motion.div
         className="problem-card"
