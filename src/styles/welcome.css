@@ -1045,29 +1045,6 @@
   font-size: 12px;
 }
 
-.welcome-footer-policy {
-  max-width: 680px;
-  margin-top: 28px;
-  color: #aec0d0;
-  font-size: 11px;
-  line-height: 1.7;
-}
-
-.welcome-footer-policy summary {
-  width: fit-content;
-  cursor: pointer;
-  color: #fff;
-  font-weight: 700;
-}
-
-.welcome-footer-policy p {
-  max-width: 680px;
-  margin: 12px 0 0;
-  color: #aec0d0;
-  font-size: 11px;
-  line-height: 1.8;
-}
-
 @media (max-width: 850px) {
   .solution-section {
     grid-template-columns: 1fr;
