@@ -12,7 +12,7 @@
 .welcome-page > footer {
   min-height: 100svh;
   scroll-snap-align: start;
-  scroll-snap-stop: normal;
+  scroll-snap-stop: always;
 }
 
 /* =========================
@@ -647,9 +647,9 @@
 
   width: 100%;
 
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 100svh;
-  padding: clamp(72px, 10vh, 110px) 24px;
+  padding: clamp(96px, 14vh, 160px) 24px 72px;
 }
 
 
@@ -668,13 +668,7 @@
 /* Login Card */
 
 .login-card {
-  /*
-    ★ 여기만 조절 ★
-
-    제목과 로그인 화면 사이의 거리.
-    로그인 UI 자체에는 영향을 주지 않음.
-  */
-  margin-top: clamp(140px, 28vh, 360px);
+  margin-top: clamp(48px, 8vh, 96px);
 
   width: 360px;
 
@@ -849,7 +843,7 @@
 
   .start-content {
     min-height: 100%;
-    padding: 80px 20px 96px;
+    padding: 72px 20px 96px;
   }
 
   .start-content > h2 {
@@ -857,7 +851,7 @@
   }
 
   .login-card {
-    margin-top: clamp(120px, 22vh, 240px);
+    margin-top: 48px;
 
     width: min(340px, 100%);
   }
