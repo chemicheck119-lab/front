@@ -56,6 +56,24 @@ describe("좌측 현장 도구", () => {
     expect(screen.queryByRole("link", { name: /전화 연결/ })).not.toBeInTheDocument();
   });
 
+  it("전화 transcript를 검토 필요 초안으로 표시한다", () => {
+    renderPanel({
+      phoneTranscript: {
+        callId: "CA-1",
+        phase: "FINAL",
+        role: "user",
+        text: "공장 2층에서 검은 연기가 보입니다.",
+        receivedAt: "2026-09-18T10:00:00Z",
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /상황실 연결/ }));
+
+    expect(screen.getByRole("region", { name: "전화 전사 초안" })).toHaveTextContent("검토 필요");
+    expect(screen.getByText("공장 2층에서 검은 연기가 보입니다.")).toBeInTheDocument();
+    expect(screen.getByText(/소방대원이 확인·수정한 뒤 분석/)).toBeInTheDocument();
+  });
+
   it("상황실 지령망을 연결하고 수신 지령을 대원 확인 뒤 별도로 반영한다", () => {
     const onConnectDispatch = vi.fn();
     const onAcceptDispatch = vi.fn();
