@@ -5,7 +5,7 @@ import StartSection from "../components/welcome/StartSection";
 
 function WelcomePage() {
   return (
-    <main>
+    <main className="welcome-page">
       <OpenSection />
       <ProblemSection />
       <FeatureSection />
