@@ -218,6 +218,7 @@
 .problem-heading {
   width: min(860px, 100%);
   margin-bottom: clamp(28px, 5vh, 56px);
+  text-align: center;
 }
 
 .problem-heading h2 {
