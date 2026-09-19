@@ -177,6 +177,11 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         outcomeReport,
       });
       setSavedRecordId(response.recordId);
+      sessionStorage.setItem("chemicheck119:last-record", JSON.stringify({
+        recordId: response.recordId,
+        incidentId: response.incidentId,
+        savedAt: response.savedAt,
+      }));
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "대응 기록을 저장하지 못했습니다.");
     } finally {
