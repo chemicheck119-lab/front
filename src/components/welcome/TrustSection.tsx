@@ -13,8 +13,8 @@ export default function TrustSection() {
     <section className="trust-section" id="trust">
       <div className="trust-heading">
         <p className="section-kicker">RESPONSIBLE SUPPORT</p>
-        <h2>최종 결정은 사람에게,<br />근거는 시스템이 준비합니다.</h2>
-        <p>AI는 판단을 대신하지 않고, 위험 판단을 더 안전하게 준비합니다.</p>
+        <h2>분석 에이전트는 진행을 보여주고,<br />최종 결정은 사람에게 남깁니다.</h2>
+        <p>서버가 실제로 완료·대기·차단한 업무 단계와 다음 행동을 보여줍니다. 내부 추론을 과장하거나 판단을 자동 확정하지 않습니다.</p>
       </div>
       <div className="trust-list">
         {principles.map(([title, text, Icon]) => (
