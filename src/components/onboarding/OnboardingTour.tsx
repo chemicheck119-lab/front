@@ -16,49 +16,42 @@ const steps: Step[] = [
   {
     title: "사용 안내",
     description:
-      "사고 정보를 입력 후 현장에서 전달되는 질문을 검색하면, 현재 사고상황을 고려한 대응 정보를 빠르게 확인할 수 있습니다.\n\n주요 기능을 안내해드리겠습니다.",
+      "신고문과 현장 관찰을 입력하면 사고 맥락과 확인할 다음 행동을 정리합니다.\n\n주요 기능을 안내해드리겠습니다.",
     position: "center",
   },
 
   {
-    target: ".incident-panel",
-    title: "사고정보를 입력하세요",
+    target: ".integrated-composer-panel",
+    title: "신고문과 현장 상황을 입력하세요",
     description:
-      "신고를 통해 확인된 사고 정보를 입력하세요. 입력한 정보는 초기 대응 분석과 AI 답변에 활용됩니다.",
+      "신고문과 현장 관찰을 입력하면 사고 맥락과 다음 확인 행동을 정리합니다.",
     position: "right",
   },
 
   {
-    target: ".chemical-guide-target",
-    title: "확인된 화학물질을 체크하세요",
+    target: ".integrated-search",
+    title: "물질 후보를 검색하세요",
     description:
-      "신고 단계에서 확실히 확인된 물질이 있을 경우 화학물질을 추가해주세요. 확인되지 않았다면 현장 정보를 추가하세요. 사고물질이 특정되지 않아도 분석을 시작할 수 있습니다.",
+      "검색 결과는 후보입니다. 공식 근거와 현장 확인을 거치기 전에는 확정값으로 사용하지 않습니다.",
     position: "right",
   },
 
   {
-    target: ".analysis-panel",
-    title: "위험을 확인하세요",
+    target: ".integrated-analysis-card",
+    title: "분석과 현장 확인을 확인하세요",
     description:
-      "사고 특성과 사고 물질, 시설 취급 물질을 바탕으로 초기 대응 주의사항을 확인합니다.",
+      "후보·공식 근거·2-CAS 확인 상태를 한 화면에서 확인합니다.",
     position: "right",
   },
 
   {
-    target: ".ai-panel",
-    title: "현장의 질문을 바로 검색하세요",
+    target: ".integrated-agent-card",
+    title: "운영 에이전트의 다음 행동을 확인하세요",
     description:
-      "현장에서 추가로 확인된 물질이나 대응 관련 무전이 전달되면 이곳에 입력해 빠르게 정보를 얻고 답변하세요. 사고 정보를 고려하여 대응 방법을 제공합니다.",
+      "에이전트는 완료·대기·잠금 상태와 다음 확인 행동만 표시합니다. 최종 판단은 현장 지휘관이 합니다.",
     position: "left",
   },
 
-  {
-    target: ".save-button",
-    title: "대응 과정을 기록하세요",
-    description:
-      "사고 정보, 분석 정보, 질의 기록을 저장하여 사고 대응 검토와 보고서 작성에 활용할 수 있도록 합니다.",
-    position: "left",
-  },
 
   {
     title: "준비되었습니다.",

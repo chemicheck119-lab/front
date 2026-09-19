@@ -5,18 +5,20 @@ import { analyzeIncident } from "../api/incidents";
 import { confirmSubstance, cancelConfirmation } from "../api/confirmations";
 import { discoverSubstances } from "../api/substances";
 import { saveIncidentRecord } from "../api/records";
+import { receiveContestIncident } from "../api/intake";
 import { apiConfig, runtimeDataMode } from "../api/config";
 import type { IncidentAnalysisResponse, MaterialCandidate, SessionContextResponse } from "../api/contracts";
 import { getDemoAnalysis } from "../fixtures/demo";
 import { useResponderLocation } from "../hooks/useResponderLocation";
 import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard";
 import { AgentPanel } from "../features/operations-agent/AgentPanel";
-import { FieldToolsPanel, type FieldRecordMessage } from "../features/field-tools/FieldToolsPanel";
+import { FieldToolsPanel, type DispatchPreview, type DispatchStreamStatus, type FieldRecordMessage } from "../features/field-tools/FieldToolsPanel";
 import { IncidentMap } from "../features/map/IncidentMap";
 import { getLocationPresentation } from "../features/map/mapState";
 import { MessageComposer } from "../features/composer/MessageComposer";
 import { SubstanceResults } from "../features/substance-search/SubstanceResults";
 import { StructuredOutcomeForm, emptyStructuredOutcomeDraft, toStructuredOutcomeReport, type StructuredOutcomeDraft } from "../features/records/StructuredOutcomeForm";
+import OnboardingTour from "../components/onboarding/OnboardingTour";
 import "../styles/integrated-main.css";
 
 function makeIncidentId() {
@@ -29,6 +31,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const region = location.state?.region ?? "지역 미선택";
   const station = session?.stationDisplayName ?? location.state?.station ?? "소방서 미선택";
   const incidentId = location.state?.incidentId ?? (apiConfig.demoEnabled ? "INC-PUBLIC-DEMO-001" : null);
+  const [currentIncidentId, setCurrentIncidentId] = useState<string | null>(incidentId);
   const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
   const [incidentText, setIncidentText] = useState("");
   const [substanceQuery, setSubstanceQuery] = useState("");
@@ -39,17 +42,50 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const [confirmationIds, setConfirmationIds] = useState<string[]>([]);
   const [outcomeDraft, setOutcomeDraft] = useState<StructuredOutcomeDraft>(() => emptyStructuredOutcomeDraft());
   const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [dispatchStatus, setDispatchStatus] = useState<DispatchStreamStatus>("IDLE");
+  const [dispatchPreview, setDispatchPreview] = useState<DispatchPreview | null>(null);
+  const [dispatchAccepted, setDispatchAccepted] = useState(false);
 
   const locationState = useResponderLocation(Boolean(analysis));
   const gps = getLocationPresentation(locationState.state, locationState.position?.observedAt, locationState.position?.accuracyM);
   const mapContext = analysis?.agent?.mapContext ?? null;
-  const activeIncidentId = analysis?.incidentId ?? incidentId;
+  const activeIncidentId = analysis?.incidentId ?? currentIncidentId;
   const isSynthetic = apiConfig.demoEnabled;
 
   const dispatchContact = useMemo(() => ({
     name: "케미체크119 상황실",
-    phone: apiConfig.dispatchCenterPhone || "070-5276-7681",
+    phone: apiConfig.dispatchCenterPhone || (apiConfig.demoEnabled ? "070-5276-7681" : ""),
   }), []);
+
+  async function handleConnectDispatch() {
+    if (!apiConfig.presentationScenarioEnabled || busy) return;
+    setDispatchStatus("WAITING");
+    setError(null);
+    try {
+      const envelope = await receiveContestIncident();
+      setCurrentIncidentId(envelope.incidentId);
+      setDispatchPreview({
+        receivedAt: envelope.receivedAt,
+        stationDisplayName: envelope.stationDisplayName,
+        facilityName: envelope.facilityName,
+        addressText: envelope.addressText,
+        reportText: envelope.reportText,
+        requestId: envelope.requestId,
+        disclosure: envelope.disclosure,
+      });
+      setDispatchStatus("RECEIVED");
+    } catch (nextError) {
+      setDispatchStatus("ERROR");
+      setError(nextError instanceof Error ? nextError.message : "지령을 수신하지 못했습니다.");
+    }
+  }
+
+  function handleAcceptDispatch() {
+    if (!dispatchPreview) return;
+    setIncidentText(dispatchPreview.reportText);
+    setDispatchAccepted(true);
+  }
 
   async function runAnalysis(value = incidentText) {
     if (!value.trim() || busy) return;
@@ -155,6 +191,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
 
   return (
     <main className="integrated-main">
+      {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
       <header className="integrated-main-header">
         <div><button type="button" className="integrated-brand" onClick={() => navigate("/")}>케미체크119</button><span>{region} {station}</span></div>
         <div className="integrated-header-status"><span className={apiConfig.demoEnabled ? "status-demo" : "status-live"} />{apiConfig.demoEnabled ? "공개 합성 시연" : runtimeDataMode === "LIVE_API" ? "서버 연동" : "연결 설정 필요"}<strong>{dispatchContact.phone}</strong></div>
@@ -175,15 +212,15 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
             confirmationIds={confirmationIds}
             canSave={Boolean(analysis)}
             recordAvailable={apiConfig.recordEnabled && Boolean(activeIncidentId)}
-            dispatchStreamAvailable={false}
-            dispatchStreamStatus="IDLE"
-            dispatchPreview={null}
-            dispatchAccepted={false}
+            dispatchStreamAvailable={apiConfig.presentationScenarioEnabled}
+            dispatchStreamStatus={dispatchStatus}
+            dispatchPreview={dispatchPreview}
+            dispatchAccepted={dispatchAccepted}
             syntheticMode={isSynthetic}
             onRequestSave={() => void handleSaveRecord()}
             onContactAttempt={() => undefined}
-            onConnectDispatch={() => undefined}
-            onAcceptDispatch={() => undefined}
+            onConnectDispatch={() => void handleConnectDispatch()}
+            onAcceptDispatch={handleAcceptDispatch}
           />
         </aside>
 
@@ -197,8 +234,8 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           </section>
 
           <div className="integrated-columns">
-            <section className="integrated-card"><div className="integrated-card-heading"><h2>초기 분석과 현장 확인</h2>{busy === "confirmation" && <LoaderCircle size={16} className="animate-spin" />}</div><IncidentAnalysisCard analysis={analysis} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} confirmingRole={busy === "confirmation" ? "INCIDENT" : null} onCancel={(role, id) => void handleCancel(role, id)} confirmationMode={isSynthetic ? "PUBLIC_SYNTHETIC" : "FIELD"} /></section>
-            <section className="integrated-card"><div className="integrated-card-heading"><h2>운영 에이전트</h2></div><AgentPanel agent={analysis?.agent} syntheticMode={isSynthetic} loading={busy === "analysis"} /></section>
+            <section className="integrated-card integrated-analysis-card"><div className="integrated-card-heading"><h2>초기 분석과 현장 확인</h2>{busy === "confirmation" && <LoaderCircle size={16} className="animate-spin" />}</div><IncidentAnalysisCard analysis={analysis} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} confirmingRole={busy === "confirmation" ? "INCIDENT" : null} onCancel={(role, id) => void handleCancel(role, id)} confirmationMode={isSynthetic ? "PUBLIC_SYNTHETIC" : "FIELD"} /></section>
+            <section className="integrated-card integrated-agent-card"><div className="integrated-card-heading"><h2>운영 에이전트</h2></div><AgentPanel agent={analysis?.agent} syntheticMode={isSynthetic} loading={busy === "analysis"} /></section>
           </div>
 
           {analysis && <section className="integrated-card"><div className="integrated-card-heading"><div><h2>구조화된 대응 기록</h2><p className="integrated-card-subtitle">실제 현장 결과를 입력한 뒤 저장합니다. 후보·분석 결과는 서버 기록과 연결됩니다.</p></div>{savedRecordId && <span className="integrated-saved">저장 완료 · {savedRecordId}</span>}</div><div className="integrated-outcome-form"><StructuredOutcomeForm value={outcomeDraft} onChange={setOutcomeDraft} /><button type="button" disabled={busy === "confirmation"} onClick={() => void handleSaveRecord()} className="integrated-save-button">{busy === "confirmation" ? "저장 중..." : "현재 대응 기록 저장"}</button></div></section>}

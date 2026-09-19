@@ -108,7 +108,7 @@ export function LoginScreen({ dataMode, authLoginUrl, sessionChecking = false, s
     : null;
   const visibleSessionError = sessionError?.kind === "SESSION_EXPIRED" ? null : sessionError;
   const demoStations = REGIONS.find((item) => item.label === region)?.stations ?? [];
-  const availablePilotRegions = pilotCatalog?.regions ?? FALLBACK_PILOT_REGIONS;
+  const availablePilotRegions = pilotCatalog?.regions ?? (isLive ? [] : FALLBACK_PILOT_REGIONS);
   const pilotStations = availablePilotRegions.find((item) => item.regionName === pilotRegion)?.stations ?? [];
   const selectedPilotStation = pilotStations.find((item) => item.stationId === pilotStationId) ?? null;
 
