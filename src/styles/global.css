@@ -7,9 +7,15 @@ html {
 }
 
 html.welcome-scroll-root {
-  scroll-snap-type: y proximity;
+  scroll-snap-type: none;
   scroll-behavior: smooth;
   scroll-padding-block: 0;
+}
+
+@media (max-width: 768px) {
+  html.welcome-scroll-root {
+    scroll-snap-type: y proximity;
+  }
 }
 
 html,

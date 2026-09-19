@@ -356,6 +356,43 @@
   .feature-product-panel { box-shadow: 8px 8px 0 #dce6ee; }
 }
 
+/* First slide: minimal feature-led landing */
+.first-slide {
+  min-height: 100svh;
+  overflow: hidden;
+  background: #fff;
+}
+.first-slide .open-image { display: none; }
+.first-slide-content { display: flex; min-height: 100svh; flex-direction: column; align-items: center; justify-content: center; padding: 142px 48px 72px; }
+.first-slide-heading { text-align: center; }
+.first-slide-brand { margin: 0 0 20px; color: #181818; font-size: 20px; font-weight: 800; letter-spacing: -.05em; }
+.first-slide-heading .open-kicker { margin-bottom: 30px; color: #63788b; font-size: 10px; }
+.first-slide-heading h1 { margin: 0; color: #111; font-size: clamp(42px, 5vw, 68px); font-weight: 850; line-height: 1.08; letter-spacing: -.075em; }
+.first-slide-subtitle { margin: 22px 0 0; color: #6b7680; font-size: 15px; line-height: 1.7; }
+.first-slide-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 44px; width: min(1230px, 100%); margin-top: 74px; }
+.first-slide-card { position: relative; min-height: 252px; padding: 34px 38px 28px; border: 1px solid #e4e6e8; border-radius: 10px; background: #fff; box-shadow: 0 5px 16px rgba(15, 31, 45, .07); }
+.first-slide-card::after { position: absolute; right: 10px; bottom: -5px; left: 10px; height: 5px; border-radius: 0 0 5px 5px; content: ""; }
+.first-slide-voice::after { background: #c7e4b1; }
+.first-slide-agent::after { background: #f0d4a5; }
+.first-slide-record::after { background: #b7dce0; }
+.first-slide-card-meta { display: flex; align-items: center; justify-content: space-between; color: #171717; font-size: 12px; font-weight: 800; }
+.first-slide-card-meta svg { color: #718596; }
+.first-slide-card h2 { margin: 27px 0 0; color: #151515; font-size: 25px; letter-spacing: -.06em; }
+.first-slide-rule { width: 100%; height: 1px; margin: 18px 0 20px; background: #e2e3e4; }
+.first-slide-card p { max-width: 250px; margin: 0; color: #34383b; font-size: 13px; font-weight: 500; line-height: 1.7; }
+.first-slide-card a { display: inline-flex; align-items: center; gap: 4px; margin-top: 20px; color: #183b63; font-size: 11px; font-weight: 800; text-decoration: none; }
+.first-slide-note { margin: 44px 0 0; color: #687785; font-size: 12px; }
+.first-slide-note strong { color: #183b63; }
+
+@media (max-width: 850px) {
+  .first-slide-content { padding: 142px 20px 64px; }
+  .first-slide-cards { grid-template-columns: 1fr; gap: 16px; margin-top: 48px; }
+  .first-slide-card { min-height: 0; padding: 25px 26px 22px; }
+  .first-slide-card h2 { margin-top: 17px; }
+  .first-slide-card p { max-width: none; }
+  .first-slide-note { margin-top: 30px; text-align: center; }
+}
+
 /* =========================
    Problem Section
 ========================= */
