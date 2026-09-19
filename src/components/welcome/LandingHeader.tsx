@@ -5,7 +5,7 @@ import "../../styles/welcome.css";
 export default function LandingHeader() {
   return (
     <>
-      <div className="trend-bar landing-header-signal"><span>CHEMICHECK 119 / CHEMICAL RESPONSE</span><strong>근거가 확인될 때까지 판단을 보류합니다.</strong><Link to="tel:070-5276-7681">서비스 문의 070-5276-7681 <ArrowRight size={12} /></Link></div>
+      <div className="trend-bar landing-header-signal"><span>CHEMICHECK 119 / CHEMICAL RESPONSE</span><strong>신고문 하나로, 확인할 것과 다음 행동을 준비합니다.</strong><Link to="tel:070-5276-7681">에이전트 신고 070-5276-7681 <ArrowRight size={12} /></Link></div>
       <header className="open-nav landing-header-nav">
         <Link className="open-brand" to="/">케미체크<span>119</span><small>CHEMICAL RESPONSE OS</small></Link>
         <nav className="open-nav-links" aria-label="케미체크119 제품 메뉴">
