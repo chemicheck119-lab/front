@@ -13,7 +13,7 @@ export default function LandingHeader() {
           <Link to="/public-data">공공데이터</Link>
           <Link to="/trends">정부 동향</Link>
         </nav>
-        <Link className="open-nav-cta" to="/#start">대응 화면 열기 <ArrowRight size={14} /></Link>
+        <Link className="open-nav-cta" to="/onboarding">대응 화면 열기 <ArrowRight size={14} /></Link>
       </header>
     </>
   );
