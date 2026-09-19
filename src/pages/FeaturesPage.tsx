@@ -19,6 +19,22 @@ function FeatureVisual({ id }: { id: string }) {
   return <div className="feature-ui records-ui"><div className="feature-ui-bar">RESPONSE RECORD <span>SAVED</span></div><strong>사고 대응 기록 HX-2409</strong><div className="record-grid"><span>신고</span><b>확인 완료</b><span>분석</span><b>2단계 대기</b><span>판단</span><b>사람이 확정</b></div><button type="button">기록 상세 보기</button></div>;
 }
 
+function ArchitectureStrip() {
+  return (
+    <section className="feature-architecture" aria-label="분석 처리 구조">
+      <div className="feature-architecture-copy">
+        <p className="product-kicker">HOW IT HOLDS TOGETHER</p>
+        <h2>현장 입력은 빠르게,<br />판단의 근거는 분리해서.</h2>
+        <p>브라우저가 모델을 직접 호출하지 않습니다. FE는 BFF 계약을 통해 분석 서버와 공식 규칙을 연결하고, 확인되지 않은 정보는 다음 단계로 넘기지 않습니다.</p>
+      </div>
+      <div className="feature-architecture-flow">
+        <div><strong>FE</strong><span>입력·검토</span></div><b>→</b><div><strong>BFF</strong><span>계약·권한</span></div><b>→</b><div><strong>AI</strong><span>후보·요약</span></div><b>→</b><div><strong>CAMEO</strong><span>확인된 규칙</span></div>
+        <small>두 CAS 확인 전에는 마지막 규칙 단계로 넘어가지 않습니다.</small>
+      </div>
+    </section>
+  );
+}
+
 export default function FeaturesPage() {
   return (
     <main className="product-page">
@@ -33,9 +49,10 @@ export default function FeaturesPage() {
         { value: "141", label: "자동화 테스트", detail: "34개 테스트 파일로 안전 경계 검증" },
         { value: "0/2→2/2", label: "확인 흐름", detail: "확인 전 보류에서 규칙 실행까지" },
       ]} />
+      <ArchitectureStrip />
       <section className="feature-detail-list">
         {featureSections.map(({ id, number, label, title, text, icon: Icon }) => (
-          <article className="feature-detail" id={id} key={id}><div className="feature-detail-index"><span>{number}</span><Icon size={20} /></div><div><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p></div><FeatureVisual id={id} /></article>
+          <article className="feature-detail" id={id} key={id}><div className="feature-detail-index"><span>{number}</span><Icon size={20} /></div><div className="feature-detail-copy"><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p></div><div className="feature-detail-visual"><FeatureVisual id={id} /></div></article>
         ))}
       </section>
       <section className="product-cta"><p className="product-kicker">READY FOR THE FIELD</p><h2>현장 대응 화면에서 직접 시작해보세요.</h2><a className="open-cta" href="/onboarding">대응 화면 열기 <ArrowRight size={15} /></a></section>
