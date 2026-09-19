@@ -15,7 +15,7 @@ const colors = ["#183b63", "#4d7fae", "#b7dce0"];
 
 export default function PublicDataPage() {
   return (
-    <main className="product-page public-data-page">
+    <main className="product-page public-data-page landing-v2">
       <LandingHeader />
       <section className="data-hero"><div><p className="product-kicker">PUBLIC DATA / FIELD APPLICATION</p><h1>데이터를 모으는 데서<br />판단을 멈추지 않습니다.</h1><p>소방 플랫폼 데이터와 공식 화학자료를 사고 맥락에 연결하고, 후보·확정·보류를 분리해 다음 행동으로 넘깁니다.</p></div><div className="data-source-note"><Database size={18} /><strong>1,868행의 소방 플랫폼 데이터를 연결했습니다.</strong><span>런북 기준 유효 물질명·CAS 표현 1,530건을 탐색에 활용합니다. 실제 운영 성과와 혼동하지 않도록 데이터 근거와 한계를 함께 표시합니다.</span></div></section>
       <ProofStrip items={[
