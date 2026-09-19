@@ -15,7 +15,7 @@ export default function OpenSection() {
       <nav className="open-nav" aria-label="케미체크119 제품 메뉴">
         <a className="open-brand" href="#top">케미체크<span>119</span><small>CHEMICAL RESPONSE OS</small></a>
         <div className="open-nav-links"><a href="/features">기능 소개</a><a href="/public-data">공공데이터</a><a href="/trends">정부 동향</a></div>
-        <a className="open-nav-cta" href="#start">무료로 시작하기 <ArrowRight size={14} /></a>
+        <a className="open-nav-cta" href="/onboarding">무료로 시작하기 <ArrowRight size={14} /></a>
       </nav>
 
       <div className="first-slide-content">
@@ -23,7 +23,7 @@ export default function OpenSection() {
           <p className="open-kicker">소방안전 빅데이터 경진대회 · CHEMICHECK 119</p>
           <h1>화학사고 대응의<br /><em>첫 판단</em>을 준비합니다.</h1>
           <p className="first-slide-subtitle">신고문을 넣으면 확인할 사항, 물질 후보, 공식 근거,<br />보류 이유와 인계 요약을 한 흐름으로 정리합니다.</p>
-          <div className="first-slide-actions"><a className="open-cta" href="#start">무료로 시작하기 <ArrowRight size={15} /></a><a className="open-secondary-cta" href="/features">기능 소개 보기</a></div>
+          <div className="first-slide-actions"><a className="open-cta" href="/onboarding">무료로 시작하기 <ArrowRight size={15} /></a><a className="open-secondary-cta" href="/features">기능 소개 보기</a></div>
           <div className="response-step-list">{responseSteps.map(([number, title, text]) => <div key={number}><b>{number}</b><span><strong>{title}</strong><small>{text}</small></span></div>)}</div>
           <p className="first-slide-note"><strong>확정은 사람이 합니다.</strong> 후보 검색만으로 위험을 확정하지 않습니다.</p>
         </motion.div>

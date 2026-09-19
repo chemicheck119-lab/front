@@ -38,7 +38,7 @@ export default function TrendSection() {
             <div className="trend-card-top"><Icon size={18} /><span>{label}</span></div>
             <h3>{title}</h3>
             <p>{text}</p>
-            <a href="#start">연결 준비하기 <ArrowUpRight size={14} /></a>
+            <a href="/onboarding">연결 준비하기 <ArrowUpRight size={14} /></a>
           </article>
         ))}
       </div>

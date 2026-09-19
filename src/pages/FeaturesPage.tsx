@@ -31,7 +31,7 @@ export default function FeaturesPage() {
           <article className="feature-detail" id={id} key={id}><div className="feature-detail-index"><span>{number}</span><Icon size={20} /></div><div><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p></div><FeatureVisual id={id} /></article>
         ))}
       </section>
-      <section className="product-cta"><p className="product-kicker">READY FOR THE FIELD</p><h2>현장 대응 화면에서<br />직접 시작해보세요.</h2><a className="open-cta" href="/#start">대응 화면 열기 <ArrowRight size={15} /></a></section>
+      <section className="product-cta"><p className="product-kicker">READY FOR THE FIELD</p><h2>현장 대응 화면에서<br />직접 시작해보세요.</h2><a className="open-cta" href="/onboarding">대응 화면 열기 <ArrowRight size={15} /></a></section>
     </main>
   );
 }
