@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowDown, ArrowRight, CheckCircle2, MapPin, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, CircleAlert, Headphones, MapPin, Mic, ShieldCheck } from "lucide-react";
 import "../../styles/welcome.css";
 
 export default function OpenSection() {
@@ -7,19 +7,21 @@ export default function OpenSection() {
     <section className="open-section" id="top">
       <div className="open-image" />
 
+      <div className="trend-bar"><span>CHEMICHECK 119 / FIELD SIGNAL</span><strong>화학사고 대응은 정보가 연결되는 순간부터 시작됩니다.</strong><a href="#trends">현장 동향 보기 <ChevronRight size={13} /></a></div>
+
       <nav className="open-nav" aria-label="랜딩 페이지 메뉴">
-        <a className="open-brand" href="#top">케미체크<span>119</span></a>
+        <a className="open-brand" href="#top">케미체크<span>119</span><small>CHEMICAL RESPONSE OS</small></a>
         <div className="open-nav-links">
-          <a href="#features">기능 소개</a>
-              <a href="#features">음성·ClawOps</a>
+            <a href="#features">기능 소개</a>
+            <a href="#features">음성·ClawOps</a>
           <a href="#trust">분석 에이전트</a>
           <a href="#trends">현장 동향</a>
         </div>
-        <a className="open-nav-cta" href="#start">무료로 시작하기 <ArrowRight size={15} /></a>
+        <a className="open-nav-cta" href="#start">대응 화면 열기 <ArrowRight size={15} /></a>
       </nav>
 
       <div className="open-title">
-        <p className="open-kicker">CHEMICAL INCIDENT RESPONSE SUPPORT</p>
+        <p className="open-kicker">CHEMICAL INCIDENT RESPONSE / 01</p>
         <motion.h1
           initial={{ opacity: 0, y: 35 }}
           animate={{ opacity: 1, y: 0 }}
@@ -28,9 +30,11 @@ export default function OpenSection() {
             ease: [0.22, 1, 0.36, 1],
           }}
         >
-          한 번의 신고로,
+          기록은 한 번.
           <br />
-          현장 대응의 다음 단계를 준비합니다.
+          다음 대응은
+          <br />
+          시스템이 준비합니다.
         </motion.h1>
 
         <motion.p
@@ -43,14 +47,14 @@ export default function OpenSection() {
             ease: [0.22, 1, 0.36, 1],
           }}
         >
-          신고·음성·시설·물질 정보를 한 흐름으로 연결해,
+          신고 접수, 전화 전사, 물질 확인, 공식 근거를 한 화면에 모아
           <br />
-          현장 책임자가 근거를 확인하며 판단하도록 돕습니다.
+          현장 책임자가 확인하고 결정할 수 있게 합니다.
         </motion.p>
 
         <div className="open-actions">
-          <a className="open-cta" href="#start">무료로 시작하기 <ArrowRight size={17} /></a>
-           <a className="open-secondary-cta" href="#trust">기능 소개 보기 <ArrowDown size={16} /></a>
+          <a className="open-cta" href="#start">현장 대응 시작하기 <ArrowRight size={17} /></a>
+          <a className="open-secondary-cta" href="#features">제품 흐름 보기</a>
         </div>
       </div>
 
@@ -68,18 +72,16 @@ export default function OpenSection() {
         }}
       >
         <p>
-          사람은 한 번 확인하고, 시스템은 다음 대응을 준비합니다.
+          <strong>AI는 보조합니다.</strong> 확정과 책임은 현장 지휘관에게 남습니다.
         </p>
       </motion.div>
 
-      <div className="hero-console" aria-label="현장 대응 정보 미리보기">
-        <div className="console-header"><span className="console-status"><span /> CHEMICHECK 119 / LIVE</span><span>RESPONSE OS</span></div>
-        <div className="console-location"><MapPin size={15} /> 경기 화성 산업단지 · 신고 접수 09:37</div>
-        <div className="console-grid">
-          <div><span>01 · 음성·ClawOps</span><strong>전사 초안 수신</strong><small>검토 전에는 분석에 사용하지 않음</small></div>
-          <div><span>02 · 현장대응 에이전트</span><strong><ShieldCheck size={15} /> 4단계 진행</strong><small>사고 분석 → 근거 탐색</small></div>
-        </div>
-        <div className="console-footer"><CheckCircle2 size={15} /> 두 CAS 확인 전에는 충돌 등급과 권고를 표시하지 않습니다.</div>
+      <div className="hero-console" aria-label="현장 대응 작업 보드">
+        <div className="console-header"><span className="console-status"><span /> LIVE RESPONSE DESK</span><span>09:37 / INTAKE</span></div>
+        <div className="console-location"><MapPin size={15} /> 경기 화성 산업단지 인근 <span className="console-pill">검토 필요</span></div>
+        <div className="console-voice"><div className="console-icon"><Headphones size={15} /></div><div><span>ClawOps 전화 전사</span><strong>“냄새가 나고 흰 연기가 보여요.”</strong><small>최종 전사 초안 · 소방대원 확인 필요</small></div><Mic size={17} /></div>
+        <div className="console-agent"><div className="console-agent-head"><span><ShieldCheck size={14} /> 현장대응 분석 에이전트</span><b>진행 중</b></div><ol><li><i><Check size={12} /></i><span>신고 유형·물질 후보 분석</span><em>완료</em></li><li><i><Check size={12} /></i><span>시설 과거 이력 조회</span><em>완료</em></li><li className="is-current"><i><CircleAlert size={12} /></i><span>두 CAS 현장 확인 게이트</span><em>확인 필요</em></li></ol></div>
+        <div className="console-footer"><ShieldCheck size={14} /> 확인 전에는 충돌 등급과 대응 권고를 표시하지 않습니다.</div>
       </div>
     </section>
   );
