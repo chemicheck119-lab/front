@@ -10,6 +10,14 @@ const featureSections = [
   { id: "records", number: "05", label: "RESPONSE RECORD", title: "대응 과정을 다음 판단의 기록으로 남깁니다.", text: "확인된 정보와 판단 과정을 저장해 현장 대응을 이어가고 책임의 근거를 남깁니다.", icon: ShieldCheck },
 ];
 
+function FeatureVisual({ id }: { id: string }) {
+  if (id === "intake") return <div className="feature-ui intake-ui"><div className="feature-ui-bar">INCIDENT INTAKE <span>NEW</span></div><strong>신고 내용을 입력하세요</strong><div className="feature-ui-lines"><i>사고 위치 · 경기 화성 산업단지</i><i>관찰 내용 · 흰 연기 / 냄새</i><i>신고자 발화 · 검토 필요</i></div><button type="button">사고 맥락 만들기</button></div>;
+  if (id === "voice") return <div className="feature-ui voice-ui"><div className="feature-ui-bar">CLAWOPS / TRANSCRIPT <span>REVIEW</span></div><div className="voice-wave">••• ━━━ ••• ━━━ •••</div><strong>“흰 연기가 보이고 냄새가 납니다.”</strong><small>최종 전사 초안 · 소방대원 확인 필요</small><div className="feature-ui-actions"><button type="button">듣고 수정</button><button type="button">분석에 사용</button></div></div>;
+  if (id === "agent") return <div className="feature-ui agent-ui"><div className="feature-ui-bar">OPERATIONS AGENT <span>IN PROGRESS</span></div><ol><li className="done"><b>✓</b> 신고 유형·물질 후보 분석 <em>완료</em></li><li className="done"><b>✓</b> 시설 과거 이력 조회 <em>완료</em></li><li className="active"><b>!</b> 물질 후보·공식 근거 탐색 <em>진행 중</em></li><li><b>○</b> 두 CAS 현장 확인 게이트 <em>대기</em></li></ol></div>;
+  if (id === "evidence") return <div className="feature-ui evidence-ui"><div className="feature-ui-bar">OFFICIAL EVIDENCE <span>2 SOURCES</span></div><div className="evidence-row"><BookOpenCheck size={16} /><div><strong>KOSHA MSDS 근거</strong><small>원문 자료 연결됨</small></div><b>확인</b></div><div className="evidence-row"><ShieldCheck size={16} /><div><strong>NOAA CAMEO 규칙</strong><small>두 CAS 확인 후 실행</small></div><b className="muted">대기</b></div></div>;
+  return <div className="feature-ui records-ui"><div className="feature-ui-bar">RESPONSE RECORD <span>SAVED</span></div><strong>사고 대응 기록 HX-2409</strong><div className="record-grid"><span>신고</span><b>확인 완료</b><span>분석</span><b>2단계 대기</b><span>판단</span><b>사람이 확정</b></div><button type="button">기록 상세 보기</button></div>;
+}
+
 export default function FeaturesPage() {
   return (
     <main className="product-page">
@@ -20,7 +28,7 @@ export default function FeaturesPage() {
       </section>
       <section className="feature-detail-list">
         {featureSections.map(({ id, number, label, title, text, icon: Icon }) => (
-          <article className="feature-detail" id={id} key={id}><div className="feature-detail-index"><span>{number}</span><Icon size={20} /></div><div><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p></div><div className="feature-detail-mark">{number}</div></article>
+          <article className="feature-detail" id={id} key={id}><div className="feature-detail-index"><span>{number}</span><Icon size={20} /></div><div><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p></div><FeatureVisual id={id} /></article>
         ))}
       </section>
       <section className="product-cta"><p className="product-kicker">READY FOR THE FIELD</p><h2>현장 대응 화면에서<br />직접 시작해보세요.</h2><a className="open-cta" href="/#start">대응 화면 열기 <ArrowRight size={15} /></a></section>

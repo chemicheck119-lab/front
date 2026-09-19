@@ -391,6 +391,43 @@
   .product-page-signal span { display: none; }.product-page-header { width: calc(100% - 40px); min-height: 72px; }.product-page-header nav { display: none; }.product-hero, .data-hero, .trend-hero { display: block; width: calc(100% - 40px); min-height: 0; padding: 90px 0; }.product-hero-board, .data-source-note, .trend-hero-index { margin-top: 48px; }.feature-detail-list, .trend-card-grid { width: calc(100% - 40px); }.feature-detail { grid-template-columns: 45px 1fr; gap: 18px; padding: 45px 0; }.feature-detail-mark { display: none; }.data-dashboard, .data-sources { padding: 80px 20px; }.data-dashboard-head { display: block; }.synthetic-badge { display: inline-block; margin-top: 22px; }.data-chart-grid, .source-grid, .trend-card-grid { grid-template-columns: 1fr; }.data-usage, .interview-section { display: block; width: auto; padding: 80px 20px; }.data-usage-list, .interview-card { margin-top: 45px; }.interview-section { padding-inline: 20px; }.trend-card-grid { margin-bottom: 80px; }.trend-sources { padding: 80px 20px; }.trend-sources > div { flex-direction: column; }
 }
 
+/* Detailed feature interface previews */
+.feature-ui { align-self: center; min-width: 260px; padding: 18px; border: 1px solid #d4e0e8; border-radius: 4px; background: #fff; box-shadow: 8px 8px 0 #edf2f5; color: #183b63; }
+.feature-ui-bar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #e2e8ed; color: #718596; font: 700 9px/1.4 "JetBrains Mono", monospace; letter-spacing: .06em; }
+.feature-ui-bar span { color: #4d7fae; }
+.feature-ui > strong { display: block; margin-top: 20px; font-size: 15px; }
+.feature-ui-lines { display: grid; gap: 8px; margin-top: 15px; }
+.feature-ui-lines i { padding: 9px; background: #f3f6f8; color: #61778a; font-size: 10px; font-style: normal; }
+.feature-ui button { margin-top: 16px; padding: 9px 11px; border: 0; border-radius: 3px; background: #183b63; color: #fff; font-size: 10px; font-weight: 800; }
+.voice-wave { margin: 20px 0 13px; color: #4d7fae; font: 700 16px/1.2 "JetBrains Mono", monospace; letter-spacing: .12em; }
+.voice-ui > strong { display: block; font-size: 13px; line-height: 1.5; }
+.voice-ui > small { display: block; margin-top: 7px; color: #a16e13; font-size: 10px; }
+.feature-ui-actions { display: flex; gap: 7px; }
+.feature-ui-actions button:last-child { background: #edf3f7; color: #183b63; }
+.agent-ui ol { display: grid; gap: 12px; margin: 20px 0 2px; padding: 0; list-style: none; }
+.agent-ui li { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 7px; color: #718596; font-size: 10px; }
+.agent-ui li b { display: grid; width: 20px; height: 20px; place-items: center; border-radius: 50%; background: #edf2f5; color: #718596; }
+.agent-ui li em { font-size: 9px; font-style: normal; }
+.agent-ui li.done b { background: #d9ecdf; color: #26734a; }
+.agent-ui li.done em { color: #26734a; }
+.agent-ui li.active { color: #183b63; font-weight: 800; }
+.agent-ui li.active b { background: #fff0c7; color: #a16e13; }
+.agent-ui li.active em { color: #a16e13; }
+.evidence-row { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: center; padding: 14px 0; border-bottom: 1px solid #e2e8ed; }
+.evidence-row > svg { color: #4d7fae; }
+.evidence-row strong, .evidence-row small { display: block; }
+.evidence-row strong { font-size: 11px; }
+.evidence-row small { margin-top: 3px; color: #718596; font-size: 9px; }
+.evidence-row b { color: #26734a; font-size: 9px; }
+.evidence-row b.muted { color: #a16e13; }
+.record-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; margin-top: 18px; padding: 13px; background: #f3f6f8; font-size: 10px; }
+.record-grid span { color: #718596; }
+.record-grid b { text-align: right; color: #26734a; font-size: 9px; }
+
+@media (max-width: 800px) {
+  .feature-detail .feature-ui { grid-column: 2; min-width: 0; }
+}
+
 /* Main MVP board */
 .first-slide-content { display: grid; grid-template-columns: minmax(330px, .8fr) minmax(470px, 1.2fr); align-items: center; gap: clamp(54px, 8vw, 120px); width: min(1200px, 100%); padding-inline: 0; }
 .first-slide-heading { text-align: left; }
