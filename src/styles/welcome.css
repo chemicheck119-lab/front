@@ -479,6 +479,55 @@
 .mvp-result-grid > div { border-color: rgba(143,177,202,.16); background: #1b3852; }
 .mvp-result-grid > div:nth-child(1) em { color: #f2c879; }
 
+/* Final main screen treatment */
+.welcome-page > .first-slide { background: #f7f9fb; color: #112033; }
+.welcome-page > .first-slide .trend-bar { background: #183b63; }
+.welcome-page > .first-slide .open-nav { border-bottom-color: #d8e3ec; }
+.welcome-page > .first-slide .open-brand,
+.welcome-page > .first-slide .open-nav-links a { color: #183b63; }
+.welcome-page > .first-slide .open-brand span { color: #4d7fae; }
+.welcome-page > .first-slide .open-brand small { color: #718596; }
+.welcome-page > .first-slide .open-nav-cta,
+.welcome-page > .first-slide .open-cta { border-color: #183b63; background: #183b63; color: #fff; }
+.welcome-page > .first-slide .open-kicker { color: #4d7fae; }
+.welcome-page > .first-slide .first-slide-heading { left: 0; }
+.welcome-page > .first-slide .first-slide-heading h1 { color: #112033; }
+.welcome-page > .first-slide .first-slide-heading h1 em { color: #4d7fae; }
+.welcome-page > .first-slide .first-slide-subtitle { color: #61778a; }
+.welcome-page > .first-slide .response-step-list { border-color: #d8e3ec; }
+.welcome-page > .first-slide .response-step-list > div { border-color: #d8e3ec; }
+.welcome-page > .first-slide .response-step-list b { color: #4d7fae; }
+.welcome-page > .first-slide .response-step-list strong { color: #183b63; }
+.welcome-page > .first-slide .response-step-list small { color: #718596; }
+.welcome-page > .first-slide .first-slide-note { color: #718596; }
+.welcome-page > .first-slide .first-slide-note strong { color: #183b63; }
+.welcome-page > .first-slide .hero-mvp { border-color: #c2d4e1; background: #eaf1f6; color: #183b63; box-shadow: 14px 14px 0 #dce7ee; }
+.welcome-page > .first-slide .hero-mvp-head { border-color: #c6d7e3; color: #718596; }
+.welcome-page > .first-slide .hero-mvp-head span { color: #183b63; }
+.welcome-page > .first-slide .hero-mvp-location { color: #183b63; }
+.welcome-page > .first-slide .hero-mvp-location strong { color: #8d6215; background: #fff1cc; }
+.welcome-page > .first-slide .mvp-input { border-color: #d4e1e9; background: #fff; }
+.welcome-page > .first-slide .mvp-input small { color: #718596; }
+.welcome-page > .first-slide .mvp-input p { color: #183b63; }
+.welcome-page > .first-slide .mvp-input textarea { display: block; width: 100%; resize: none; border: 1px solid #d4e1e9; border-radius: 3px; padding: 10px; background: #f7f9fb; color: #183b63; font: 500 12px/1.6 "Noto Sans KR", sans-serif; outline: none; }
+.welcome-page > .first-slide .mvp-input textarea:focus { border-color: #4d7fae; box-shadow: 0 0 0 3px rgba(77,127,174,.12); }
+.welcome-page > .first-slide .mvp-input textarea::placeholder { color: #91a1ad; }
+.welcome-page > .first-slide .mvp-input-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.welcome-page > .first-slide .mvp-input-actions button { border: 0; border-radius: 3px; padding: 9px 11px; background: transparent; color: #4d7fae; font-size: 10px; font-weight: 800; cursor: pointer; }
+.welcome-page > .first-slide .mvp-input-actions .mvp-analyze-button { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; background: #183b63; color: #fff; }
+.welcome-page > .first-slide .mvp-input-actions .mvp-analyze-button:disabled { cursor: not-allowed; opacity: .4; }
+.welcome-page > .first-slide .mvp-result-empty { display: flex; align-items: center; gap: 10px; min-height: 124px; padding: 18px; border: 1px dashed #b8cbd8; background: rgba(255,255,255,.55); color: #718596; font-size: 11px; line-height: 1.6; }
+.welcome-page > .first-slide .mvp-result-empty svg { flex: 0 0 auto; color: #4d7fae; }
+.welcome-page > .first-slide .mvp-input div { color: #4d7fae; }
+.welcome-page > .first-slide .mvp-result-head { color: #183b63; }
+.welcome-page > .first-slide .mvp-result-head b { color: #718596; }
+.welcome-page > .first-slide .mvp-result-grid > div { border-color: #d4e1e9; background: #fff; }
+.welcome-page > .first-slide .mvp-result-grid small { color: #718596; }
+.welcome-page > .first-slide .mvp-result-grid strong { color: #183b63; }
+.welcome-page > .first-slide .mvp-result-grid em { color: #27804e; }
+.welcome-page > .first-slide .mvp-result-grid > div:nth-child(1) em { color: #a16e13; }
+.welcome-page > .first-slide .hero-mvp-foot { color: #61778a; }
+
 /* Main MVP board */
 .first-slide-content { display: grid; grid-template-columns: minmax(330px, .8fr) minmax(470px, 1.2fr); align-items: center; gap: clamp(54px, 8vw, 120px); width: min(1200px, 100%); padding-inline: 0; }
 .first-slide-heading { text-align: left; }
