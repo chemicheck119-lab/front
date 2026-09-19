@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import OnboardingTour from "../components/onboarding/OnboardingTour";
+import { subscribeToPhoneTranscripts, type PhoneTranscriptEvent } from "../api/phone";
 import "../styles/main.css";
 
 const incidentTypes = ["화재", "누출", "폭발", "구조", "기타"];
@@ -19,6 +20,7 @@ export default function MainPage() {
 
   const region = location.state?.region || "지역";
   const station = location.state?.station || "소방서";
+  const incidentId = location.state?.incidentId as string | undefined;
 
   /* =========================
      Onboarding
@@ -40,6 +42,26 @@ export default function MainPage() {
   const [accidentLocation, setAccidentLocation] = useState("");
   const [report, setReport] = useState("");
   const [chemical, setChemical] = useState("");
+  const [phoneTranscript, setPhoneTranscript] = useState<PhoneTranscriptEvent | null>(null);
+  const [phoneStreamError, setPhoneStreamError] = useState(false);
+
+  useEffect(() => {
+    if (!incidentId) return undefined;
+    let subscription: { close: () => void } | undefined;
+    try {
+      subscription = subscribeToPhoneTranscripts(
+        incidentId,
+        (event) => {
+          setPhoneTranscript(event);
+          setPhoneStreamError(false);
+        },
+        () => setPhoneStreamError(true),
+      );
+    } catch {
+      setPhoneStreamError(true);
+    }
+    return () => subscription?.close();
+  }, [incidentId]);
 
   /* =========================
      Analysis
@@ -285,6 +307,20 @@ export default function MainPage() {
                   ),
                 )}
               </div>
+            </div>
+
+            <div className="phone-transcript-status" aria-live="polite">
+              <label>전화 전사</label>
+              {!incidentId && <p>사고 접수 후 전화 전사를 연결할 수 있습니다.</p>}
+              {incidentId && phoneStreamError && <p>전화 전사 연결을 확인할 수 없습니다.</p>}
+              {incidentId && !phoneStreamError && !phoneTranscript && <p>전화 전사 수신 대기 중입니다.</p>}
+              {phoneTranscript && (
+                <p>
+                  <strong>{phoneTranscript.isFinal ? "최종 전사 · 검토 필요" : "실시간 초안"}</strong>
+                  <br />
+                  {phoneTranscript.text}
+                </p>
+              )}
             </div>
 
               <button type="button" className="analyze-button" disabled>
