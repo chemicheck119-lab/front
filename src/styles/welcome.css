@@ -536,6 +536,29 @@
 .welcome-page > .first-slide .trend-bar a { margin-left: auto; }
 .welcome-page > .first-slide .first-slide-heading h1 { white-space: nowrap; font-size: clamp(42px, 4.6vw, 66px); }
 .welcome-page > .first-slide .mvp-entry-phone strong { font-size: 14px; letter-spacing: -.02em; }
+
+@media (min-width: 851px) {
+  .welcome-page > .first-slide .first-slide-content { align-items: start; padding-top: 176px; padding-bottom: 28px; }
+  .welcome-page > .first-slide .first-slide-heading { align-self: start; }
+  .welcome-page > .first-slide .first-slide-heading h1 { font-size: clamp(44px, 4.4vw, 62px); }
+  .welcome-page > .first-slide .first-slide-subtitle { margin-top: 15px; font-size: 13px; line-height: 1.55; }
+  .welcome-page > .first-slide .first-slide-actions { margin-top: 18px; }
+  .welcome-page > .first-slide .response-step-list { margin-top: 24px; }
+  .welcome-page > .first-slide .response-step-list > div { padding: 9px 0; }
+  .welcome-page > .first-slide .response-step-list small { line-height: 1.35; }
+  .welcome-page > .first-slide .first-slide-note { margin-top: 15px; }
+  .welcome-page > .first-slide .hero-mvp { align-self: start; padding: 17px; }
+  .welcome-page > .first-slide .hero-mvp-location { margin: 11px 0; }
+  .welcome-page > .first-slide .mvp-entry-card { padding: 12px; }
+  .welcome-page > .first-slide .mvp-entry-title { margin: 10px 0 8px; }
+  .welcome-page > .first-slide .mvp-entry-card label { margin: 6px 0 3px; }
+  .welcome-page > .first-slide .mvp-entry-card select { min-height: 32px; }
+  .welcome-page > .first-slide .mvp-start-button { min-height: 34px; margin-top: 10px; }
+  .welcome-page > .first-slide .mvp-entry-note { margin-top: 6px; }
+  .welcome-page > .first-slide .mvp-brief-preview { margin-top: 7px; padding: 9px 12px; }
+  .welcome-page > .first-slide .mvp-brief-preview p { margin: 4px 0; }
+  .welcome-page > .first-slide .hero-mvp-foot { margin-top: 8px; }
+}
 .welcome-page > .first-slide .mvp-entry-card { padding: 15px; border: 1px solid #d4e1e9; background: #fff; color: #183b63; }
 .welcome-page > .first-slide .mvp-entry-phone { display: flex; align-items: center; gap: 9px; padding-bottom: 13px; }
 .welcome-page > .first-slide .mvp-entry-phone > span { display: grid; width: 30px; height: 30px; place-items: center; color: #fff; background: #183b63; }
@@ -663,6 +686,37 @@
   .first-slide-heading { left: 0; width: 100%; text-align: left; }
   .hero-mvp { width: 100%; margin-top: 45px; }
   .response-step-list { width: 100%; margin-top: 32px; }
+}
+
+/* Final viewport fit: keep desktop essentials visible, let mobile flow naturally */
+@media (min-width: 851px) {
+  .welcome-page > .first-slide .first-slide-content { align-items: start; padding-top: 158px; padding-bottom: 20px; }
+  .welcome-page > .first-slide .first-slide-heading,
+  .welcome-page > .first-slide .hero-mvp { align-self: start; }
+}
+
+@media (min-width: 851px) and (max-height: 800px) {
+  .welcome-page > .first-slide .first-slide-content { padding-top: 142px; }
+  .welcome-page > .first-slide .first-slide-heading h1 { font-size: 43px; }
+  .welcome-page > .first-slide .first-slide-subtitle { margin-top: 10px; font-size: 12px; }
+  .welcome-page > .first-slide .first-slide-actions { margin-top: 12px; }
+  .welcome-page > .first-slide .response-step-list { display: none; }
+  .welcome-page > .first-slide .first-slide-note { margin-top: 18px; }
+  .welcome-page > .first-slide .hero-mvp { padding: 12px; }
+  .welcome-page > .first-slide .hero-mvp-location { margin: 8px 0; }
+  .welcome-page > .first-slide .mvp-entry-card { padding: 10px; }
+  .welcome-page > .first-slide .mvp-entry-title { margin: 8px 0 6px; }
+  .welcome-page > .first-slide .mvp-entry-card label { margin: 4px 0 2px; }
+  .welcome-page > .first-slide .mvp-entry-card select { min-height: 28px; }
+  .welcome-page > .first-slide .mvp-start-button { min-height: 30px; margin-top: 7px; }
+  .welcome-page > .first-slide .mvp-entry-note,
+  .welcome-page > .first-slide .mvp-brief-preview,
+  .welcome-page > .first-slide .hero-mvp-foot { display: none; }
+}
+
+@media (max-width: 850px) {
+  .welcome-page > .first-slide { height: auto; min-height: 100svh; overflow: visible; }
+  .welcome-page > .first-slide .first-slide-content { min-height: 100svh; }
 }
 
 /* =========================
