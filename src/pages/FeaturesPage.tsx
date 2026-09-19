@@ -1,0 +1,65 @@
+import { ArrowRight, Bot, BookOpenCheck, Check, FileAudio, FileText, MapPin, ShieldCheck } from "lucide-react";
+import LandingHeader from "../components/welcome/LandingHeader";
+import ProofStrip from "../components/welcome/ProofStrip";
+import "../styles/welcome.css";
+
+const featureSections = [
+  { id: "intake", number: "01", label: "INCIDENT INTAKE", title: "신고가 들어오는 순간, 대응 맥락을 만듭니다.", text: "신고 내용, 사고 위치, 시설 정보와 현장 관찰을 하나의 사고 기록으로 모읍니다.", icon: FileText },
+  { id: "voice", number: "02", label: "VOICE / CLAWOPS", title: "전화와 현장 음성을 검토 가능한 초안으로.", text: "ClawOps 전화 전사와 브라우저 음성을 연결합니다. 전사 결과는 자동 확정하지 않고 소방대원이 확인·수정한 뒤 분석에 사용합니다.", icon: FileAudio },
+  { id: "agent", number: "03", label: "OPERATIONS AGENT", title: "분석 에이전트의 다음 행동을 보여줍니다.", text: "신고 분석, 시설 이력, 물질 후보, 현장 확인, 충돌 검토의 완료·대기·확인 필요 상태를 투명하게 표시합니다.", icon: Bot },
+  { id: "evidence", number: "04", label: "OFFICIAL EVIDENCE", title: "후보가 아니라 확인된 근거로 판단합니다.", text: "KOSHA·CAMEO와 공식 출처를 연결하고, 두 CAS가 확인되기 전에는 충돌 등급과 권고를 표시하지 않습니다.", icon: BookOpenCheck },
+  { id: "records", number: "05", label: "RESPONSE RECORD", title: "대응 과정을 다음 판단의 기록으로 남깁니다.", text: "확인된 정보와 판단 과정을 저장해 현장 대응을 이어가고 책임의 근거를 남깁니다.", icon: ShieldCheck },
+];
+
+function FeatureVisual({ id }: { id: string }) {
+  if (id === "intake") return <div className="feature-ui intake-ui"><div className="feature-ui-bar">INCIDENT INTAKE <span>NEW</span></div><strong>신고 내용을 입력하세요</strong><div className="feature-ui-lines"><i>사고 위치 · 경기 화성 산업단지</i><i>관찰 내용 · 흰 연기 / 냄새</i><i>신고자 발화 · 검토 필요</i></div><button type="button">사고 맥락 만들기</button></div>;
+  if (id === "voice") return <div className="feature-ui voice-ui"><div className="feature-ui-bar">CLAWOPS / TRANSCRIPT <span>REVIEW</span></div><div className="voice-wave">••• ━━━ ••• ━━━ •••</div><strong>“흰 연기가 보이고 냄새가 납니다.”</strong><small>최종 전사 초안 · 소방대원 확인 필요</small><div className="feature-ui-actions"><button type="button">듣고 수정</button><button type="button">분석에 사용</button></div></div>;
+  if (id === "agent") return <div className="feature-ui agent-ui"><div className="feature-ui-bar">OPERATIONS AGENT <span>IN PROGRESS</span></div><ol><li className="done"><b>✓</b> 신고 유형·물질 후보 분석 <em>완료</em></li><li className="done"><b>✓</b> 시설 과거 이력 조회 <em>완료</em></li><li className="active"><b>!</b> 물질 후보·공식 근거 탐색 <em>진행 중</em></li><li><b>○</b> 두 CAS 현장 확인 게이트 <em>대기</em></li></ol></div>;
+  if (id === "evidence") return <div className="feature-ui evidence-ui"><div className="feature-ui-bar">OFFICIAL EVIDENCE <span>2 SOURCES</span></div><div className="evidence-row"><BookOpenCheck size={16} /><div><strong>KOSHA MSDS 근거</strong><small>원문 자료 연결됨</small></div><b>확인</b></div><div className="evidence-row"><ShieldCheck size={16} /><div><strong>NOAA CAMEO 규칙</strong><small>두 CAS 확인 후 실행</small></div><b className="muted">대기</b></div></div>;
+  return <div className="feature-ui records-ui"><div className="feature-ui-bar">RESPONSE RECORD <span>SAVED</span></div><strong>사고 대응 기록 HX-2409</strong><div className="record-grid"><span>신고</span><b>확인 완료</b><span>분석</span><b>2단계 대기</b><span>판단</span><b>사람이 확정</b></div><button type="button">기록 상세 보기</button></div>;
+}
+
+function ArchitectureStrip() {
+  return (
+    <section className="feature-architecture" aria-label="분석 처리 구조">
+      <div className="feature-architecture-copy">
+        <p className="product-kicker">HOW IT HOLDS TOGETHER</p>
+        <h2>현장 입력은 빠르게,<br />판단의 근거는 분리해서.</h2>
+        <p>브라우저가 모델을 직접 호출하지 않습니다. FE는 BFF 계약을 통해 분석 서버와 공식 규칙을 연결하고, 확인되지 않은 정보는 다음 단계로 넘기지 않습니다.</p>
+      </div>
+      <div className="feature-architecture-flow">
+        <div><strong>FE</strong><span>입력·검토</span></div><b>→</b><div><strong>BFF</strong><span>계약·권한</span></div><b>→</b><div><strong>AI</strong><span>후보·요약</span></div><b>→</b><div><strong>CAMEO</strong><span>확인된 규칙</span></div>
+        <small>두 CAS 확인 전에는 마지막 규칙 단계로 넘어가지 않습니다.</small>
+      </div>
+    </section>
+  );
+}
+
+export default function FeaturesPage() {
+  return (
+    <main className="product-page landing-v2">
+      <LandingHeader />
+      <section className="product-hero">
+        <div><p className="product-kicker">FEATURES / RESPONSE WORKSPACE</p><h1>신고를 받는 순간,<br />현장 대응의 다음 단계가 시작됩니다.</h1><p>음성 전사부터 사고 분석, 공식 근거, 현장 확인, 대응 기록까지 필요한 다음 행동을 연결합니다.</p></div>
+        <div className="product-hero-board"><div className="board-top"><span><i /> LIVE MVP</span><b>INCIDENT / HX-2409</b></div><div className="board-location"><MapPin size={15} /> 경기 화성 산업단지 인근</div><div className="board-flow"><div className="done"><Check size={14} /> 신고 접수</div><div className="done"><Check size={14} /> 음성 전사 검토</div><div className="active"><Bot size={14} /> 분석 에이전트 진행</div><div><ShieldCheck size={14} /> 두 CAS 확인 대기</div></div><p className="board-note">최종 확인 전 정보는 보류 상태로 표시됩니다.</p></div>
+      </section>
+      <ProofStrip items={[
+        { value: "7", label: "BFF 핵심 operation", detail: "사고 분석·물질·근거·확인·기록 계약" },
+        { value: "2-CAS", label: "확인 게이트", detail: "두 물질 확인 전 충돌 규칙 미실행" },
+        { value: "141", label: "자동화 테스트", detail: "34개 테스트 파일로 안전 경계 검증" },
+        { value: "0/2→2/2", label: "확인 흐름", detail: "확인 전 보류에서 규칙 실행까지" },
+      ]} />
+      <ArchitectureStrip />
+      <section className="feature-detail-list" aria-label="케미체크119 기능 소개">
+        {featureSections.map(({ id, number, label, title, text, icon: Icon }, index) => (
+          <article className={`feature-detail feature-detail-${index % 2 === 0 ? "image-right" : "image-left"}`} id={id} key={id}>
+            <div className="feature-detail-index"><Icon size={20} /><span>{number}</span></div>
+            <div className="feature-detail-copy"><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p><span className="feature-detail-count">{String(index + 1).padStart(2, "0")} / {String(featureSections.length).padStart(2, "0")}</span></div>
+            <div className="feature-detail-visual"><FeatureVisual id={id} /></div>
+          </article>
+        ))}
+      </section>
+      <section className="product-cta"><p className="product-kicker">READY FOR THE FIELD</p><h2>현장 대응 화면에서 직접 시작해보세요.</h2><a className="open-cta" href="/onboarding">대응 화면 열기 <ArrowRight size={15} /></a></section>
+    </main>
+  );
+}

@@ -1,8 +1,9 @@
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/welcome.css";
 
-const stationData: Record<string, string[]> = {
+export const stationData: Record<string, string[]> = {
   서울특별시: [
     "강남소방서",
     "강동소방서",
@@ -219,7 +220,13 @@ export default function StartSection() {
     <section className="start-section" id="start">
       <div className="start-background" />
 
-      <div className="start-content">
+      <motion.div
+        className="start-content"
+        initial={{ opacity: 0, y: 18 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      >
         <p className="section-kicker">READY WHEN YOU ARE</p>
         <h2>현장 대응을 더 빠르게,<br />더 안전하게 준비하세요.</h2>
         <p className="start-description">케미체크119는 현장 판단을 더 빠르게 준비하고, 대응의 안전성을 함께 지켜줍니다.</p>
@@ -290,7 +297,7 @@ export default function StartSection() {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
