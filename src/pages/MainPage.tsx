@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import OnboardingTour from "../components/onboarding/OnboardingTour";
 import { subscribeToPhoneTranscripts, type PhoneTranscriptEvent } from "../api/phone";
+import { analyzeIncident } from "../api/incidents";
+import type { IncidentAnalysisResponse } from "../api/contracts";
 import "../styles/main.css";
 
 const incidentTypes = ["화재", "누출", "폭발", "구조", "기타"];
@@ -44,6 +46,9 @@ export default function MainPage() {
   const [chemical, setChemical] = useState("");
   const [phoneTranscript, setPhoneTranscript] = useState<PhoneTranscriptEvent | null>(null);
   const [phoneStreamError, setPhoneStreamError] = useState(false);
+  const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!incidentId) return undefined;
@@ -53,6 +58,7 @@ export default function MainPage() {
         incidentId,
         (event) => {
           setPhoneTranscript(event);
+          setReport((current) => event.text.trim() || current);
           setPhoneStreamError(false);
         },
         () => setPhoneStreamError(true),
@@ -74,6 +80,31 @@ export default function MainPage() {
         : [...prev, observation],
     );
   };
+
+  async function handleAnalyze() {
+    if (!report.trim() || analysisBusy) return;
+    setAnalysisBusy(true);
+    setAnalysisError(null);
+    try {
+      const nextAnalysis = await analyzeIncident({
+        incidentId: incidentId ?? null,
+        inputType: phoneTranscript ? "VOICE_TRANSCRIPT" : "MANUAL_TEXT",
+        text: [
+          report.trim(),
+          selectedIncident && `사고 유형: ${selectedIncident}`,
+          facility && `시설명: ${facility}`,
+          accidentLocation && `사고 위치: ${accidentLocation}`,
+          chemical && `확인된 화학물질: ${chemical}`,
+          selectedObservations.length > 0 && `현장 관찰: ${selectedObservations.join(", ")}`,
+        ].filter(Boolean).join("\n"),
+      });
+      setAnalysis(nextAnalysis);
+    } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : "분석을 시작하지 못했습니다.");
+    } finally {
+      setAnalysisBusy(false);
+    }
+  }
 
   return (
     <div className="main-page">
@@ -113,7 +144,16 @@ export default function MainPage() {
           </div>
         </div>
 
-        <div className="record-actions">
+        <div className="main-header-right">
+          <div className={`header-phone-status ${phoneStreamError ? "is-error" : phoneTranscript ? "is-received" : ""}`} aria-label="전화 연결 상태">
+            <span className="header-phone-indicator" aria-hidden="true" />
+            <div>
+              <strong>전화연결 070-5276-7681</strong>
+            </div>
+            <em>{!incidentId ? "사고 접수 대기" : phoneStreamError ? "연결 확인 필요" : phoneTranscript ? "전사 수신" : "수신 대기"}</em>
+          </div>
+
+          <div className="record-actions">
             <button className="save-button" type="button">
                 <svg
                     className="save-icon"
@@ -152,6 +192,7 @@ export default function MainPage() {
             >
                 대응 기록 조회
             </button>
+            </div>
         </div>
       </header>
 
@@ -323,9 +364,10 @@ export default function MainPage() {
               )}
             </div>
 
-              <button type="button" className="analyze-button" disabled>
-                분석 API 연결 후 사용 가능
+              <button type="button" className="analyze-button" onClick={() => void handleAnalyze()} disabled={!report.trim() || analysisBusy}>
+                {analysisBusy ? "분석 중..." : "초기 대응 분석 시작"}
               </button>
+              {analysisError && <p className="analysis-form-error" role="alert">{analysisError}</p>}
           </div>
         </section>
 
@@ -338,14 +380,19 @@ export default function MainPage() {
             <h2>초기 대응 분석</h2>
           </div>
 
-          <div className="analysis-empty">
-            <div className="analysis-info-icon">i</div>
-            <p>
-              분석 API 연결 후
-              <br />
-              검증된 결과가 표시됩니다.
-            </p>
-          </div>
+          {analysis ? (
+            <div className="analysis-result" aria-live="polite">
+              <p className="analysis-state">{analysis.state}</p>
+              <h3>{analysis.requiredNextSteps[0] ?? "현장 확인과 공식 근거를 검토하세요."}</h3>
+              <p>{analysis.safetyNotice}</p>
+              <ul>{analysis.requiredNextSteps.map((step) => <li key={step}>{step}</li>)}</ul>
+            </div>
+          ) : (
+            <div className="analysis-empty">
+              <div className="analysis-info-icon">i</div>
+              <p>신고 내용을 확인한 뒤<br />초기 대응 분석을 시작하세요.</p>
+            </div>
+          )}
         </section>
 
         {/* =========================
@@ -368,14 +415,18 @@ export default function MainPage() {
               Chat
           ========================= */}
 
-          <div className="ai-empty ai-disabled-state">
-            <div className="search-icon" />
-            <p>
-              분석 API 연결 후
-              <br />
-              소방대원 검토용 기능을 사용할 수 있습니다.
-            </p>
-          </div>
+          {analysis?.agent ? (
+            <div className="ai-agent-result" aria-live="polite">
+              <p>{analysis.agent.currentObjective}</p>
+              <ol>{analysis.agent.nextActions.map((action) => <li key={action}>{action}</li>)}</ol>
+              <small>최종 판단: {analysis.agent.finalDecisionAuthority}</small>
+            </div>
+          ) : (
+            <div className="ai-empty ai-disabled-state">
+              <div className="search-icon" />
+              <p>초기 대응 분석 후<br />현장 대응 지원이 준비됩니다.</p>
+            </div>
+          )}
         </section>
       </main>
     </div>

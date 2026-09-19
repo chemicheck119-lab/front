@@ -33,6 +33,13 @@
   flex-shrink: 0;
 }
 
+.main-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
 .main-header-left {
   height: 100%;
 
@@ -94,6 +101,61 @@
   white-space: nowrap;
 }
 
+.header-phone-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 250px;
+  padding: 8px 12px;
+  border: 1px solid rgba(159, 192, 214, 0.35);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.header-phone-indicator {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #f2c879;
+  box-shadow: 0 0 0 3px rgba(242, 200, 121, 0.12);
+}
+
+.header-phone-status.is-received .header-phone-indicator {
+  background: #55d88a;
+  box-shadow: 0 0 0 3px rgba(85, 216, 138, 0.14);
+}
+
+.header-phone-status.is-error .header-phone-indicator {
+  background: #ff8c8c;
+  box-shadow: 0 0 0 3px rgba(255, 140, 140, 0.14);
+}
+
+.header-phone-status div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.header-phone-status strong,
+.header-phone-status em {
+  display: block;
+  white-space: nowrap;
+}
+
+.header-phone-status strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.header-phone-status em {
+  margin-left: auto;
+  color: #f2c879;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+}
+
 
 /* =========================
    Save Button
@@ -150,6 +212,8 @@
   gap: 24px;
 
   padding: 24px;
+
+  box-sizing: border-box;
 
   overflow: hidden;
 }
@@ -223,6 +287,8 @@
   min-height: 0;
 
   padding: 18px 26px 20px;
+
+  overflow-y: auto;
 }
 
 

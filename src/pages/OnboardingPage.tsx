@@ -1,5 +1,12 @@
+import StartSection from "../components/welcome/StartSection";
+import "../styles/welcome.css";
+
 function OnboardingPage() {
-  return <div>Onboarding Page</div>;
+  return (
+    <main className="welcome-page onboarding-entry">
+      <StartSection />
+    </main>
+  );
 }
 
 export default OnboardingPage;
