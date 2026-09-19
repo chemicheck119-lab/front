@@ -905,9 +905,9 @@
 
 .solution-section {
   display: grid;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.05fr);
   align-items: center;
-  gap: clamp(48px, 10vw, 150px);
+  gap: clamp(48px, 7vw, 112px);
   min-height: 100svh;
   padding: clamp(80px, 12vw, 160px) max(24px, 8vw);
   background: #203f68;
@@ -917,9 +917,13 @@
 .solution-intro h2,
 .workflow-heading h2 {
   margin: 0;
-  font-size: clamp(32px, 4.2vw, 58px);
+  font-size: clamp(32px, 3.6vw, 56px);
   line-height: 1.12;
   letter-spacing: -0.06em;
+}
+
+.solution-intro h2 {
+  white-space: nowrap;
 }
 
 .solution-section .section-kicker {
@@ -959,14 +963,33 @@
 .solution-step h3 {
   font-size: 20px;
   line-height: 1.35;
+  white-space: nowrap;
 }
 
 .solution-step p {
-  max-width: 420px;
   margin-top: 8px;
   color: #d3e0eb;
   font-size: 14px;
   line-height: 1.7;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) and (min-width: 851px) {
+  .solution-section {
+    grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.15fr);
+    gap: 48px;
+    padding-inline: 48px;
+  }
+
+  .solution-intro h2,
+  .solution-step h3,
+  .solution-step p {
+    white-space: normal;
+  }
+
+  .solution-intro h2 {
+    font-size: clamp(32px, 4vw, 46px);
+  }
 }
 
 /* =========================
@@ -1103,6 +1126,12 @@
   .solution-intro h2,
   .workflow-heading h2 {
     font-size: clamp(30px, 8vw, 44px);
+  }
+
+  .solution-intro h2,
+  .solution-step h3,
+  .solution-step p {
+    white-space: normal;
   }
 
   .workflow-section {
