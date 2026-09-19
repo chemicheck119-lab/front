@@ -560,6 +560,7 @@
 
 .welcome-page > .first-slide .open-secondary-cta { color: #183b63; border-bottom: 2px solid #4d7fae; background: rgba(255,255,255,.68); padding: 12px 10px; font-weight: 800; }
 .welcome-page > .first-slide .open-secondary-cta:hover { color: #315f80; background: #fff; }
+.trend-bar { padding-inline: max(24px, calc((100vw - 1200px) / 2)); box-sizing: border-box; }
 
 @media (min-width: 851px) {
   .welcome-page > .first-slide .first-slide-content {
