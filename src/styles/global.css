@@ -7,8 +7,8 @@ html {
 }
 
 html.welcome-scroll-root {
-  scroll-snap-type: y proximity;
-  scroll-behavior: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
   scroll-padding-block: 0;
 }
 

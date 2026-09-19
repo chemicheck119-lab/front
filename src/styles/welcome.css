@@ -12,7 +12,43 @@
 .welcome-page > footer {
   min-height: 100svh;
   scroll-snap-align: start;
-  scroll-snap-stop: normal;
+  scroll-snap-stop: always;
+}
+
+@media (min-width: 769px) and (max-height: 820px) {
+  .open-title {
+    padding-top: clamp(104px, 22vh, 190px);
+  }
+
+  .open-description {
+    padding-bottom: clamp(32px, 5vh, 56px);
+  }
+
+  .problem-section,
+  .feature-section,
+  .solution-section {
+    padding-top: 48px;
+    padding-bottom: 48px;
+  }
+
+  .problem-heading {
+    margin-bottom: 24px;
+  }
+
+  .problem-card {
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+
+  .problem-message {
+    margin-top: 28px;
+    font-size: 22px;
+  }
+
+  .solution-step {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
 }
 
 /* =========================
@@ -69,7 +105,7 @@
   flex-direction: column;
   align-items: center;
 
-  padding: clamp(180px, 38vh, 420px) 24px 0;
+  padding: clamp(132px, 30vh, 320px) 24px 0;
 
   text-align: center;
 }
@@ -210,7 +246,7 @@
   align-items: center;
 
   justify-content: center;
-  padding: clamp(72px, 12vh, 140px) 24px;
+  padding: clamp(56px, 8vh, 104px) 24px;
 
   background: #eef3f7;
 }
@@ -233,15 +269,13 @@
 /* 카드 */
 
 .problem-card {
-  width: min(860px, 100%);
+  width: min(920px, 100%);
 
-  padding: 48px 60px;
+  padding: 40px 48px;
 
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.86);
   border-radius: 10px;
-
-  box-shadow:
-    0 4px 18px rgba(0, 0, 0, 0.025);
+  border: 1px solid rgba(32, 63, 104, 0.12);
 }
 
 
@@ -250,7 +284,7 @@
 .problem-content-position {
   position: relative;
 
-  left: 70px;
+  left: 0;
 }
 
 
@@ -269,7 +303,7 @@
   grid-template-columns: 250px 1fr;
   align-items: center;
 
-  width: 700px;
+  width: min(760px, 100%);
   min-height: 56px;
 }
 
@@ -304,7 +338,8 @@
 /* 하단 메시지 */
 
 .problem-message {
-  margin: 70px 0 0;
+  max-width: 760px;
+  margin: 48px 0 0;
 
   font-size: 26px;
   font-weight: 750;
@@ -324,7 +359,7 @@
   .problem-section {
     min-height: max(100svh, 720px);
 
-    padding: 80px 20px 100px;
+    padding: 64px 20px 80px;
   }
 
   .problem-heading {
@@ -336,7 +371,7 @@
   }
 
   .problem-card {
-    padding: 32px 24px;
+    padding: 28px 20px;
   }
 
   .problem-content-position {
@@ -345,17 +380,9 @@
   justify-content: center;
 }
 
- .problem-content-position {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-
-  transform: translateX(-80px);
-}
-
   .problem-row {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: minmax(112px, 0.65fr) minmax(0, 1.35fr);
   align-items: center;
 
   width: 100%;
@@ -377,7 +404,7 @@
   }
 
   .problem-message {
-    margin-top: 60px;
+    margin-top: 44px;
 
     font-size: 21px;
   }
@@ -468,9 +495,7 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
 
-  box-shadow:
-    0 5px 10px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 3px 10px rgba(32, 63, 104, 0.06);
 
   transition:
     transform 250ms ease,
@@ -481,11 +506,9 @@
 /* 카드 Hover */
 
 .feature-card:hover {
-  transform: translateY(-7px);
+  transform: translateY(-3px);
 
-  box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.11),
-    0 4px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 18px rgba(32, 63, 104, 0.1);
 }
 
 
@@ -912,12 +935,13 @@
   display: grid;
   grid-template-columns: 52px 1fr;
   column-gap: 22px;
-  padding: 26px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 24px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .solution-step:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.24);
 }
 
 .solution-step-number {
