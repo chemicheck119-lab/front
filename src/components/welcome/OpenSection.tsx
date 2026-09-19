@@ -24,9 +24,9 @@ export default function OpenSection() {
 
   return (
     <section className="open-section first-slide" id="top">
-      <div className="trend-bar"><span>CHEMICHECK 119 / CHEMICAL RESPONSE</span><strong>신고문 하나로, 확인할 것과 다음 행동을 준비합니다.</strong><a href="/trends">정부 동향 보기 <ArrowRight size={12} /></a></div>
+      <div className="trend-bar"><span>CHEMICHECK 119 / CHEMICAL RESPONSE</span><strong>신고문 하나로, 확인할 것과 다음 행동을 준비합니다.</strong><a href="tel:070-5276-7681">서비스 문의 070-5276-7681 <ArrowRight size={12} /></a></div>
       <nav className="open-nav" aria-label="케미체크119 제품 메뉴">
-        <a className="open-brand" href="#top">케미체크<span>119</span><small>CHEMICAL RESPONSE OS</small></a>
+        <a className="open-brand" href="#top">케미체크<span>119</span></a>
         <div className="open-nav-links"><a href="/features">기능 소개</a><a href="/public-data">공공데이터</a><a href="/trends">정부 동향</a></div>
         <a className="open-nav-cta" href="/onboarding">무료로 시작하기 <ArrowRight size={14} /></a>
       </nav>
@@ -34,7 +34,7 @@ export default function OpenSection() {
       <div className="first-slide-content">
         <motion.div className="first-slide-heading" initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.65 }}>
           <p className="open-kicker">CHEMICAL INCIDENT RESPONSE SUPPORT</p>
-          <h1>화학사고 대응의<br /><em>첫 판단</em>을 준비합니다.</h1>
+          <h1>화학사고 대응의<br /><em>첫 판단을</em> 준비합니다.</h1>
           <p className="first-slide-subtitle">신고문을 넣으면 확인할 사항, 물질 후보, 공식 근거,<br />보류 이유와 인계 요약을 한 흐름으로 정리합니다.</p>
           <div className="first-slide-actions"><a className="open-cta" href="/onboarding">무료로 시작하기 <ArrowRight size={15} /></a><a className="open-secondary-cta" href="/features">기능 소개 보기</a></div>
           <div className="response-step-list">{responseSteps.map(([number, title, text]) => <div key={number}><b>{number}</b><span><strong>{title}</strong><small>{text}</small></span></div>)}</div>
@@ -45,7 +45,7 @@ export default function OpenSection() {
           <div className="hero-mvp-head"><span><i /> INCIDENT BRIEF / MVP</span><b>DEMO PREVIEW</b></div>
           <div className="hero-mvp-location"><MapPin size={15} /> 신고 접수 · 경기 화성 산업단지 인근 <strong>분석 전</strong></div>
           <div className="mvp-entry-card">
-            <div className="mvp-entry-phone"><span><PhoneCall size={15} /></span><div><small>긴급 신고</small><strong>119</strong></div><a href="tel:119">전화 걸기</a></div>
+            <div className="mvp-entry-phone"><span><PhoneCall size={15} /></span><div><small>서비스 문의</small><strong>070-5276-7681</strong></div><a href="tel:070-5276-7681">전화 걸기</a></div>
             <div className="mvp-entry-divider" />
             <div className="mvp-entry-title"><div><small>서비스 이용 준비</small><strong>지역과 소방서를 선택하세요.</strong></div><MapPin size={16} /></div>
             <label htmlFor="hero-region">지역</label>
