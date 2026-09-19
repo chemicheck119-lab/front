@@ -20,7 +20,6 @@ function WelcomePage() {
     const previousScrollRestoration = window.history.scrollRestoration;
     let wheelLocked = false;
     let unlockTimer: number | undefined;
-    let targetScrollTop: number | undefined;
     const restoreSlide = () => {
       const savedIndex = Number(sessionStorage.getItem(WELCOME_SLIDE_KEY));
       const slide = Number.isInteger(savedIndex) ? slides[savedIndex] : undefined;
@@ -35,18 +34,6 @@ function WelcomePage() {
     };
 
     const saveCurrentSlide = () => {
-      if (
-        wheelLocked &&
-        targetScrollTop !== undefined &&
-        Math.abs(window.scrollY - targetScrollTop) < 2
-      ) {
-        targetScrollTop = undefined;
-        if (unlockTimer) window.clearTimeout(unlockTimer);
-        unlockTimer = window.setTimeout(() => {
-          wheelLocked = false;
-        }, 90);
-      }
-
       const currentIndex = slides.reduce(
         (closestIndex, slide, index) =>
           Math.abs(slide.offsetTop - window.scrollY) <
@@ -62,6 +49,10 @@ function WelcomePage() {
       if (Math.abs(event.deltaY) < 1) return;
       if (wheelLocked) {
         event.preventDefault();
+        if (unlockTimer) window.clearTimeout(unlockTimer);
+        unlockTimer = window.setTimeout(() => {
+          wheelLocked = false;
+        }, 280);
         return;
       }
 
@@ -79,7 +70,6 @@ function WelcomePage() {
 
       event.preventDefault();
       wheelLocked = true;
-      targetScrollTop = slides[nextIndex].offsetTop;
       sessionStorage.setItem(WELCOME_SLIDE_KEY, String(nextIndex));
       window.scrollTo({
         top: slides[nextIndex].offsetTop,
@@ -88,9 +78,8 @@ function WelcomePage() {
           : "smooth",
       });
       unlockTimer = window.setTimeout(() => {
-        targetScrollTop = undefined;
         wheelLocked = false;
-      }, 900);
+      }, 280);
     };
 
     window.addEventListener("scroll", saveCurrentSlide, { passive: true });
