@@ -18,9 +18,6 @@ function WelcomePage() {
       ),
     );
     const previousScrollRestoration = window.history.scrollRestoration;
-    let wheelLocked = false;
-    let unlockTimer: number | undefined;
-
     const restoreSlide = () => {
       const savedIndex = Number(sessionStorage.getItem(WELCOME_SLIDE_KEY));
       const slide = Number.isInteger(savedIndex) ? slides[savedIndex] : undefined;
@@ -46,56 +43,11 @@ function WelcomePage() {
       sessionStorage.setItem(WELCOME_SLIDE_KEY, String(currentIndex));
     };
 
-    const handleWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) < 1) return;
-
-      event.preventDefault();
-      if (wheelLocked) {
-        if (unlockTimer) window.clearTimeout(unlockTimer);
-        unlockTimer = window.setTimeout(() => {
-          wheelLocked = false;
-        }, 180);
-        return;
-      }
-
-      const currentIndex = slides.reduce(
-        (closestIndex, slide, index) =>
-          Math.abs(slide.offsetTop - window.scrollY) <
-          Math.abs(slides[closestIndex].offsetTop - window.scrollY)
-            ? index
-            : closestIndex,
-        0,
-      );
-      const direction = event.deltaY > 0 ? 1 : -1;
-      const nextIndex = Math.max(
-        0,
-        Math.min(slides.length - 1, currentIndex + direction),
-      );
-
-      if (nextIndex === currentIndex) return;
-
-      wheelLocked = true;
-      sessionStorage.setItem(WELCOME_SLIDE_KEY, String(nextIndex));
-      window.scrollTo({
-        top: slides[nextIndex].offsetTop,
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "auto"
-          : "smooth",
-      });
-
-      unlockTimer = window.setTimeout(() => {
-        wheelLocked = false;
-      }, 520);
-    };
-
     window.addEventListener("scroll", saveCurrentSlide, { passive: true });
-    window.addEventListener("wheel", handleWheel, { passive: false });
     requestAnimationFrame(() => requestAnimationFrame(restoreSlide));
 
     return () => {
       window.removeEventListener("scroll", saveCurrentSlide);
-      window.removeEventListener("wheel", handleWheel);
-      if (unlockTimer) window.clearTimeout(unlockTimer);
       sessionStorage.removeItem(WELCOME_SLIDE_KEY);
       window.history.scrollRestoration = previousScrollRestoration;
       document.documentElement.classList.remove("welcome-scroll-root");
