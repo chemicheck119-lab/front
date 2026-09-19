@@ -481,6 +481,8 @@
 
 /* Final main screen treatment */
 .welcome-page > .first-slide { background: #f7f9fb; color: #112033; }
+.welcome-page > .first-slide::before { position: absolute; z-index: 0; inset: 0; background: linear-gradient(90deg, rgba(247,249,251,.93) 0%, rgba(247,249,251,.78) 42%, rgba(247,249,251,.62) 100%), linear-gradient(180deg, rgba(235,242,247,.28) 0%, rgba(247,249,251,.78) 100%), url("/images/chemicheck_wcm.png") center / cover no-repeat; content: ""; opacity: .9; }
+.welcome-page > .first-slide .trend-bar, .welcome-page > .first-slide .open-nav, .welcome-page > .first-slide .first-slide-content { position: relative; z-index: 1; }
 .welcome-page > .first-slide .trend-bar { background: #183b63; }
 .welcome-page > .first-slide .open-nav { border-bottom-color: #d8e3ec; }
 .welcome-page > .first-slide .open-brand,
