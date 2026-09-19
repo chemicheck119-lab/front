@@ -144,7 +144,16 @@ export default function MainPage() {
           </div>
         </div>
 
-        <div className="record-actions">
+        <div className="main-header-right">
+          <div className={`header-phone-status ${phoneStreamError ? "is-error" : phoneTranscript ? "is-received" : ""}`} aria-label="전화 연결 상태">
+            <span className="header-phone-indicator" aria-hidden="true" />
+            <div>
+              <strong>전화연결 070-5276-7681</strong>
+            </div>
+            <em>{!incidentId ? "사고 접수 대기" : phoneStreamError ? "연결 확인 필요" : phoneTranscript ? "전사 수신" : "수신 대기"}</em>
+          </div>
+
+          <div className="record-actions">
             <button className="save-button" type="button">
                 <svg
                     className="save-icon"
@@ -183,6 +192,7 @@ export default function MainPage() {
             >
                 대응 기록 조회
             </button>
+            </div>
         </div>
       </header>
 
