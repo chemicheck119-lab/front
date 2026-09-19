@@ -527,6 +527,13 @@
 .welcome-page > .first-slide .mvp-result-grid em { color: #27804e; }
 .welcome-page > .first-slide .mvp-result-grid > div:nth-child(1) em { color: #a16e13; }
 .welcome-page > .first-slide .hero-mvp-foot { color: #61778a; }
+.welcome-page > .first-slide .open-brand { display: inline-flex; flex-direction: row; align-items: baseline; gap: 3px; white-space: nowrap; letter-spacing: -.04em; }
+.welcome-page > .first-slide .open-brand small { display: none; }
+.welcome-page > .first-slide .trend-bar { gap: 24px; }
+.welcome-page > .first-slide .trend-bar strong { text-align: center; }
+.welcome-page > .first-slide .trend-bar a { margin-left: auto; }
+.welcome-page > .first-slide .first-slide-heading h1 { white-space: nowrap; font-size: clamp(42px, 4.6vw, 66px); }
+.welcome-page > .first-slide .mvp-entry-phone strong { font-size: 14px; letter-spacing: -.02em; }
 .welcome-page > .first-slide .mvp-entry-card { padding: 15px; border: 1px solid #d4e1e9; background: #fff; color: #183b63; }
 .welcome-page > .first-slide .mvp-entry-phone { display: flex; align-items: center; gap: 9px; padding-bottom: 13px; }
 .welcome-page > .first-slide .mvp-entry-phone > span { display: grid; width: 30px; height: 30px; place-items: center; color: #fff; background: #183b63; }
@@ -628,7 +635,7 @@
 
 /* Final cascade for the default route MVP hero */
 .first-slide { background: #0e1b2b; color: #fff; }
-.first-slide-content { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: center; justify-content: start; gap: clamp(54px, 8vw, 120px); width: min(1200px, calc(100% - 96px)); min-height: 100svh; margin: 0 auto; padding: 155px 0 72px; }
+.first-slide-content { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: center; justify-content: start; gap: clamp(54px, 8vw, 120px); width: min(1200px, calc(100% - 96px)); min-height: 100svh; margin: 0 auto; padding: 155px 0 72px; }
 .first-slide-heading { position: relative; left: 17px; align-items: flex-start; text-align: left; }
 .first-slide-heading { min-width: 0; width: 100%; }
 .first-slide-heading h1 { color: #f8fafb; font-size: clamp(48px, 5.3vw, 76px); }
