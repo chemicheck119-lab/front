@@ -504,6 +504,21 @@
 .welcome-page > .first-slide .open-secondary-cta { color: #183b63; border-bottom: 2px solid #4d7fae; background: rgba(255,255,255,.68); padding: 12px 10px; font-weight: 800; }
 .welcome-page > .first-slide .open-secondary-cta:hover { color: #315f80; background: #fff; }
 
+@media (min-width: 851px) {
+  .welcome-page > .first-slide .first-slide-content {
+    align-items: start !important;
+    padding-top: 40px !important;
+    padding-bottom: 24px !important;
+  }
+}
+
+@media (min-width: 851px) and (max-height: 800px) {
+  .welcome-page > .first-slide .first-slide-content {
+    padding-top: 28px !important;
+    padding-bottom: 18px !important;
+  }
+}
+
 /* Detail content follows the same 1200px guide as the shared header */
 @media (min-width: 1101px) {
   .product-page .product-hero,
@@ -693,6 +708,7 @@
 .welcome-page > .first-slide .trend-bar a { margin-left: auto; }
 .welcome-page > .first-slide .first-slide-heading h1 { white-space: nowrap; font-size: clamp(42px, 4.6vw, 66px); }
 .welcome-page > .first-slide .mvp-entry-phone strong { font-size: 14px; letter-spacing: -.02em; }
+.welcome-page > .first-slide .mvp-entry-phone em { display: block; margin-top: 3px; color: #718596; font-size: 8px; font-style: normal; white-space: nowrap; }
 
 @media (min-width: 851px) {
   .welcome-page > .first-slide .first-slide-content { align-items: start; padding-top: 176px; padding-bottom: 28px; }

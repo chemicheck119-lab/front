@@ -9,6 +9,7 @@ export default function LandingHeader() {
       <header className="open-nav landing-header-nav">
         <Link className="open-brand" to="/">케미체크<span>119</span><small>CHEMICAL RESPONSE OS</small></Link>
         <nav className="open-nav-links" aria-label="케미체크119 제품 메뉴">
+          <Link to="/">홈</Link>
           <Link to="/features">기능 소개</Link>
           <Link to="/public-data">공공데이터</Link>
           <Link to="/trends">정부 동향</Link>
