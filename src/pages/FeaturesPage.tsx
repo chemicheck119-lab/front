@@ -24,7 +24,7 @@ export default function FeaturesPage() {
     <main className="product-page">
       <LandingHeader />
       <section className="product-hero">
-        <div><p className="product-kicker">FEATURES / RESPONSE WORKSPACE</p><h1>우리는 기능을 붙인 것이 아니라,<br />판단의 순서를 만들었습니다.</h1><p>신고 접수부터 음성 검토, 후보 탐색, 공식 근거, 현장 확인, 기록까지 실제 대응 순서로 설계했습니다.</p></div>
+        <div><p className="product-kicker">FEATURES / RESPONSE WORKSPACE</p><h1>신고를 받는 순간,<br />현장 대응의 다음 단계가 시작됩니다.</h1><p>음성 전사부터 사고 분석, 공식 근거, 현장 확인, 대응 기록까지 필요한 다음 행동을 연결합니다.</p></div>
         <div className="product-hero-board"><div className="board-top"><span><i /> LIVE MVP</span><b>INCIDENT / HX-2409</b></div><div className="board-location"><MapPin size={15} /> 경기 화성 산업단지 인근</div><div className="board-flow"><div className="done"><Check size={14} /> 신고 접수</div><div className="done"><Check size={14} /> 음성 전사 검토</div><div className="active"><Bot size={14} /> 분석 에이전트 진행</div><div><ShieldCheck size={14} /> 두 CAS 확인 대기</div></div><p className="board-note">최종 확인 전 정보는 보류 상태로 표시됩니다.</p></div>
       </section>
       <ProofStrip items={[
