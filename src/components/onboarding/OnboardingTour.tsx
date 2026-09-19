@@ -52,13 +52,6 @@ const steps: Step[] = [
     position: "left",
   },
 
-  {
-    target: ".save-button",
-    title: "대응 과정을 기록하세요",
-    description:
-      "사고 정보, 분석 정보, 질의 기록을 저장하여 사고 대응 검토와 보고서 작성에 활용할 수 있도록 합니다.",
-    position: "left",
-  },
 
   {
     title: "준비되었습니다.",
