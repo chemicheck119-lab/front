@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { ArrowRight, Bot, Check, CircleAlert, FileAudio, FileText, Headphones, MapPin, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, FileAudio, Headphones, MapPin, ShieldCheck } from "lucide-react";
+import { PhoneCall } from "lucide-react";
+import { stationData } from "./StartSection";
 import "../../styles/welcome.css";
 
 const responseSteps = [
@@ -10,12 +13,13 @@ const responseSteps = [
 ] as const;
 
 export default function OpenSection() {
-  const [report, setReport] = useState("");
-  const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const navigate = useNavigate();
+  const [region, setRegion] = useState("");
+  const [station, setStation] = useState("");
 
-  const handleAnalyze = () => {
-    if (!report.trim()) return;
-    setHasAnalyzed(true);
+  const handleStart = () => {
+    if (!region || !station) return;
+    navigate("/main", { state: { region, station } });
   };
 
   return (
@@ -40,26 +44,28 @@ export default function OpenSection() {
         <motion.div className="hero-mvp" aria-label="사고 브리프 MVP 화면" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .15, duration: .65 }}>
           <div className="hero-mvp-head"><span><i /> INCIDENT BRIEF / MVP</span><b>DEMO PREVIEW</b></div>
           <div className="hero-mvp-location"><MapPin size={15} /> 신고 접수 · 경기 화성 산업단지 인근 <strong>분석 전</strong></div>
-          <div className="mvp-input">
-            <small>신고문</small>
-            <textarea
-              value={report}
-              onChange={(event) => {
-                setReport(event.target.value);
-                setHasAnalyzed(false);
-              }}
-              placeholder="사고 상황을 입력하세요."
-              aria-label="사고 신고문"
-              rows={3}
-            />
-            <div><Headphones size={13} /> ClawOps 전사 초안도 검토 후 사용할 수 있습니다.</div>
-            <div className="mvp-input-actions">
-              <button type="button" onClick={() => setReport("공장 인근에서 흰 연기와 자극적인 냄새가 납니다. 어떤 물질인지 확인이 필요합니다.")}>예시 입력</button>
-              <button type="button" className="mvp-analyze-button" onClick={handleAnalyze} disabled={!report.trim()}>신고 분석 시작 <ArrowRight size={13} /></button>
-            </div>
+          <div className="mvp-entry-card">
+            <div className="mvp-entry-phone"><span><PhoneCall size={15} /></span><div><small>긴급 신고</small><strong>119</strong></div><a href="tel:119">전화 걸기</a></div>
+            <div className="mvp-entry-divider" />
+            <div className="mvp-entry-title"><div><small>서비스 이용 준비</small><strong>지역과 소방서를 선택하세요.</strong></div><MapPin size={16} /></div>
+            <label htmlFor="hero-region">지역</label>
+            <select id="hero-region" value={region} onChange={(event) => { setRegion(event.target.value); setStation(""); }}>
+              <option value="" disabled>지역을 선택해주세요</option>
+              {Object.keys(stationData).map((regionName) => <option key={regionName} value={regionName}>{regionName}</option>)}
+            </select>
+            <label htmlFor="hero-station">소방서</label>
+            <select id="hero-station" value={station} disabled={!region} onChange={(event) => setStation(event.target.value)}>
+              <option value="" disabled>소방서를 선택해주세요</option>
+              {region && stationData[region].map((stationName) => <option key={stationName} value={stationName}>{stationName}</option>)}
+            </select>
+            <button type="button" className="mvp-start-button" onClick={handleStart} disabled={!region || !station}>현장 대응 시작하기 <ArrowRight size={14} /></button>
+            <p className="mvp-entry-note">선택한 소방서 정보는 현장 대응 화면에 전달됩니다.</p>
           </div>
-          <div className="mvp-result-head"><span><Bot size={15} /> 사고 브리프</span><b>단계별 응답</b></div>
-          {!hasAnalyzed ? <div className="mvp-result-empty"><Bot size={18} /><span>신고문을 입력하고 분석을 시작하면<br />확인할 사항과 다음 행동이 표시됩니다.</span></div> : <div className="mvp-result-grid"><div><small>확인할 사항</small><strong>현장 물질·시설 확인</strong><em><CircleAlert size={12} /> 2건 검토 필요</em></div><div><small>물질 후보</small><strong>후보 2건</strong><em><ShieldCheck size={12} /> 확정 전 보류</em></div><div><small>공식 근거</small><strong>KOSHA · CAMEO</strong><em><Check size={12} /> 출처 연결</em></div><div><small>인계 요약</small><strong>다음 행동 3건</strong><em><FileText size={12} /> 사람에게 전달</em></div></div>}
+          <div className="mvp-input mvp-brief-preview">
+            <small>사고 브리프 미리보기</small>
+            <p>신고문을 입력하면 확인할 사항, 물질 후보, 공식 근거를 정리합니다.</p>
+            <div><Headphones size={13} /> ClawOps 전사 초안은 검토 후 사용합니다.</div>
+          </div>
           <div className="hero-mvp-foot"><ShieldCheck size={14} /> 두 CAS 확인 전에는 충돌 등급과 대응 권고를 표시하지 않습니다.</div>
         </motion.div>
       </div>

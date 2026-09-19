@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/welcome.css";
 
-const stationData: Record<string, string[]> = {
+export const stationData: Record<string, string[]> = {
   서울특별시: [
     "강남소방서",
     "강동소방서",
