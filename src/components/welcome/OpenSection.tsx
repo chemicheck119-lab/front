@@ -28,18 +28,18 @@ export default function OpenSection() {
       <LandingHeader />
 
       <div className="first-slide-content">
-        <motion.div className="first-slide-heading" initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.65 }}>
-          <p className="open-kicker">CHEMICAL INCIDENT RESPONSE SUPPORT</p>
-          <h1><span>화학사고 대응의</span><span><em>첫 판단을</em> 준비합니다.</span></h1>
-          <p className="first-slide-subtitle">신고문을 넣으면 확인할 사항, 물질 후보, 공식 근거,<br />보류 이유와 인계 요약을 한 흐름으로 정리합니다.</p>
-          <div className="first-slide-actions"><a className="open-cta" href="/onboarding">무료로 시작하기 <ArrowRight size={15} /></a><a className="open-secondary-cta" href="/features">기능 소개 보기</a></div>
+        <motion.div className="first-slide-heading" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65 }}>
+          <p className="open-kicker">READY WHEN YOU ARE</p>
+          <h1><span>현장 대응을 더 빠르게,</span><span>더 안전하게 준비하세요.</span></h1>
+          <p className="first-slide-subtitle">케미체크119는 현장 판단을 더 빠르게 준비하고,<br />대응의 안전성을 함께 지켜줍니다.</p>
+          <div className="first-slide-actions"><a className="open-cta" href="/onboarding">대응 화면 열기 <ArrowRight size={15} /></a><a className="open-secondary-cta" href="/features">서비스 기능 보기</a></div>
           <div className="response-step-list">{responseSteps.map(([number, title, text]) => <div key={number}><b>{number}</b><span><strong>{title}</strong><small>{text}</small></span></div>)}</div>
           <p className="first-slide-note"><strong>확정은 사람이 합니다.</strong> 후보 검색만으로 위험을 확정하지 않습니다.</p>
         </motion.div>
 
-        <motion.div className="hero-mvp" aria-label="사고 브리프 MVP 화면" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .15, duration: .65 }}>
-          <div className="hero-mvp-head"><span><i /> INCIDENT BRIEF / MVP</span><b>DEMO PREVIEW</b></div>
-          <div className="hero-mvp-location"><MapPin size={15} /> 신고 접수 · 경기 화성 산업단지 인근 <strong>분석 전</strong></div>
+        <motion.div className="hero-mvp" aria-label="안전관리 대시보드" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .15, duration: .65 }}>
+          <div className="hero-mvp-head"><span><i /> INCIDENT BRIEF / FIELD OPS</span><b>LIVE PREVIEW</b></div>
+          <div className="hero-mvp-location"><MapPin size={15} /> 신고 접수 · 현장 위치 확인 전 <strong>분석 전</strong></div>
           <div className="mvp-entry-card">
             <div className="mvp-entry-phone"><span><PhoneCall size={15} /></span><div><small>에이전트 신고</small><strong>070-5276-7681</strong><em>에이전트 신고 전용 · 확인 후 분석</em></div><a href="tel:070-5276-7681">신고 전화</a></div>
             <div className="mvp-entry-divider" />
