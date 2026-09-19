@@ -50,9 +50,13 @@ export default function FeaturesPage() {
         { value: "0/2→2/2", label: "확인 흐름", detail: "확인 전 보류에서 규칙 실행까지" },
       ]} />
       <ArchitectureStrip />
-      <section className="feature-detail-list">
-        {featureSections.map(({ id, number, label, title, text, icon: Icon }) => (
-          <article className="feature-detail" id={id} key={id}><div className="feature-detail-index"><Icon size={20} /><span>{number}</span></div><div className="feature-detail-copy"><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p></div><div className="feature-detail-visual"><FeatureVisual id={id} /></div></article>
+      <section className="feature-detail-list" aria-label="케미체크119 기능 소개">
+        {featureSections.map(({ id, number, label, title, text, icon: Icon }, index) => (
+          <article className={`feature-detail feature-detail-${index % 2 === 0 ? "image-right" : "image-left"}`} id={id} key={id}>
+            <div className="feature-detail-index"><Icon size={20} /><span>{number}</span></div>
+            <div className="feature-detail-copy"><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p><span className="feature-detail-count">{String(index + 1).padStart(2, "0")} / {String(featureSections.length).padStart(2, "0")}</span></div>
+            <div className="feature-detail-visual"><FeatureVisual id={id} /></div>
+          </article>
         ))}
       </section>
       <section className="product-cta"><p className="product-kicker">READY FOR THE FIELD</p><h2>현장 대응 화면에서 직접 시작해보세요.</h2><a className="open-cta" href="/onboarding">대응 화면 열기 <ArrowRight size={15} /></a></section>
