@@ -8,6 +8,7 @@ import StartSection from "../components/welcome/StartSection";
 import FooterSection from "../components/welcome/FooterSection";
 
 const WELCOME_SLIDE_KEY = "welcome-slide-index";
+const WHEEL_COOLDOWN_MS = 420;
 
 function WelcomePage() {
   useEffect(() => {
@@ -49,10 +50,6 @@ function WelcomePage() {
       if (Math.abs(event.deltaY) < 1) return;
       if (wheelLocked) {
         event.preventDefault();
-        if (unlockTimer) window.clearTimeout(unlockTimer);
-        unlockTimer = window.setTimeout(() => {
-          wheelLocked = false;
-        }, 280);
         return;
       }
 
@@ -79,7 +76,7 @@ function WelcomePage() {
       });
       unlockTimer = window.setTimeout(() => {
         wheelLocked = false;
-      }, 280);
+      }, WHEEL_COOLDOWN_MS);
     };
 
     window.addEventListener("scroll", saveCurrentSlide, { passive: true });
