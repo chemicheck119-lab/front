@@ -24,7 +24,7 @@ export default function OpenSection() {
 
   return (
     <section className="open-section first-slide" id="top">
-      <div className="trend-bar"><span>CHEMICHECK 119 / CHEMICAL RESPONSE</span><strong>신고문 하나로, 확인할 것과 다음 행동을 준비합니다.</strong><a href="tel:070-5276-7681">서비스 문의 070-5276-7681 <ArrowRight size={12} /></a></div>
+      <div className="trend-bar"><span>CHEMICHECK 119 / CHEMICAL RESPONSE</span><strong>신고문 하나로, 확인할 것과 다음 행동을 준비합니다.</strong><a href="tel:070-5276-7681">에이전트 신고 070-5276-7681 <ArrowRight size={12} /></a></div>
       <nav className="open-nav" aria-label="케미체크119 제품 메뉴">
         <a className="open-brand" href="#top">케미체크<span>119</span></a>
         <div className="open-nav-links"><a href="/features">기능 소개</a><a href="/public-data">공공데이터</a><a href="/trends">정부 동향</a></div>
@@ -45,7 +45,7 @@ export default function OpenSection() {
           <div className="hero-mvp-head"><span><i /> INCIDENT BRIEF / MVP</span><b>DEMO PREVIEW</b></div>
           <div className="hero-mvp-location"><MapPin size={15} /> 신고 접수 · 경기 화성 산업단지 인근 <strong>분석 전</strong></div>
           <div className="mvp-entry-card">
-            <div className="mvp-entry-phone"><span><PhoneCall size={15} /></span><div><small>서비스 문의</small><strong>070-5276-7681</strong></div><a href="tel:070-5276-7681">전화 걸기</a></div>
+            <div className="mvp-entry-phone"><span><PhoneCall size={15} /></span><div><small>에이전트 신고</small><strong>070-5276-7681</strong></div><a href="tel:070-5276-7681">신고 전화</a></div>
             <div className="mvp-entry-divider" />
             <div className="mvp-entry-title"><div><small>서비스 이용 준비</small><strong>지역과 소방서를 선택하세요.</strong></div><MapPin size={16} /></div>
             <label htmlFor="hero-region">지역</label>

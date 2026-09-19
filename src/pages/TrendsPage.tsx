@@ -1,5 +1,6 @@
 import { ArrowRight, ExternalLink, MessageSquareQuote, Newspaper, Scale } from "lucide-react";
 import LandingHeader from "../components/welcome/LandingHeader";
+import ProofStrip from "../components/welcome/ProofStrip";
 import "../styles/welcome.css";
 
 const trendCards = [
@@ -12,7 +13,13 @@ export default function TrendsPage() {
   return (
     <main className="product-page trends-page">
       <LandingHeader />
-      <section className="trend-hero"><div><p className="product-kicker">GOVERNMENT &amp; FIELD TRENDS</p><h1>동향을 읽고,<br />현장 대응에 연결합니다.</h1><p>정책·공공자료·현장 목소리를 한곳에서 보고, 무엇이 실제 대응 화면에 반영되는지 설명합니다.</p></div><div className="trend-hero-index"><span>INDEX / 2026</span><strong>공개 자료 기반</strong><small>실시간 통계 아님 · 출처 확인 필요</small></div></section>
+      <section className="trend-hero"><div><p className="product-kicker">GOVERNMENT &amp; FIELD TRENDS</p><h1>동향을 읽고,<br />다음 대응의 기준을 세웁니다.</h1><p>정책·공공자료·현장 목소리를 확인된 근거로 정리하고, 실제 제품 설계에 무엇이 반영됐는지 보여줍니다.</p></div><div className="trend-hero-index"><span>WHAT WE CAN CLAIM</span><strong>검증된 자료는 연결하고,<br />없는 인터뷰는 만들지 않습니다.</strong><small>현직자 인터뷰 자료 수집 후 실제 인용으로 교체</small></div></section>
+      <ProofStrip items={[
+        { value: "03", label: "제품 설계 원칙", detail: "확인·보류·기록을 우선" },
+        { value: "7", label: "연결된 핵심 흐름", detail: "분석·물질·근거·확인·기록 계약" },
+        { value: "OPEN", label: "인터뷰 근거", detail: "현장 자료 수신 후 실제 인용 예정" },
+        { value: "SOURCE", label: "동향 기준", detail: "공개 자료와 원문 링크 우선" },
+      ]} />
       <section className="trend-card-grid">{trendCards.map(([number, label, title, text]) => <article key={number}><span>{number} · {label}</span><h2>{title}</h2><p>{text}</p><a href="/public-data">공공데이터 활용 보기 <ArrowRight size={14} /></a></article>)}</section>
       <section className="interview-section"><div className="interview-intro"><p className="product-kicker">FIELD INTERVIEW / COMING NEXT</p><h2>현장의 목소리에서<br />제품의 다음 장면을 만듭니다.</h2><p>상황실·현장 지휘관·안전 담당자 인터뷰를 받으면 실제 발화와 문제 장면을 검증 가능한 인사이트로 정리해 이곳에 반영합니다.</p></div><div className="interview-card"><MessageSquareQuote size={22} /><blockquote>“정보를 찾는 시간보다, 무엇을 믿고 다음 행동을 할지 확인하는 시간이 중요합니다.”</blockquote><footer>케미체크119 제품 설계 원칙 · 자료 제공 후 실제 인터뷰 인용으로 교체</footer></div></section>
       <section className="trend-sources"><p className="product-kicker">PUBLIC REFERENCES</p><h2>동향은 링크와 출처를 남깁니다.</h2><div><a href="/public-data"><Scale size={18} />공공데이터 활용 화면 <ExternalLink size={13} /></a><a href="/features"><Newspaper size={18} />제품 기능과 대응 단계 <ExternalLink size={13} /></a></div></section>
