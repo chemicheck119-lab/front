@@ -4,6 +4,7 @@ import ProblemSection from "../components/welcome/ProblemSection";
 import SolutionSection from "../components/welcome/SolutionSection";
 import FeatureSection from "../components/welcome/FeatureSection";
 import HowItWorksSection from "../components/welcome/HowItWorksSection";
+import TrustSection from "../components/welcome/TrustSection";
 import StartSection from "../components/welcome/StartSection";
 import FooterSection from "../components/welcome/FooterSection";
 
@@ -116,8 +117,9 @@ function WelcomePage() {
       <OpenSection />
       <ProblemSection />
       <SolutionSection />
-      <FeatureSection />
       <HowItWorksSection />
+      <FeatureSection />
+      <TrustSection />
       <StartSection />
       <FooterSection />
     </main>

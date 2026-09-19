@@ -35,9 +35,9 @@ export default function ProblemSection() {
       >
         <p className="section-kicker">THE CHALLENGE</p>
         <h2>
-          현장은 기다려주지 않지만,
+          정보는 흩어져 있고,
           <br />
-          정보는 흩어져 있습니다.
+          현장은 기다리지 않습니다.
         </h2>
       </motion.div>
 
@@ -136,7 +136,7 @@ export default function ProblemSection() {
           ease: [0.22, 1, 0.36, 1],
         }}
       >
-        정보는 흩어져 있지만, 현장은 기다려주지 않습니다.
+        초기 판단이 늦어지면, 놓치는 위험은 커집니다.
       </motion.h2>
     </section>
   );
