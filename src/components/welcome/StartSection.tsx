@@ -220,7 +220,9 @@ export default function StartSection() {
       <div className="start-background" />
 
       <div className="start-content">
-        <h2>지금 시작해보세요.</h2>
+        <p className="section-kicker">READY WHEN YOU ARE</p>
+        <h2>현장 대응을 더 빠르게,<br />더 안전하게 준비하세요.</h2>
+        <p className="start-description">케미체크119는 현장 판단을 더 빠르게 준비하고, 대응의 안전성을 함께 지켜줍니다.</p>
 
         <div className="login-card">
           <div className="login-logo">

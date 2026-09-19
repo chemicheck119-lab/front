@@ -21,7 +21,7 @@ const solutionSteps = [
 
 export default function SolutionSection() {
   return (
-    <section className="solution-section">
+    <section className="solution-section" id="solution">
       <div className="solution-intro">
         <motion.p
           className="section-kicker"
@@ -36,9 +36,7 @@ export default function SolutionSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.5 }}
         >
-          흩어진 정보를 연결해
-          <br />
-          다음 판단을 준비합니다.
+          현장 정보를 한 흐름으로 연결합니다.
         </motion.h2>
       </div>
 

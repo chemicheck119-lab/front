@@ -1,27 +1,25 @@
 import { motion } from "framer-motion";
 import "../../styles/welcome.css";
 
-const workflow = [
-  ["01", "사고 정보 입력"],
-  ["02", "주변 물질과 시설 확인"],
-  ["03", "대응 위험 검토"],
-  ["04", "현장 대응 시작"],
-  ["05", "대응 결과 기록"],
+const insights = [
+  ["01", "속도만큼 정확한 근거가 필요합니다."],
+  ["02", "연결된 정보가 초기 판단의 위험을 줄입니다."],
+  ["03", "기록은 다음 판단과 책임을 지키는 기반입니다."],
 ];
 
 export default function HowItWorksSection() {
   return (
-    <section className="workflow-section">
+    <section className="workflow-section data-insight-section">
       <div className="workflow-heading">
-        <p className="section-kicker">HOW IT WORKS</p>
-        <h2>신고 접수부터 대응 기록까지</h2>
+        <p className="section-kicker">DATA &amp; INSIGHT</p>
+        <h2>안전한 대응은 정보의 연결에서 시작됩니다.</h2>
         <p className="workflow-description">
-          필요한 정보를 순서대로 확인하고, 판단의 흐름을 끊지 않습니다.
+          화학사고 대응은 속도만이 아니라 책임 있는 의사결정을 요구합니다. 근거가 연결된 대응은 위험을 줄이고, 기록은 이후 판단을 지키는 기반이 됩니다.
         </p>
       </div>
 
       <ol className="workflow-list">
-        {workflow.map(([number, title], index) => (
+        {insights.map(([number, title], index) => (
           <motion.li
             className="workflow-item"
             key={number}
