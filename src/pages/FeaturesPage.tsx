@@ -52,7 +52,7 @@ export default function FeaturesPage() {
       <ArchitectureStrip />
       <section className="feature-detail-list">
         {featureSections.map(({ id, number, label, title, text, icon: Icon }) => (
-          <article className="feature-detail" id={id} key={id}><div className="feature-detail-index"><span>{number}</span><Icon size={20} /></div><div className="feature-detail-copy"><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p></div><div className="feature-detail-visual"><FeatureVisual id={id} /></div></article>
+          <article className="feature-detail" id={id} key={id}><div className="feature-detail-index"><Icon size={20} /><span>{number}</span></div><div className="feature-detail-copy"><p className="product-kicker">{label}</p><h2>{title}</h2><p>{text}</p></div><div className="feature-detail-visual"><FeatureVisual id={id} /></div></article>
         ))}
       </section>
       <section className="product-cta"><p className="product-kicker">READY FOR THE FIELD</p><h2>현장 대응 화면에서 직접 시작해보세요.</h2><a className="open-cta" href="/onboarding">대응 화면 열기 <ArrowRight size={15} /></a></section>
