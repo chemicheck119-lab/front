@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, FileAudio, Headphones, MapPin, ShieldCheck } from "lucide-react";
 import { PhoneCall } from "lucide-react";
 import { stationData } from "./StartSection";
-import LandingTabs from "./LandingTabs";
+import LandingHeader from "./LandingHeader";
 import "../../styles/welcome.css";
 
 const responseSteps = [
@@ -25,12 +25,7 @@ export default function OpenSection() {
 
   return (
     <section className="open-section first-slide" id="top">
-      <div className="trend-bar"><span>CHEMICHECK 119 / CHEMICAL RESPONSE</span><strong>신고문 하나로, 확인할 것과 다음 행동을 준비합니다.</strong><a href="tel:070-5276-7681">에이전트 신고 070-5276-7681 <ArrowRight size={12} /></a></div>
-      <nav className="open-nav" aria-label="케미체크119 제품 메뉴">
-        <a className="open-brand" href="#top">케미체크<span>119</span></a>
-        <LandingTabs />
-        <a className="open-nav-cta" href="/onboarding">무료로 시작하기 <ArrowRight size={14} /></a>
-      </nav>
+      <LandingHeader />
 
       <div className="first-slide-content">
         <motion.div className="first-slide-heading" initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.65 }}>
