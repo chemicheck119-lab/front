@@ -37,7 +37,7 @@ function ArchitectureStrip() {
 
 export default function FeaturesPage() {
   return (
-    <main className="product-page">
+    <main className="product-page landing-v2">
       <LandingHeader />
       <section className="product-hero">
         <div><p className="product-kicker">FEATURES / RESPONSE WORKSPACE</p><h1>신고를 받는 순간,<br />현장 대응의 다음 단계가 시작됩니다.</h1><p>음성 전사부터 사고 분석, 공식 근거, 현장 확인, 대응 기록까지 필요한 다음 행동을 연결합니다.</p></div>

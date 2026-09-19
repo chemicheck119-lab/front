@@ -17,7 +17,7 @@ const fieldDecisions = [
 
 export default function TrendsPage() {
   return (
-    <main className="product-page trends-page">
+    <main className="product-page trends-page landing-v2">
       <LandingHeader />
       <section className="trend-hero"><div><p className="product-kicker">GOVERNMENT &amp; FIELD TRENDS</p><h1>동향을 읽고,<br />다음 대응의 기준을 세웁니다.</h1><p>정책·공공자료·현장 목소리를 확인된 근거로 정리하고, 실제 제품 설계에 무엇이 반영됐는지 보여줍니다.</p></div><div className="trend-hero-index"><span>WHAT WE CAN CLAIM</span><strong>검증된 자료는 연결하고,<br />없는 인터뷰는 만들지 않습니다.</strong><small>현직자 인터뷰 자료 수집 후 실제 인용으로 교체</small></div></section>
       <section className="trend-news-lead"><div className="trend-news-label"><Newspaper size={16} /><span>PUBLIC POLICY / GOVERNMENT SIGNAL</span></div><div><p className="product-kicker">문제 배경</p><h2>화학사고 대응은 정보가 늦게 모이는 순간부터 어려워집니다.</h2><p>공개 정책·안전자료가 요구하는 것은 기록과 확인이지만, 현장에서는 신고·시설·물질·근거가 서로 다른 흐름으로 들어옵니다. 케미체크119는 이 간극을 대응 화면에서 줄이도록 설계했습니다.</p><a href="/public-data">공공데이터와 공식 근거 보기 <ArrowRight size={14} /></a></div><aside><span>출처 기준</span><strong>공개 정책·공식 자료</strong><small>실제 원문과 확인 시점을 연결하는 구조</small></aside></section>
