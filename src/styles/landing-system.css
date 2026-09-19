@@ -181,6 +181,7 @@
 
 .landing-v2 .first-slide-heading { position: static !important; width: auto !important; min-width: 0 !important; text-align: left !important; }
 .landing-v2 .first-slide-heading h1 { margin: 0 !important; color: var(--ink) !important; font-size: clamp(44px, 4.8vw, 72px) !important; line-height: 1.06 !important; letter-spacing: -.075em !important; white-space: normal !important; }
+.landing-v2 .first-slide-heading h1 > span { display: block !important; white-space: nowrap !important; }
 .landing-v2 .first-slide-heading h1 em { color: var(--blue) !important; font-style: normal !important; }
 .landing-v2 .first-slide-subtitle { max-width: 520px !important; margin: 18px 0 0 !important; color: var(--muted) !important; font-size: 14px !important; line-height: 1.7 !important; }
 .landing-v2 .first-slide-actions { display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 12px !important; margin-top: 22px !important; }
