@@ -584,6 +584,29 @@
   transform: scale(0.99);
 }
 
+.main-inline-record {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #d6e0eb;
+  border-radius: 6px;
+  background: #f7f9fb;
+}
+
+.main-inline-record h3 {
+  margin: 0;
+  color: #203f68;
+  font-size: 14px;
+}
+
+.analysis-form-success {
+  margin: 12px 24px;
+  color: #26734a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 
 /* =========================
    Analysis Panel

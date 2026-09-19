@@ -3,7 +3,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import OnboardingTour from "../components/onboarding/OnboardingTour";
 import { subscribeToPhoneTranscripts, type PhoneTranscriptEvent } from "../api/phone";
 import { analyzeIncident } from "../api/incidents";
-import type { IncidentAnalysisResponse } from "../api/contracts";
+import { confirmSubstance, cancelConfirmation } from "../api/confirmations";
+import { discoverSubstances } from "../api/substances";
+import { saveIncidentRecord } from "../api/records";
+import type { IncidentAnalysisResponse, MaterialDiscoveryResponse } from "../api/contracts";
+import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard";
+import { SubstanceResults } from "../features/substance-search/SubstanceResults";
+import { StructuredOutcomeForm, emptyStructuredOutcomeDraft, toStructuredOutcomeReport, type StructuredOutcomeDraft } from "../features/records/StructuredOutcomeForm";
 import "../styles/main.css";
 
 const incidentTypes = ["화재", "누출", "폭발", "구조", "기타"];
@@ -49,6 +55,13 @@ export default function MainPage() {
   const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
   const [analysisBusy, setAnalysisBusy] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [substanceResult, setSubstanceResult] = useState<MaterialDiscoveryResponse | null>(null);
+  const [substanceBusy, setSubstanceBusy] = useState(false);
+  const [confirmingRole, setConfirmingRole] = useState<"INCIDENT" | "FACILITY" | null>(null);
+  const [confirmationIds, setConfirmationIds] = useState<Partial<Record<"INCIDENT" | "FACILITY", string>>>({});
+  const [outcomeDraft, setOutcomeDraft] = useState<StructuredOutcomeDraft>(() => emptyStructuredOutcomeDraft());
+  const [showRecordForm, setShowRecordForm] = useState(false);
+  const [recordStatus, setRecordStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!incidentId) return undefined;
@@ -106,6 +119,73 @@ export default function MainPage() {
     }
   }
 
+  async function handleSubstanceSearch() {
+    if (!chemical.trim() || substanceBusy) return;
+    setSubstanceBusy(true);
+    setAnalysisError(null);
+    try {
+      setSubstanceResult(await discoverSubstances(chemical.trim()));
+    } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : "물질 후보를 검색하지 못했습니다.");
+    } finally {
+      setSubstanceBusy(false);
+    }
+  }
+
+  async function handleConfirm(role: "INCIDENT" | "FACILITY", casNumber: string, displayName: string) {
+    if (!analysis?.incidentId || confirmingRole) return;
+    setConfirmingRole(role);
+    setAnalysisError(null);
+    try {
+      const response = await confirmSubstance(analysis.incidentId, { role, casNumber, displayName, confirmationBasis: "RESPONDER_OBSERVATION", observedAt: new Date().toISOString() });
+      setConfirmationIds((current) => ({ ...current, [role]: response.confirmationId }));
+      await handleAnalyze();
+    } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : "현장 확인을 기록하지 못했습니다.");
+    } finally {
+      setConfirmingRole(null);
+    }
+  }
+
+  async function handleCancel(role: "INCIDENT" | "FACILITY", confirmationId: string) {
+    if (!analysis?.incidentId || confirmingRole) return;
+    setConfirmingRole(role);
+    try {
+      await cancelConfirmation(analysis.incidentId, role, confirmationId);
+      setConfirmationIds((current) => ({ ...current, [role]: undefined }));
+    } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : "현장 확인을 취소하지 못했습니다.");
+    } finally {
+      setConfirmingRole(null);
+    }
+  }
+
+  async function handleSaveRecord() {
+    if (!analysis?.incidentId) {
+      setAnalysisError("사고 분석이 완료된 뒤 대응 기록을 저장할 수 있습니다.");
+      return;
+    }
+    const outcomeReport = toStructuredOutcomeReport(outcomeDraft);
+    if (!outcomeReport) {
+      setAnalysisError("시설명, 수행한 대응, 브리프 적용 여부, 최종 대응 결과를 입력해주세요.");
+      return;
+    }
+    try {
+      const response = await saveIncidentRecord(analysis.incidentId, {
+        analysisIds: [analysis.analysisId],
+        confirmationIds: Object.values(confirmationIds).filter((value): value is string => Boolean(value)),
+        conversationStartedAt: new Date().toISOString(),
+        messages: [{ messageId: `MSG-${Date.now()}`, role: "USER", text: report, createdAt: new Date().toISOString(), sequence: 1 }],
+        outcomeReport,
+      });
+      sessionStorage.setItem("chemicheck119:last-record", JSON.stringify({ recordId: response.recordId, incidentId: response.incidentId, savedAt: response.savedAt }));
+      setRecordStatus(`저장 완료 · ${response.recordId}`);
+      setShowRecordForm(false);
+    } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : "대응 기록을 저장하지 못했습니다.");
+    }
+  }
+
   return (
     <div className="main-page">
       {/* =========================
@@ -154,7 +234,7 @@ export default function MainPage() {
           </div>
 
           <div className="record-actions">
-            <button className="save-button" type="button">
+            <button className="save-button" type="button" onClick={() => setShowRecordForm((current) => !current)} disabled={!analysis}>
                 <svg
                     className="save-icon"
                     viewBox="0 0 24 24"
@@ -310,11 +390,13 @@ export default function MainPage() {
                 <button
                   type="button"
                   className="chemical-add-button"
+                  onClick={() => void handleSubstanceSearch()}
+                  disabled={!chemical.trim() || substanceBusy}
                 >
-                  <span>＋</span>
-                  추가
+                  <span>＋</span>{substanceBusy ? "검색 중" : "검색"}
                 </button>
               </div>
+              <SubstanceResults result={substanceResult} incidentAvailable={Boolean(analysis?.incidentId)} onUseCandidate={(candidate) => setChemical(`${candidate.displayName} CAS ${candidate.casNumber}`)} />
             </div>
 
             {/* 현장 관찰 */}
@@ -381,18 +463,15 @@ export default function MainPage() {
           </div>
 
           {analysis ? (
-            <div className="analysis-result" aria-live="polite">
-              <p className="analysis-state">{analysis.state}</p>
-              <h3>{analysis.requiredNextSteps[0] ?? "현장 확인과 공식 근거를 검토하세요."}</h3>
-              <p>{analysis.safetyNotice}</p>
-              <ul>{analysis.requiredNextSteps.map((step) => <li key={step}>{step}</li>)}</ul>
-            </div>
+            <div className="analysis-result" aria-live="polite"><IncidentAnalysisCard analysis={analysis} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} confirmingRole={confirmingRole} onCancel={(role, id) => void handleCancel(role, id)} activeConfirmationIds={confirmationIds} confirmationMode="FIELD" /></div>
           ) : (
             <div className="analysis-empty">
               <div className="analysis-info-icon">i</div>
               <p>신고 내용을 확인한 뒤<br />초기 대응 분석을 시작하세요.</p>
             </div>
           )}
+          {showRecordForm && analysis && <div className="main-inline-record"><h3>대응 기록 입력</h3><StructuredOutcomeForm value={outcomeDraft} onChange={setOutcomeDraft} /><button type="button" onClick={() => void handleSaveRecord()} className="analyze-button">현재 대응 기록 저장</button></div>}
+          {recordStatus && <p className="analysis-form-success" role="status">{recordStatus}</p>}
         </section>
 
         {/* =========================
