@@ -2237,3 +2237,35 @@
   .welcome-page > .first-slide .first-slide-content { align-items: center !important; padding-top: 0 !important; padding-bottom: 0 !important; }
   .welcome-page > .first-slide .first-slide-heading { position: static !important; left: auto !important; justify-self: start; text-align: left; }
 }
+
+/* Shared header contract: all four landing routes use the same geometry */
+.landing-header-signal,
+.welcome-page > .first-slide .trend-bar { height: 34px; min-height: 34px; box-sizing: border-box; padding-inline: max(24px, calc((100vw - 1200px) / 2)) !important; }
+.landing-header-nav,
+.welcome-page > .first-slide .open-nav { box-sizing: border-box; width: min(1200px, calc(100vw - 96px)) !important; min-height: 68px; height: 68px; margin-inline: auto; }
+.landing-header-nav .open-brand,
+.welcome-page > .first-slide .open-brand { display: inline-flex; flex: 0 0 auto; flex-direction: row; align-items: baseline; gap: 3px; white-space: nowrap; letter-spacing: -.04em; }
+.landing-header-nav .landing-tabs,
+.welcome-page > .first-slide .landing-tabs { display: flex; align-items: center; justify-content: center; gap: 28px; min-width: 0; margin-inline: auto; }
+.landing-header-nav .landing-tab,
+.welcome-page > .first-slide .landing-tab { min-height: 68px; color: #6f7f8b; font-size: 12px; font-weight: 700; }
+.landing-header-nav .landing-tab.is-active,
+.welcome-page > .first-slide .landing-tab.is-active { color: #17212b; }
+.landing-header-nav .open-nav-cta,
+.welcome-page > .first-slide .open-nav-cta { flex: 0 0 auto; }
+
+@media (min-width: 851px) {
+  .welcome-page > .first-slide .landing-header-nav { position: absolute; top: 34px; left: 50%; margin: 0; transform: translateX(-50%); }
+  .product-page .landing-header-nav { position: relative; top: auto; left: auto; transform: none; margin-inline: auto; }
+}
+
+@media (max-width: 800px) {
+  .landing-header-nav,
+  .welcome-page > .first-slide .open-nav { width: calc(100vw - 40px) !important; height: 72px; min-height: 72px; }
+  .landing-header-nav .landing-tabs,
+  .welcome-page > .first-slide .landing-tabs { justify-content: flex-start; gap: 16px; overflow-x: auto; scrollbar-width: none; }
+  .landing-header-nav .landing-tabs::-webkit-scrollbar,
+  .welcome-page > .first-slide .landing-tabs::-webkit-scrollbar { display: none; }
+  .landing-header-nav .landing-tab,
+  .welcome-page > .first-slide .landing-tab { min-height: 72px; font-size: 10px; }
+}
