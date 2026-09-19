@@ -30,7 +30,7 @@ export default function OpenSection() {
       <div className="first-slide-content">
         <motion.div className="first-slide-heading" initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.65 }}>
           <p className="open-kicker">CHEMICAL INCIDENT RESPONSE SUPPORT</p>
-          <h1>화학사고 대응의<br /><em>첫 판단을</em> 준비합니다.</h1>
+          <h1><span>화학사고 대응의</span><span><em>첫 판단을</em> 준비합니다.</span></h1>
           <p className="first-slide-subtitle">신고문을 넣으면 확인할 사항, 물질 후보, 공식 근거,<br />보류 이유와 인계 요약을 한 흐름으로 정리합니다.</p>
           <div className="first-slide-actions"><a className="open-cta" href="/onboarding">무료로 시작하기 <ArrowRight size={15} /></a><a className="open-secondary-cta" href="/features">기능 소개 보기</a></div>
           <div className="response-step-list">{responseSteps.map(([number, title, text]) => <div key={number}><b>{number}</b><span><strong>{title}</strong><small>{text}</small></span></div>)}</div>
