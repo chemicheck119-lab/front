@@ -561,19 +561,30 @@
 
 /* Final cascade for the default route MVP hero */
 .first-slide { background: #0e1b2b; color: #fff; }
-.first-slide-content { display: grid; grid-template-columns: minmax(330px, .8fr) minmax(470px, 1.2fr); align-items: center; gap: clamp(54px, 8vw, 120px); width: min(1200px, 100%); min-height: 100svh; padding: 155px 0 72px; }
-.first-slide-heading { align-items: flex-start; text-align: left; }
+.first-slide-content { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: center; justify-content: start; gap: clamp(54px, 8vw, 120px); width: min(1200px, calc(100% - 96px)); min-height: 100svh; margin: 0 auto; padding: 155px 0 72px; }
+.first-slide-heading { position: relative; left: 17px; align-items: flex-start; text-align: left; }
+.first-slide-heading { min-width: 0; width: 100%; }
 .first-slide-heading h1 { color: #f8fafb; font-size: clamp(48px, 5.3vw, 76px); }
 .first-slide-heading h1 em { color: #f08a48; }
 .first-slide-heading .open-kicker { color: #f08a48; }
 .first-slide-subtitle { color: #bacbd7; }
 .first-slide .first-slide-note { grid-column: 1; margin-top: 28px; color: #8fa6b8; }
-.hero-mvp { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin: 0; }
+.hero-mvp { grid-column: 2; grid-row: 1; align-self: center; margin: 0; }
 .response-step-list { grid-column: 1; }
 
+@media (min-width: 851px) and (max-height: 800px) {
+  .first-slide-content { padding-top: 108px; padding-bottom: 38px; }
+  .first-slide-heading h1 { font-size: clamp(42px, 4.5vw, 60px); }
+  .first-slide-subtitle { margin-top: 14px; font-size: 13px; }
+  .first-slide-actions { margin-top: 18px; }
+  .response-step-list { margin-top: 22px; }
+  .response-step-list > div { padding: 9px 0; }
+  .first-slide .first-slide-note { margin-top: 15px; }
+}
+
 @media (max-width: 850px) {
-  .first-slide-content { display: flex; width: 100%; min-height: 100svh; padding: 150px 20px 64px; }
-  .first-slide-heading { text-align: left; }
+  .first-slide-content { display: flex; width: 100%; min-height: 100svh; margin: 0; padding: 150px 20px 64px; }
+  .first-slide-heading { left: 0; width: 100%; text-align: left; }
   .hero-mvp { width: 100%; margin-top: 45px; }
   .response-step-list { width: 100%; margin-top: 32px; }
 }
