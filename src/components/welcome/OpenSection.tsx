@@ -54,7 +54,7 @@ export default function OpenSection() {
             </section>
             <p className="phone-entry-disclaimer" id="phone-entry-disclaimer">
               <strong>실제 긴급 신고는 119로 해주세요.</strong>
-              <span>시범 서비스 · 전화→화면 연결은 검증 중입니다.</span>
+              <span>시범 서비스</span>
             </p>
             <div className="mvp-entry-divider" />
             <section className="home-entry-station" id="station-entry" aria-labelledby="station-entry-title">

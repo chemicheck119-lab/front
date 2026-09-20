@@ -38,12 +38,13 @@ function renderHome() {
 }
 
 describe("전화 중심 메인페이지", () => {
-  it("주 CTA는 시범 전화이며 실제 119 신고와 검증 중인 연결을 구분한다", () => {
+  it("연결 검증 안내는 생략하고 시범 전화와 실제 119 긴급 신고는 구분한다", () => {
     renderHome();
     const call = screen.getByRole("link", { name: `전화로 체험하기 ${PHONE_ENTRY.display}` });
     expect(call).toHaveAttribute("href", PHONE_ENTRY.href);
     expect(call).toHaveAccessibleDescription(/실제 긴급 신고는 119/);
-    expect(call).toHaveAccessibleDescription(/전화→화면 연결은 검증 중/);
+    expect(call).toHaveAccessibleDescription(/시범 서비스/);
+    expect(screen.queryByText(/전화→화면 연결은 검증 중입니다/)).not.toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "대응 화면 열기" }).map((link) => link.getAttribute("href"))).toEqual(["/onboarding", "#station-entry"]);
     for (const link of screen.getAllByRole("link").filter((link) => link.getAttribute("href")?.startsWith("tel:"))) {
       expect(link).toHaveAttribute("href", PHONE_ENTRY.href);
