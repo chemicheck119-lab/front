@@ -230,4 +230,7 @@ export type ConfirmationResponse = DashboardBffSchemas["DashboardConfirmationRes
 export type ConfirmationCancellationResponse = DashboardBffSchemas["DashboardConfirmationCancellationResponse"];
 export type RecordSaveRequest = DashboardBffSchemas["DashboardRecordSaveRequest"];
 export type RecordSaveResponse = DashboardBffSchemas["DashboardRecordSaveResponse"];
+export type RecordSummary = DashboardBffSchemas["DashboardRecordSummary"];
+export type RecordListResponse = DashboardBffSchemas["DashboardRecordListResponse"];
+export type RecordDetailResponse = DashboardBffSchemas["DashboardRecordDetailResponse"];
 export type MaterialDiscoveryRequest = DashboardBffSchemas["DashboardMaterialDiscoveryRequest"];
