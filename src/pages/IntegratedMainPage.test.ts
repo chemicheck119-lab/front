@@ -17,6 +17,7 @@ describe("상황실·현장 사용자 화면 경계", () => {
     expect(page).toContain("현장 대응");
     expect(page.match(/integrated-workstream-scroll/g)?.length).toBe(2);
     expect(styles).toMatch(/\.integrated-workstream-scroll\s*\{[^}]*overflow-y:\s*auto/s);
+    expect(styles).toMatch(/\.integrated-workstream-scroll\s*\{[^}]*grid-auto-rows:\s*max-content/s);
     expect(styles).toMatch(/\.integrated-main-grid\s*\{[^}]*overflow:\s*hidden/s);
   });
 });

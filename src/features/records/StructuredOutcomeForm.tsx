@@ -101,7 +101,7 @@ export function StructuredOutcomeForm({ value, onChange }: StructuredOutcomeForm
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-[11px] leading-relaxed text-blue-700 dark:text-blue-300">
-        사고물질·시설 내 충돌물질·위험은 현장확인 기록과 RuleEngine 결과에서 서버가 자동 저장합니다. 아래에는 실제 현장 결과만 기록하세요.
+        확인한 물질과 대응 참고 결과는 함께 저장됩니다. 아래에는 수행한 조치와 관찰한 결과만 기록하세요.
       </div>
 
       <section aria-labelledby="outcome-facility-title">

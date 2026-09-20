@@ -44,6 +44,14 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof FieldToolsPa
 }
 
 describe("좌측 현장 도구", () => {
+  it("시스템 안내 없이 시작된 첫 신고도 누락하지 않고 저장 상태를 구분한다", () => {
+    renderPanel({ messages: [messages[1]], recordSaved: true, syntheticMode: true });
+    expect(screen.getByText("시연 저장 완료")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /현재 사고 기록/ }));
+    expect(screen.getByText("저장탱크 누출 의심")).toBeInTheDocument();
+    expect(screen.queryByText("신고를 접수하면 기록이 시작됩니다.")).not.toBeInTheDocument();
+  });
+
   it("상황실 번호가 없을 때 가짜 전화 링크 대신 설정 필요 상태를 표시한다", () => {
     renderPanel();
 

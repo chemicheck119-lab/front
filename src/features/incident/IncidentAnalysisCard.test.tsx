@@ -99,8 +99,9 @@ describe("사고 분석 현장 확인 흐름", () => {
     render(<IncidentAnalysisCard analysis={getDemoAnalysis()} onConfirm={vi.fn()} confirmingRole={null} confirmationMode="PUBLIC_SYNTHETIC" />);
 
     expect(screen.getByText("합성 확인 게이트 검증 단계입니다.")).toBeInTheDocument();
-    expect(screen.getByText("합성 QA 다음 단계")).toBeInTheDocument();
-    expect(screen.getByText(/공개 합성 사고물질 확인 API/)).toBeInTheDocument();
+    expect(screen.getByText("다음 확인 · 합성 시연")).toBeInTheDocument();
+    expect(screen.getByText(/사고물질의 이름과 CAS를 대조/)).toBeInTheDocument();
+    expect(screen.queryByText(/확인 API|Rule Engine|합성 QA/)).not.toBeInTheDocument();
     expect(screen.queryByText("대원이 해야 할 일")).not.toBeInTheDocument();
   });
 });
