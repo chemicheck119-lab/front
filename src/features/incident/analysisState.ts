@@ -14,6 +14,8 @@ export function canShowRisk(analysis: IncidentAnalysisResponse | null): boolean 
     analysis
     && analysis.state === "SCREENING_COMPLETED"
     && analysis.riskDisplayAllowed === true
+    && analysis.confirmationGate.incidentConfirmed
+    && analysis.confirmationGate.facilityConfirmed
     && analysis.confirmationGate.allRequiredConfirmed
     && analysis.confirmationGate.ruleExecutionAllowed
     && analysis.conflictReview.executed
