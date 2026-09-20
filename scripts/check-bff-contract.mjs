@@ -26,8 +26,14 @@ const expectedOperations = [
   ["/api/c2guard/v1/incidents/{incidentId}/record", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/transcriptions", "post"],
   ["/api/c2guard/v1/substances/discover", "post"],
+  ["/api/c2guard/v1/incidents/brief", "post"],
+  ["/api/c2guard/v1/records", "get"],
+  ["/api/c2guard/v1/records/{recordId}", "get"],
+  ["/api/c2guard/v1/incidents/{incidentId}/phone-transcripts/stream", "get"],
 ];
-const expectedPaths = [...new Set(expectedOperations.map(([path]) => path))];
+// 전화 provider가 서버에서만 호출하는 경로라 ServiceSession 대신 별도 토큰으로 인증한다.
+const phoneIngressPath = "/api/c2guard/v1/incidents/{incidentId}/phone-transcripts";
+const expectedPaths = [...new Set([...expectedOperations.map(([path]) => path), phoneIngressPath])];
 
 function assertContract(condition, message) {
   if (!condition) throw new Error(`[BFF contract drift] ${message}`);
@@ -56,6 +62,11 @@ for (const [path, method] of expectedOperations) {
   assertContract(operation.security?.some((entry) => Object.hasOwn(entry, "ServiceSession")), `${path}에 ServiceSession 보안 경계가 없습니다.`);
   assertContract(operation["x-model-api-direct-browser-call-allowed"] === false, `${path}가 브라우저의 모델 API 직접 호출을 허용합니다.`);
 }
+
+const phoneIngress = contract.paths?.[phoneIngressPath]?.post;
+assertContract(Boolean(phoneIngress), `${phoneIngressPath} POST 계약이 없습니다.`);
+assertContract(phoneIngress.security?.some((entry) => Object.hasOwn(entry, "PhoneIngressToken")), `${phoneIngressPath}에 PhoneIngressToken 보안 경계가 없습니다.`);
+assertContract(phoneIngress["x-browser-call-allowed"] === false, `${phoneIngressPath}가 브라우저 호출을 허용합니다.`);
 
 for (const path of [
   "/api/c2guard/v1/transcriptions",

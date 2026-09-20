@@ -172,6 +172,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/c2guard/v1/incidents/brief": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 사고 행동 카드(action-brief-v1) 조회
+         * @description 사고·시설 CAS 확인이 모두 ACTIVE일 때만 모델 API 행동 카드를 요청합니다. revision은 BE가 사고별로 부여하며, 응답은 BFF가 계약 검증 후 그대로 반환합니다.
+         */
+        post: operations["brief_incident_api_c2guard_v1_incidents_brief_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 대응 기록 목록 조회
+         * @description 세션 소속(organizationId) 범위의 저장된 대응 기록 요약을 반환합니다.
+         */
+        get: operations["list_records_api_c2guard_v1_records_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/records/{recordId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 대응 기록 상세 조회
+         * @description 반환할 incidentId로 사고 접근 권한을 다시 확인한 뒤에만 대화와 구조화 결과를 내려줍니다. 같은 소속이라는 사실만으로 열람을 허용하지 않습니다.
+         */
+        get: operations["get_record_api_c2guard_v1_records__recordId__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/incidents/{incidentId}/phone-transcripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 전화 음성 전사 수신(전화 provider 전용)
+         * @description 전화 provider가 서버에서 호출합니다. 브라우저 세션이 아니라 X-Phone-Ingress-Token으로 인증하며, chemicheck119.phone-ingress.enabled=false이면 404를 반환합니다. 수신한 전사는 저장 후 SSE로 발행되고 담당자 검토 전에는 안전 판단 근거로 쓰지 않습니다.
+         */
+        post: operations["ingest_phone_transcript_api_c2guard_v1_incidents__incidentId__phone_transcripts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/incidents/{incidentId}/phone-transcripts/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 전화 음성 전사 SSE 스트림
+         * @description 사고 접근 권한이 있는 세션만 구독할 수 있습니다. Last-Event-ID로 이어받기를 지원하며 이벤트 이름은 phone.transcript입니다.
+         */
+        get: operations["stream_phone_transcripts_api_c2guard_v1_incidents__incidentId__phone_transcripts_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1790,6 +1890,164 @@ export interface components {
             runtime: components["schemas"]["DashboardSpeechRuntime"];
             safetyBoundary: components["schemas"]["DashboardSpeechSafetyBoundary"];
         };
+        /** DashboardIncidentBriefRequest */
+        DashboardIncidentBriefRequest: {
+            analysis: components["schemas"]["DashboardIncidentAnalyzeRequest"];
+            /** @description 취소·정정된 확인 ID. 사고/시설 확인 각 1건이므로 최대 2개입니다. */
+            invalidatedConfirmationIds?: string[];
+            reportedEvidenceConflict?: boolean | null;
+        };
+        /**
+         * DashboardActionBriefResponse
+         * @description 모델 API action-brief-v1 응답을 BFF가 가공 없이 전달하는 행동 카드입니다. 아래 필드는 BFF가 반환 전에 검증하는 최소 계약이며, 그 외 필드는 모델 API가 정의합니다. phase가 final이면 cards와 sources 배열이 필수입니다.
+         */
+        DashboardActionBriefResponse: {
+            /** @constant */
+            schema_version: "action-brief-v1";
+            /** @description 요청 requestId와 일치해야 합니다. */
+            request_id: string;
+            /** @enum {string} */
+            phase: "initial" | "final";
+            /** @enum {string} */
+            status: "PENDING" | "NEEDS_CONFIRMATION" | "COMPLETED" | "HELD" | "TIMEOUT";
+            confirmation_state: {
+                INCIDENT: boolean;
+                FACILITY: boolean;
+            };
+            rule_review: {
+                executed: boolean;
+            };
+            cards?: Record<string, never>[];
+            sources?: Record<string, never>[];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * DashboardRecordSummary
+         * @description 대응 기록 목록 1행. 대화 원문과 구조화 상세는 상세 조회에서만 제공합니다.
+         */
+        DashboardRecordSummary: {
+            recordId: string;
+            incidentId: string;
+            facilityName: string | null;
+            incidentSubstanceName: string | null;
+            briefApplicationStatus: components["schemas"]["DashboardBriefApplicationStatus"];
+            finalResponseOutcome: components["schemas"]["DashboardFinalResponseOutcome"];
+            /** Format: date-time */
+            savedAt: string;
+        };
+        /** DashboardRecordListResponse */
+        DashboardRecordListResponse: {
+            /** @constant */
+            schemaVersion: "chemicheck119-dashboard-bff-v1";
+            requestId: string;
+            records: components["schemas"]["DashboardRecordSummary"][];
+        };
+        /** DashboardRecordMessage */
+        DashboardRecordMessage: {
+            messageId: string;
+            sequence: number;
+            /** @enum {string} */
+            role: "USER" | "ASSISTANT" | "SYSTEM";
+            text: string;
+            /** Format: date-time */
+            createdAt: string;
+            analysisId?: string | null;
+        };
+        /**
+         * DashboardRecordConflictRisk
+         * @description 기록 저장 시점에 결합된 RuleEngine 충돌 검토 결과입니다. 사고·시설 CAS가 모두 확인된 경우에만 저장되므로 기록 상세에서 null일 수 있습니다.
+         */
+        DashboardRecordConflictRisk: {
+            analysisId: string;
+            incidentCas: string;
+            facilitySubstanceName: string | null;
+            facilitySubstanceCas: string;
+            ruleId: string;
+            ruleVersion: string;
+            severity: string;
+            riskLevel: string;
+            riskLevelKo: string;
+            briefText: string;
+            expertReviewed: boolean;
+            humanConfirmationRequired: boolean;
+            hazardCodes: string[];
+            gasProducts: string[];
+        };
+        /** DashboardRecordDetailResponse */
+        DashboardRecordDetailResponse: {
+            /** @constant */
+            schemaVersion: "chemicheck119-dashboard-bff-v1";
+            requestId: string;
+            recordId: string;
+            incidentId: string;
+            /** Format: date-time */
+            conversationStartedAt: string;
+            /** Format: date-time */
+            savedAt: string;
+            facilityName: string | null;
+            facilityAddress: string | null;
+            incidentSubstanceName: string | null;
+            incidentSubstanceCas: string | null;
+            briefApplicationStatus: components["schemas"]["DashboardBriefApplicationStatus"];
+            performedActions: components["schemas"]["DashboardPerformedAction"][];
+            additionalFactors: components["schemas"]["DashboardAdditionalFactor"][];
+            finalResponseOutcome: components["schemas"]["DashboardFinalResponseOutcome"];
+            conflictRisk: components["schemas"]["DashboardRecordConflictRisk"] | null;
+            messages: components["schemas"]["DashboardRecordMessage"][];
+        };
+        /** DashboardPhoneTranscriptIngressRequest */
+        DashboardPhoneTranscriptIngressRequest: {
+            provider: string;
+            callId: string;
+            /** @description provider+eventId 조합으로 중복 수신을 멱등 처리합니다. */
+            eventId: string;
+            /** Format: date-time */
+            occurredAt: string;
+            text: string;
+            language?: string | null;
+            /** @default false */
+            isFinal: boolean;
+            segmentIndex?: number | null;
+        };
+        /** DashboardPhoneTranscriptIngressResponse */
+        DashboardPhoneTranscriptIngressResponse: {
+            requestId: string;
+            incidentId: string;
+            transcriptId: string;
+            callId: string;
+            isFinal: boolean;
+            /**
+             * @description isFinal이면 PENDING_REVIEW(담당자 검토 대기), 아니면 INTERIM.
+             * @enum {string}
+             */
+            reviewStatus: "PENDING_REVIEW" | "INTERIM";
+            /** Format: date-time */
+            acceptedAt: string;
+            /** @description 이미 수신한 provider/eventId이면 저장된 결과를 다시 돌려주며 true입니다. */
+            duplicate: boolean;
+        };
+        /**
+         * DashboardPhoneTranscriptEvent
+         * @description SSE 이벤트 phone.transcript의 data 페이로드입니다. SSE id는 eventId와 같습니다.
+         */
+        DashboardPhoneTranscriptEvent: {
+            /** Format: int64 */
+            eventId: number;
+            incidentId: string;
+            transcriptId: string;
+            callId: string;
+            text: string;
+            language?: string | null;
+            isFinal: boolean;
+            /**
+             * @description isFinal이면 PENDING_REVIEW(담당자 검토 대기), 아니면 INTERIM.
+             * @enum {string}
+             */
+            reviewStatus: "PENDING_REVIEW" | "INTERIM";
+            /** Format: date-time */
+            receivedAt: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2590,6 +2848,360 @@ export interface operations {
             };
             /** @description SPEECH_TIMEOUT, retryable=true */
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    brief_incident_api_c2guard_v1_incidents_brief_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardIncidentBriefRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response (action-brief-v1) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardActionBriefResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Conflict (CONFIRMATION_REQUIRED: 사고·시설 CAS 확인이 모두 필요하거나, INCIDENT_REFERENCE_CONFLICT: 브리핑 중 confirmation이 변경됨) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity (MODEL_CONTRACT_VIOLATION 포함) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Gateway Timeout (MODEL_TIMEOUT, retryable=true) */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    list_records_api_c2guard_v1_records_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardRecordListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    get_record_api_c2guard_v1_records__recordId__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 기록 ID */
+                recordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardRecordDetailResponse"];
+                };
+            };
+            /** @description Bad Request (recordId 형식 오류) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    ingest_phone_transcript_api_c2guard_v1_incidents__incidentId__phone_transcripts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 전화가 연결된 사고 ID */
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardPhoneTranscriptIngressRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted (duplicate=true이면 기존 수신 결과) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardPhoneTranscriptIngressResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Unauthorized (PHONE_INGRESS_UNAUTHORIZED) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Not Found (PHONE_INGRESS_DISABLED) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Payload Too Large (PHONE_TRANSCRIPT_TOO_LARGE) */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+        };
+    };
+    stream_phone_transcripts_api_c2guard_v1_incidents__incidentId__phone_transcripts_stream_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 마지막으로 받은 SSE id(eventId) */
+                "Last-Event-ID"?: string;
+            };
+            path: {
+                /** @description 구독할 사고 ID */
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description text/event-stream. 각 이벤트의 data는 DashboardPhoneTranscriptEvent JSON입니다. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["DashboardPhoneTranscriptEvent"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
