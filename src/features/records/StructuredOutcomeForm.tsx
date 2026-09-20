@@ -118,7 +118,7 @@ export function StructuredOutcomeForm({ value, onChange }: StructuredOutcomeForm
 
       <fieldset>
         <legend className="text-xs font-bold">실제 수행한 대응 <span className="text-primary">1개 이상</span></legend>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="outcome-action-options mt-2 grid grid-cols-2 gap-2">
           {PERFORMED_ACTION_OPTIONS.map((option) => <label key={option.value} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 text-[11px] font-semibold hover:bg-muted"><input type="checkbox" checked={value.performedActions.includes(option.value)} onChange={(event) => onChange({ ...value, performedActions: toggle(value.performedActions, option.value, event.target.checked) })} className="h-4 w-4 accent-primary" />{option.label}</label>)}
         </div>
       </fieldset>
@@ -130,12 +130,15 @@ export function StructuredOutcomeForm({ value, onChange }: StructuredOutcomeForm
         </select>
       </label>
 
-      <fieldset>
+      <details className="rounded-xl border border-border bg-secondary/30 p-3">
+        <summary className="cursor-pointer text-xs font-bold">추가 발견 요인 <span className="ml-1 font-normal text-muted-foreground">{value.additionalFactors.length ? `${value.additionalFactors.length}개 선택` : "선택 사항 · 필요할 때 펼치기"}</span></summary>
+      <fieldset className="mt-3">
         <legend className="text-xs font-bold">추가 발견 요인 <span className="font-normal text-muted-foreground">복수 선택·없으면 생략</span></legend>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {ADDITIONAL_FACTOR_OPTIONS.map((option) => <label key={option.value} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 text-[11px] font-semibold hover:bg-muted"><input type="checkbox" checked={value.additionalFactors.includes(option.value)} onChange={(event) => onChange({ ...value, additionalFactors: toggle(value.additionalFactors, option.value, event.target.checked) })} className="h-4 w-4 accent-primary" />{option.label}</label>)}
         </div>
       </fieldset>
+      </details>
 
       <label className="block text-xs font-bold">최종 대응 결과 <span className="text-primary">필수</span>
         <select value={value.finalResponseOutcome} onChange={(event) => onChange({ ...value, finalResponseOutcome: event.target.value as FinalResponseOutcome | "" })} className="mt-2 min-h-11 w-full rounded-lg border border-border bg-input-background px-3 text-sm outline-none focus:border-primary">

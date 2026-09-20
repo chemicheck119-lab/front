@@ -25,7 +25,8 @@
 .integrated-card-heading > span { color: #718596; font-size: 11px; }
 .integrated-card-subtitle { margin: 5px 0 0; color: #718596; font-size: 11px; line-height: 1.5; }
 .integrated-saved { color: #26734a !important; font-weight: 800; }
-.integrated-outcome-form { padding: 20px; }
+.integrated-outcome-form { container-type: inline-size; padding: 20px; }
+@container (min-width: 680px) { .outcome-action-options { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .integrated-save-button { width: 100%; min-height: 46px; margin-top: 18px; border: 0; border-radius: 9px; background: #203f68; color: #fff; font-size: 12px; font-weight: 800; }
 .integrated-save-button:disabled { opacity: .5; }
 .integrated-card > :not(.integrated-card-heading) { margin: 0; }

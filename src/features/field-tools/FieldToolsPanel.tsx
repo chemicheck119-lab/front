@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   BookOpenCheck,
   Check,
@@ -158,7 +159,7 @@ function ToolDialogShell({ title, description, onClose, children }: {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] grid place-items-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={title}>
       <section className="flex max-h-[calc(100dvh-32px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-4">
@@ -167,7 +168,8 @@ function ToolDialogShell({ title, description, onClose, children }: {
         </header>
         <div className="min-h-0 overflow-y-auto p-5">{children}</div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
