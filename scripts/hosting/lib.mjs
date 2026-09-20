@@ -192,6 +192,24 @@ export async function smoke(origin, expectedHash) {
   return { origin, indexHash, assets: assetPaths(index), checkedAt: new Date().toISOString(), scope: "HTTP·정적 asset·SPA·소방서 GET만 검증; 로그인·지도·전사 E2E 제외" };
 }
 
+// 새 채널 생성 직후의 전파 지연만 기다린다. 배포 POST·검증 기준은 바꾸지 않는다.
+export async function smokePreview(origin, expectedHash, {
+  check = smoke,
+  wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+} = {}) {
+  const url = new URL(origin);
+  assert(url.protocol === "https:" && /^chemi-check--[a-z0-9-]+\.web\.app$/.test(url.hostname), "새 미리보기에만 전파 대기를 허용합니다.");
+  const delays = [2000, 4000, 8000, 16000, 30000];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return { ...await check(origin, expectedHash), previewAttempts: attempt + 1 };
+    } catch (error) {
+      if (attempt >= delays.length || !/^smoke (?:\/|\/assets\/[A-Za-z0-9_.-]+): HTTP (?:404|503)$/.test(error.message ?? "")) throw error;
+      await wait(delays[attempt]);
+    }
+  }
+}
+
 export async function checkRetainedAssets(paths) {
   for (const path of paths) {
     assert(/^\/assets\/[A-Za-z0-9_.-]+$/.test(path), "기존 asset 경로가 유효하지 않습니다.");
