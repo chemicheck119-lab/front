@@ -10,13 +10,15 @@
     "dev:demo": "vite --mode demo",
     "build:demo": "vite build --mode demo",
     "build:staging": "vite build --mode staging",
+    "build:hosting": "vite build --mode staging --outDir dist/hosting --emptyOutDir",
     "build:sites:demo": "node scripts/prepare-sites-build.mjs --clean && vite build --mode demo --outDir dist/client --emptyOutDir && node scripts/prepare-sites-build.mjs",
     "build:sites:staging": "node scripts/prepare-sites-build.mjs --clean && vite build --mode staging --outDir dist/client --emptyOutDir && node scripts/prepare-sites-build.mjs",
     "contract:generate": "openapi-typescript contracts/dashboard-bff-v1.openapi.json -o src/api/generated/dashboard-bff.ts",
     "contract:check": "node scripts/check-bff-contract.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm contract:check && pnpm typecheck && pnpm test && pnpm build && pnpm build:staging && pnpm build:sites:demo && pnpm build:sites:staging"
+    "test:hosting": "node --test scripts/hosting/tests.mjs",
+    "check": "pnpm contract:check && pnpm typecheck && pnpm test && pnpm test:hosting && pnpm build && pnpm build:staging && pnpm build:sites:demo && pnpm build:sites:staging"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

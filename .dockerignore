@@ -10,3 +10,5 @@ coverage
 !.env.demo
 *.log
 *.tgz
+gha-creds-*.json
+deployment-evidence

@@ -163,6 +163,10 @@ corepack pnpm check
 
 ### Develop staging 배포
 
+Firebase 공개 배포는 [승인 기반 배포·롤백 런북](./docs/HOSTING_RELEASE_RUNBOOK.md)을 따릅니다.
+`develop` 병합 후 미리보기를 확인하고, GitHub에서 사람이 승인해야 실제 도메인의 버전이 바뀝니다.
+이 절차는 전사 세션 무중단이나 현장 고가용성을 보장한 평가가 아닙니다.
+
 `develop` 검증본은 OpenAI Sites의 비공개 배포와 Firebase Hosting 공개 배포로 게시합니다.
 현재 공모전 staging 번들은 소방서 선택 후 발급되는 제한 파일럿 서명 세션으로 BFF에
 연결하고, 운영 연결 실패를 fixture로 자동 대체하지 않습니다.

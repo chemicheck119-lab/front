@@ -1,0 +1,129 @@
+name: 프론트 미리보기·승인 배포
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'preview: 미리보기 / promote: 승인 후 승격 / rollback: 승인 후 복구'
+        type: choice
+        options: [preview, promote, rollback]
+        default: preview
+      version:
+        description: '승격·복구 대상 Hosting version ID (preview는 비움)'
+        type: string
+      expected_live_version:
+        description: '현재 운영 version ID (다르면 전환 차단)'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/develop' && (github.event_name == 'push' || inputs.operation == 'preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile
+      - name: 계약·타입·테스트·빌드 검증
+        run: pnpm check
+      - name: Firebase 전용 staging 번들 생성
+        env:
+          VITE_MAP_PUBLIC_TOKEN: ${{ secrets.VITE_MAP_PUBLIC_TOKEN }}
+        run: pnpm build:hosting
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hosting-bundle
+          path: dist/hosting
+          if-no-files-found: error
+          retention-days: 7
+
+  preview:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: hosting-preview
+    concurrency:
+      group: hosting-preview
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: hosting-bundle
+          path: dist/hosting
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: chemi-check
+          workload_identity_provider: ${{ vars.HOSTING_WIF_PROVIDER }}
+          service_account: ${{ vars.HOSTING_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+      - name: 기존 BFF 고정·미리보기 배포·HTTP smoke
+        run: node scripts/hosting/release.mjs preview
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: hosting-preview-evidence
+          path: deployment-evidence
+          if-no-files-found: warn
+          retention-days: 30
+
+  release:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop' && (inputs.operation == 'promote' || inputs.operation == 'rollback')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 이 환경의 Required reviewers 승인이 있어야 OIDC 토큰을 발급받는다.
+    environment: hosting-production
+    concurrency:
+      group: hosting-live-release
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: 배포 보호 로직 재검증
+        run: node --test scripts/hosting/tests.mjs
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: chemi-check
+          workload_identity_provider: ${{ vars.HOSTING_WIF_PROVIDER }}
+          service_account: ${{ vars.HOSTING_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+      - name: 승인된 동일 버전 승격 또는 복구
+        env:
+          OPERATION: ${{ inputs.operation }}
+          TARGET_VERSION: ${{ inputs.version }}
+          EXPECTED_LIVE_VERSION: ${{ inputs.expected_live_version }}
+        run: node scripts/hosting/release.mjs "$OPERATION"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: hosting-release-evidence
+          path: deployment-evidence
+          if-no-files-found: warn
+          retention-days: 30
