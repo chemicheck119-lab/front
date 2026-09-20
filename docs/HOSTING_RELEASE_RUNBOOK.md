@@ -67,6 +67,7 @@ gh workflow run hosting-release.yml --repo chemicheck119-lab/front --ref develop
 | 전환 응답 유실 | 실제 live version을 읽어 후보가 올라갔는지 확인하고 복구 여부 결정 |
 | 잘못된 복구로 다른 배포 덮어쓰기 | 현재 live가 이 실행의 후보일 때만 자동 복구 |
 | timeout·무한 반복 | HTTP 15~60초, 배포 job 15분, post-smoke 최대 3회 |
+| 새 미리보기의 전파 지연 | 루트·정적 asset의 404/503만 최대 6회 GET 검사, 대기 2/4/8/16/30초(합계 60초). HTML hash·BFF 계약 오류는 즉시 실패하며 배포 POST는 반복하지 않음 |
 | 파일·비용 누적 | 새 파일 원본 64 MiB, 기존 version 크기+새 파일 128 MiB, 보존 파일 2,000개, 활성 CI preview 10개 상한 |
 
 미리보기는 7일 후 만료됩니다. 업로드 실패 뒤 release에 연결되지 않은 version은 별도 점검 대상입니다. 보존 상한 도달 시 자동으로 운영 이력을 삭제하지 않고 중단합니다.
@@ -129,5 +130,9 @@ node scripts/hosting/release.mjs inspect # 운영 version 읽기만, gcloud 인�
 현재 UI 수정 작업의 별도 브랜치는 이 배포 설정 PR에 섞지 않습니다. 새 화면을 내보내려면 해당 UI 변경도 PR·CI를 거쳐 `develop`에 반영해야 합니다.
 
 관련 이슈: [#57](https://github.com/chemicheck119-lab/front/issues/57)
+
+### 2026-09-20 새 미리보기의 최초 404 진단
+
+홈 UI PR #63 병합 후 [35498432398 실행](https://github.com/chemicheck119-lab/front/actions/runs/35498432398)의 두 시도에서 업로드·FINALIZED·채널 release 직후 첫 GET이 404로 실패했다. 첫 후보 `111a3080c31f0d9b`는 운영 전환 없이 같은 주소를 다시 검사하여 08:04:58 UTC에 홈·3개 탭·정적 asset·소방서 GET을 통과했다. 이를 근거로 새 미리보기의 제한적 전파 대기를 추가한다. 실제 파일/hash 검사나 운영 승인 조건을 생략하지 않으며, 실제 전환 결과는 이슈 #61에 별도로 기록한다.
 
 근거: [Hosting REST 배포](https://firebase.google.com/docs/hosting/api-deploy), [채널·버전·복구](https://firebase.google.com/docs/hosting/manage-hosting-resources), [Cloud Run rewrite tag](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.versions#CloudRunRewrite), [GitHub WIF](https://github.com/google-github-actions/auth).

@@ -1,5 +1,5 @@
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import { allFiles, assert, assertBaseline, assertPinnedConfig, assertStorageBudget, checkRetainedAssets, collectBundle, configHash, createPreview, hostingClient, liveRelease, mergeAssets, promoteSafely, reuseEquivalentAssets, sha256, SITE, LIVE_ORIGIN, smoke, uploadBlobs, versionId, versionName } from "./lib.mjs";
+import { allFiles, assert, assertBaseline, assertPinnedConfig, assertStorageBudget, checkRetainedAssets, collectBundle, configHash, createPreview, hostingClient, liveRelease, mergeAssets, promoteSafely, reuseEquivalentAssets, sha256, SITE, LIVE_ORIGIN, smoke, smokePreview, uploadBlobs, versionId, versionName } from "./lib.mjs";
 
 const mode = process.argv[2];
 assert(["preview", "promote", "rollback", "inspect"].includes(mode), "preview / promote / rollback / inspect 중 하나를 선택하세요.");
@@ -40,7 +40,7 @@ if (mode === "inspect") {
     const finalized = await api(`${version.name}?updateMask=status`, "PATCH", { status: "FINALIZED" });
     assert(finalized.status === "FINALIZED", "Hosting version 마무리 실패");
     const origin = await createPreview(api, version.name, channel);
-    const report = await smoke(origin, sha256(await readFile("dist/hosting/index.html")));
+    const report = await smokePreview(origin, sha256(await readFile("dist/hosting/index.html")));
     assertBaseline(await liveRelease(api), base.name);
     await output({ status: "preview-verified", version: versionId(version.name), expectedLiveVersion: versionId(base.name), commit,
       previewUrl: origin, configHash: configHash(base.config), manifestHash: sha256(JSON.stringify(files)),

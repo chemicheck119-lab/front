@@ -3,7 +3,47 @@ import assert from "node:assert/strict";
 import { mkdtemp, writeFile, symlink, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertBaseline, assertPinnedConfig, assertStorageBudget, assetPaths, collectBundle, configHash, hostingErrorDetail, mergeAssets, promoteSafely, reuseEquivalentAssets, sha256, SITE, smoke, versionId, versionName } from "./lib.mjs";
+import { assertBaseline, assertPinnedConfig, assertStorageBudget, assetPaths, collectBundle, configHash, hostingErrorDetail, mergeAssets, promoteSafely, reuseEquivalentAssets, sha256, SITE, smoke, smokePreview, versionId, versionName } from "./lib.mjs";
+
+test("새 미리보기의 일시적 404/503만 같은 hash로 재검증한다", async () => {
+  const waits = [], calls = [], origin = "https://chemi-check--ci-1-1-test.web.app";
+  const result = await smokePreview(origin, "expected-hash", {
+    check: async (...args) => {
+      calls.push(args);
+      if (calls.length === 1) throw new Error("smoke /: HTTP 404");
+      if (calls.length === 2) throw new Error("smoke /assets/app.js: HTTP 503");
+      return { indexHash: "expected-hash" };
+    }, wait: async (ms) => waits.push(ms),
+  });
+  assert.deepEqual(waits, [2000, 4000]);
+  assert.deepEqual(calls, Array.from({ length: 3 }, () => [origin, "expected-hash"]));
+  assert.deepEqual(result, { indexHash: "expected-hash", previewAttempts: 3 });
+});
+test("미리보기 전파 대기는 최대 6회·대기 합계 60초로 끝난다", async () => {
+  let calls = 0;
+  const waits = [];
+  await assert.rejects(smokePreview("https://chemi-check--ci-1-1-test.web.app", "hash", {
+    check: async () => { calls++; throw new Error("smoke /: HTTP 404"); },
+    wait: async (ms) => waits.push(ms),
+  }), /HTTP 404/);
+  assert.equal(calls, 6);
+  assert.deepEqual(waits, [2000, 4000, 8000, 16000, 30000]);
+});
+test("내용 불일치·BFF 오류·다른 HTTP 오류는 전파 지연으로 숨기지 않는다", async () => {
+  for (const message of ["공개 HTML이 검증한 버전과 다릅니다.", "smoke /auth/staging/pilot/stations: HTTP 404", "smoke /: HTTP 403", "smoke /: HTTP 500"]) {
+    let calls = 0;
+    await assert.rejects(smokePreview("https://chemi-check--ci-1-1-test.web.app", "hash", {
+      check: async () => { calls++; throw new Error(message); },
+      wait: async () => assert.fail("재시도하면 안 됨"),
+    }), (error) => error.message === message);
+    assert.equal(calls, 1);
+  }
+});
+test("운영·임의 도메인은 미리보기 대기 대상이 아니다", async () => {
+  for (const origin of ["https://chemicheck119.site", "https://example.com", "http://chemi-check--ci-1-1-test.web.app"]) {
+    await assert.rejects(smokePreview(origin, "hash", { check: async () => assert.fail("호출하면 안 됨") }), /새 미리보기/);
+  }
+});
 
 const oldVersion = versionName("aaaaaaaaaaaaaaaa"), newVersion = versionName("bbbbbbbbbbbbbbbb");
 const config = { rewrites: [
