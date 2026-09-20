@@ -58,6 +58,7 @@ describe("좌측 현장 도구", () => {
     fireEvent.click(screen.getByRole("button", { name: /상황실 연결/ }));
 
     expect(screen.getByRole("dialog", { name: "상황실 연결" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "상황실 연결" }).parentElement).toBe(document.body);
     expect(screen.getByText("운영 연락처 미설정")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /전화 연결/ })).not.toBeInTheDocument();
   });
