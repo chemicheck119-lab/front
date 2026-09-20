@@ -94,6 +94,15 @@ export async function collectBundle(directory) {
   return { files, contentHashes, blobs, bytes };
 }
 
+export function hostingErrorDetail(body) {
+  // Google의 오류 설명만 한 줄로 제한한다. 요청 헤더·자격증명·전체 응답은 기록하지 않는다.
+  const message = body?.error?.message;
+  if (typeof message !== "string") return "";
+  return message.replace(/Bearer\s+\S+/gi, "Bearer [REDACTED]")
+    .replace(/ya29\.[A-Za-z0-9._~-]+/g, "[REDACTED]")
+    .replace(/[\x00-\x1f\x7f]/g, " ").slice(0, 800);
+}
+
 export function hostingClient() {
   // 토큰을 파일·콘솔에 출력하지 않는다. WIF 자격증명은 setup-gcloud가 연결한다.
   const token = execFileSync("gcloud", ["auth", "print-access-token"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -104,7 +113,10 @@ export function hostingClient() {
       method, headers: { Authorization: `Bearer ${token}`, "x-goog-user-project": PROJECT, "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(30000), redirect: "error",
     });
-    assert(response.ok, `Hosting API ${method} ${url.pathname}: HTTP ${response.status}`);
+    if (!response.ok) {
+      const detail = hostingErrorDetail(await response.json().catch(() => null));
+      throw new Error(`Hosting API ${method} ${url.pathname}: HTTP ${response.status}${detail ? ` — ${detail}` : ""}`);
+    }
     return response.json();
   };
 }

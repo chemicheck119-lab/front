@@ -3,13 +3,19 @@ import assert from "node:assert/strict";
 import { mkdtemp, writeFile, symlink, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertBaseline, assertPinnedConfig, assertStorageBudget, assetPaths, collectBundle, configHash, mergeAssets, promoteSafely, reuseEquivalentAssets, sha256, SITE, smoke, versionId, versionName } from "./lib.mjs";
+import { assertBaseline, assertPinnedConfig, assertStorageBudget, assetPaths, collectBundle, configHash, hostingErrorDetail, mergeAssets, promoteSafely, reuseEquivalentAssets, sha256, SITE, smoke, versionId, versionName } from "./lib.mjs";
 
 const oldVersion = versionName("aaaaaaaaaaaaaaaa"), newVersion = versionName("bbbbbbbbbbbbbbbb");
 const config = { rewrites: [
   ...["/api/**", "/auth/**"].map(glob => ({ glob, run: { serviceId: "chemicheck119-be-staging", region: "asia-northeast3", tag: "candidate-fixed" } })),
   { glob: "**", path: "/index.html" },
 ] };
+test("Hosting 오류는 제한된 설명만 기록하고 토큰·제어 문자를 제거한다", () => {
+  assert.equal(hostingErrorDetail({ error: { message: "권한 부족\nBearer secret-token ya29.test.token", details: "hidden" } }), "권한 부족 Bearer [REDACTED] [REDACTED]");
+  assert.equal(hostingErrorDetail({ error: { message: "x".repeat(1000) } }).length, 800);
+  assert.equal(hostingErrorDetail(null), "");
+  assert.equal(hostingErrorDetail({ error: { message: {} } }), "");
+});
 test("고정된 BFF·SPA 설정만 허용한다", () => assert.doesNotThrow(() => assertPinnedConfig(config)));
 for (const field of ["tag", "region", "serviceId"]) test(`BFF ${field} 누락 차단`, () => {
   const bad = structuredClone(config); delete bad.rewrites[0].run[field];

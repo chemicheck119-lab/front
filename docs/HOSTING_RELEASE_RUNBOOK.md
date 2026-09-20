@@ -4,7 +4,7 @@
 사용 중인 실제 사이트는 `https://chemicheck119.site`이며 Firebase Hosting 사이트 `chemi-check`를 그대로 사용합니다.
 새 Cloud Run·VM·GPU·DB나 장기 서비스 계정 키를 만들지 않습니다.
 
-> **2026-09-20 실제 검증 상태: 권한 확대 승인 대기.** PR #58의 CI·빌드와 보호 테스트 25개는 통과했고 GitHub→GCP WIF 인증도 성공했습니다. 그러나 Hosting version 생성이 HTTP 403으로 중단되어 **실제 미리보기 배포는 아직 완료되지 않았습니다.** Firebase Hosting은 custom IAM role을 지원하지 않습니다. 표준 `roles/firebasehosting.admin`은 사이트 생성·삭제까지 포함하므로 사용자의 별도 승인을 요청했으며 아직 부여하지 않았습니다. 운영 version `4cfe0bf0a437bd8b`는 유지됩니다. [Firebase 권한 제약](https://firebase.google.com/docs/projects/iam/permissions#hosting), [검증 이슈 #57](https://github.com/chemicheck119-lab/front/issues/57).
+> **2026-09-20 실제 검증 상태: 사용자 승인 후 미리보기 재검증 중.** PR #58의 CI·빌드와 보호 테스트 25개는 통과했고 GitHub→GCP WIF 인증도 성공했습니다. Hosting version 생성은 HTTP 403으로 중단됐으며, Firebase Hosting의 custom IAM role 미지원 제약을 확인했습니다. 사용자 승인 후 표준 `roles/firebasehosting.admin`과 quota 사용용 `roles/serviceusage.serviceUsageConsumer`를 부여하고 시험용 custom role binding은 제거했습니다. 아직 미리보기 성공이나 운영 전환을 완료로 주장하지 않습니다. 운영 version `4cfe0bf0a437bd8b`는 유지됩니다. [Firebase 권한 제약](https://firebase.google.com/docs/projects/iam/permissions#hosting), [검증 이슈 #57](https://github.com/chemicheck119-lab/front/issues/57).
 
 ## 팀원이 사용하는 순서
 
@@ -66,8 +66,9 @@ Backend 운영자는 기존 release tag를 다른 revision으로 재지정하지
 | GitHub workflow | `.github/workflows/hosting-release.yml` |
 | WIF provider | `projects/181872008704/locations/global/workloadIdentityPools/github-actions/providers/chemicheck119-fe` |
 | Service account | `chemicheck119-hosting-deploy@chemi-check.iam.gserviceaccount.com` |
-| 시험 구성한 Custom IAM role | `projects/chemi-check/roles/chemicheck119HostingDeployer` — Hosting 배포 미지원, 채택하지 않음 |
-| 추가 승인 필요 권한 | `roles/firebasehosting.admin` — Hosting 사이트 생성·삭제 포함 |
+| Hosting 권한 | `roles/firebasehosting.admin` — 사용자 승인 후 부여, Hosting 사이트 생성·삭제 포함 |
+| API quota 사용 | `roles/serviceusage.serviceUsageConsumer` — 프로젝트 quota 사용, API 활성화·비활성화 권한 아님 |
+| 시험 구성한 Custom IAM role | `projects/chemi-check/roles/chemicheck119HostingDeployer` — 미지원, 배포 계정의 binding 제거 |
 | GitHub variables | `HOSTING_WIF_PROVIDER`, `HOSTING_SERVICE_ACCOUNT` |
 | GitHub environments | `hosting-preview`, `hosting-production` |
 
@@ -76,7 +77,7 @@ WIF는 숫자 repository ID `1357789419`, owner ID `325139595`, `refs/heads/deve
 다른 저장소·PR 브랜치·임의 workflow는 배포 계정을 사용할 수 없습니다. 서비스 계정 키는 생성하지 않습니다.
 
 시험 구성한 Custom role 권한은 `firebasehosting.sites.get/list/update`, `resourcemanager.projects.get`, `serviceusage.services.use`이지만, Hosting의 custom role 미지원으로 실제 version 생성에 실패했습니다. 이를 성공한 최소 권한 배포 구성으로 설명하지 않습니다.
-표준 Hosting Admin 사용 승인 후에는 이 역할로 재검증하고 시험용 binding을 정리해야 합니다. 이 표준 역할에는 Hosting 사이트 생성·삭제 권한도 포함됩니다. Cloud Run·SQL·Secret·IAM 관리 권한은 부여하지 않습니다.
+사용자 승인 후 표준 Hosting Admin과 Service Usage Consumer로 교체했으며 시험용 custom role binding은 제거했습니다. 이 표준 Hosting 역할에는 사이트 생성·삭제 권한도 포함됩니다. Cloud Run·SQL·Secret·IAM 관리 권한은 부여하지 않습니다.
 preview와 live의 IAM 권한 자체는 분리되지 않으며, 운영 승인 경계는 보호된 workflow·GitHub environment입니다. Hosting 권한의 범위는 프로젝트입니다.
 
 actions는 commit SHA로 고정했습니다. 빌드 job에는 OIDC 권한이 없고, 배포 job에서는 npm 의존성을 설치하지 않습니다.
