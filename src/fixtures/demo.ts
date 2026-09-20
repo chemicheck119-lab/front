@@ -4,7 +4,9 @@ import type {
   MapContext,
   MaterialDiscoveryResponse,
   MovementUpdateResponse,
+  RecordDetailResponse,
   RecordSaveResponse,
+  RecordSummary,
 } from "../api/contracts";
 
 export const DEMO_INCIDENT_ID = "INC-DEMO-20260801-0001";
@@ -343,5 +345,70 @@ export function makeDemoRecord(): RecordSaveResponse {
     recordId: `REC-DEMO-${Date.now()}`,
     savedAt: new Date().toISOString(),
     resetAllowed: true,
+  };
+}
+
+const DEMO_RECORD_SUMMARIES: RecordSummary[] = [
+  {
+    recordId: "REC-DEMO-0001",
+    incidentId: DEMO_INCIDENT_ID,
+    facilityName: "울산 화학공장",
+    incidentSubstanceName: "차아염소산나트륨",
+    briefApplicationStatus: "APPLIED",
+    finalResponseOutcome: "SPREAD_CONTAINED",
+    savedAt: "2026-09-16T21:08:00Z",
+  },
+  {
+    recordId: "REC-DEMO-0002",
+    incidentId: "INC-DEMO-20260801-0002",
+    facilityName: "울산 △△산업",
+    incidentSubstanceName: "염산",
+    briefApplicationStatus: "REVIEWED_NOT_APPLIED",
+    finalResponseOutcome: "MONITORING_CONTINUES",
+    savedAt: "2026-09-16T18:42:00Z",
+  },
+];
+
+export function makeDemoRecordList(): RecordSummary[] {
+  return DEMO_RECORD_SUMMARIES.map((record) => ({ ...record }));
+}
+
+export function makeDemoRecordDetail(recordId: string): RecordDetailResponse {
+  const summary = DEMO_RECORD_SUMMARIES.find((record) => record.recordId === recordId) ?? DEMO_RECORD_SUMMARIES[0];
+  return {
+    schemaVersion: "chemicheck119-dashboard-bff-v1",
+    requestId: "REQ-DEMO-RECORD-DETAIL-001",
+    recordId: summary.recordId,
+    incidentId: summary.incidentId,
+    conversationStartedAt: "2026-09-16T21:00:00Z",
+    savedAt: summary.savedAt,
+    facilityName: summary.facilityName,
+    facilityAddress: "울산광역시 남구 산업로 119",
+    incidentSubstanceName: summary.incidentSubstanceName,
+    incidentSubstanceCas: "7681-52-9",
+    briefApplicationStatus: summary.briefApplicationStatus,
+    performedActions: ["ZONE_CONTROL", "LEAK_SOURCE_CONTROL"],
+    additionalFactors: ["ENCLOSED_SPACE"],
+    finalResponseOutcome: summary.finalResponseOutcome,
+    conflictRisk: {
+      analysisId: "ANL-DEMO-0001",
+      incidentCas: "7681-52-9",
+      facilitySubstanceName: "염산",
+      facilitySubstanceCas: "7647-01-0",
+      ruleId: "CAMEO-REACTIVE-GROUP-COMPATIBILITY-MATRIX",
+      ruleVersion: "RUNTIME-MANIFEST-1",
+      severity: "HIGH_RISK",
+      riskLevel: "HIGH",
+      riskLevelKo: "높음",
+      briefText: "산성 물질과 접촉하면 독성 염소가스가 발생할 수 있습니다.",
+      expertReviewed: false,
+      humanConfirmationRequired: true,
+      hazardCodes: ["C", "T"],
+      gasProducts: ["Cl2"],
+    },
+    messages: [
+      { messageId: "MSG-0001", sequence: 1, role: "USER", text: "차아염소산나트륨 저장탱크 누출", createdAt: "2026-09-16T21:00:00Z", analysisId: null },
+      { messageId: "MSG-0002", sequence: 2, role: "ASSISTANT", text: "현장 확인이 필요합니다.", createdAt: "2026-09-16T21:00:02Z", analysisId: "ANL-DEMO-0001" },
+    ],
   };
 }
