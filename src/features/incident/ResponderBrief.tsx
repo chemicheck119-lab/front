@@ -9,6 +9,7 @@ type Role = "INCIDENT" | "FACILITY";
 export type ConfirmedMaterials = Partial<Record<Role, { casNumber: string; displayName: string }>>;
 
 interface Props {
+  panel?: "combined" | "materials" | "response";
   analysis: IncidentAnalysisResponse | null;
   busy: boolean;
   synthetic: boolean;
@@ -67,16 +68,25 @@ function MaterialCheck({ role, analysis, busy, synthetic, confirmedMaterial, con
   );
 }
 
-export function ResponderBrief({ analysis, busy, synthetic, confirmedMaterials, confirmationIds, onConfirm, onCancel }: Props) {
+export function ResponderBrief({ panel = "combined", analysis, busy, synthetic, confirmedMaterials, confirmationIds, onConfirm, onCancel }: Props) {
   if (!analysis) return <div className="focus-empty" role="status">{busy ? "확인 정보를 갱신하고 있습니다." : "신고 내용을 분석하면 확인할 물질이 표시됩니다."}</div>;
   const complete = canShowRisk(analysis) && analysis.conflictReview.executed && analysis.conflictReview.status === "SCREENING_COMPLETED" ? analysis.conflictReview.result : null;
   const count = Number(analysis.confirmationGate.incidentConfirmed) + Number(analysis.confirmationGate.facilityConfirmed);
   const materials = <div className="focus-material-grid">{(["INCIDENT", "FACILITY"] as const).map((role) => <MaterialCheck key={`${analysis.incidentId}-${role}`} role={role} analysis={analysis} busy={busy} synthetic={synthetic} confirmedMaterial={confirmedMaterials[role]} confirmationId={confirmationIds[role]} onConfirm={onConfirm} onCancel={onCancel} />)}</div>;
   const heading = count === 0 ? "물질 2개를 확인하세요" : count === 1 ? `${analysis.confirmationGate.incidentConfirmed ? "시설물질" : "사고물질"}을 확인하세요` : "추가 확인이 필요합니다";
+  const unavailable = <section className="focus-unavailable" role="status"><h2>안전하다는 뜻이 아닙니다</h2><p>{analysis.conflictReview.executed && analysis.conflictReview.status !== "SCREENING_COMPLETED" ? analysis.conflictReview.result.reason : "공식 원문과 현장 조건을 추가로 확인하세요."}</p>{analysis.requiredNextSteps.length > 0 && <ul>{analysis.requiredNextSteps.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ul>}</section>;
+
+  if (panel === "materials") return <div className="focus-field-content">
+    <header className="focus-section-heading"><h3>{count === 2 ? "확인한 물질" : heading}</h3><span className="focus-count" role="status">{synthetic ? "합성 확인" : "물질 확인"} <b>{count}/2</b></span></header>
+    {count < 2 && <p className="focus-instruction">용기 라벨·현장 MSDS와 후보 CAS를 대조하세요.</p>}
+    {materials}
+  </div>;
+
+  if (panel === "response" && !complete) return count === 2 ? unavailable : <div className="classic-response-waiting"><LockKeyhole size={28} /><h3>물질 확인 후 제공됩니다</h3><p>사고물질과 시설물질을 각각 확인해주세요.</p><p>확인 전에는 반응 위험을 판단하지 않습니다.</p></div>;
 
   return (
     <div className="focus-field-content">
-      <header className="focus-section-heading"><div><p className="focus-eyebrow">현장 대응</p><h1>{complete ? "지금 확인할 대응 정보" : heading}</h1></div><span className="focus-count" role="status">{synthetic ? "합성 확인" : "물질 확인"} <b>{count}/2</b></span></header>
+      {panel === "combined" && <header className="focus-section-heading"><div><p className="focus-eyebrow">현장 대응</p><h1>{complete ? "지금 확인할 대응 정보" : heading}</h1></div><span className="focus-count" role="status">{synthetic ? "합성 확인" : "물질 확인"} <b>{count}/2</b></span></header>}
       {complete ? <>
         <section className={`focus-risk-panel risk-${complete.riskLevel.toLowerCase()}`} aria-label="충돌 검토 결과">
           <div className="focus-risk-level"><span>물질 간 반응 위험</span><strong><AlertTriangle size={30} />{complete.riskLevelKo}</strong><small>CAMEO 규칙 기준 · 확률 아님</small></div>
@@ -93,12 +103,12 @@ export function ResponderBrief({ analysis, busy, synthetic, confirmedMaterials, 
           <div className="focus-source-links">{complete.evidenceUrls.map((url, index) => { const safe = resolveOfficialSourceUrl(url); return safe ? <a key={`${index}-${safe}`} href={safe} target="_blank" rel="noreferrer">공식 근거 {index + 1} <ExternalLink size={15} /></a> : null; })}</div>
           <GroundedEvidenceAccordion rag={analysis.groundedRag} />
         </div></details>
-        <details className="focus-disclosure" aria-label="확인한 물질"><summary>확인한 물질 보기·수정 <ChevronRight size={18} /></summary><div className="focus-detail-content">{materials}</div></details>
+        {panel === "combined" && <details className="focus-disclosure" aria-label="확인한 물질"><summary>확인한 물질 보기·수정 <ChevronRight size={18} /></summary><div className="focus-detail-content">{materials}</div></details>}
       </> : <>
         <p className="focus-instruction">아래는 물질 후보입니다. 용기 라벨·현장 MSDS와 대조하세요.</p>
         {materials}
         <div className="focus-gate-notice" role="note"><LockKeyhole size={21} /><p>{count < 2 ? "두 물질을 모두 확인하기 전에는 위험을 판단하지 않습니다." : "물질은 확인했지만, 대응 참고 결과를 제공할 근거가 부족합니다."}</p></div>
-        {count === 2 && <section className="focus-unavailable" role="status"><h2>안전하다는 뜻이 아닙니다</h2><p>{analysis.conflictReview.executed && analysis.conflictReview.status !== "SCREENING_COMPLETED" ? analysis.conflictReview.result.reason : "공식 원문과 현장 조건을 추가로 확인하세요."}</p>{analysis.requiredNextSteps.length > 0 && <ul>{analysis.requiredNextSteps.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ul>}</section>}
+        {count === 2 && unavailable}
       </>}
     </div>
   );

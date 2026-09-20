@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, ClipboardList, Phone, Wrench } from "lucide-react";
+import { AlertTriangle, Check, Info, LockKeyhole, Phone, Save } from "lucide-react";
 import { analyzeIncident } from "../api/incidents";
 import { confirmSubstance, cancelConfirmation } from "../api/confirmations";
 import { discoverSubstances } from "../api/substances";
@@ -15,7 +15,11 @@ import { FieldToolsPanel, type DispatchPreview, type DispatchStreamStatus, type 
 import { MessageComposer } from "../features/composer/MessageComposer";
 import { SubstanceResults } from "../features/substance-search/SubstanceResults";
 import { StructuredOutcomeForm, emptyStructuredOutcomeDraft, toStructuredOutcomeReport, type StructuredOutcomeDraft } from "../features/records/StructuredOutcomeForm";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "../app/components/ui/dialog";
+import { composeManualReport } from "../features/incident/reportInput";
+import "../styles/main.css";
 import "../styles/responder-workspace.css";
+import "../styles/original-workspace.css";
 
 function makeIncidentId() {
   return `INC-${Date.now()}`;
@@ -48,10 +52,11 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const [confirmationIds, setConfirmationIds] = useState<Partial<Record<"INCIDENT" | "FACILITY", string>>>({});
   const [outcomeDraft, setOutcomeDraft] = useState<StructuredOutcomeDraft>(() => emptyStructuredOutcomeDraft());
   const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
-  const [view, setView] = useState<"intake" | "field" | "record" | "tools">("intake");
-  const [inputMode, setInputMode] = useState<"PHONE" | "MANUAL">("PHONE");
+  const [showRecordForm, setShowRecordForm] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState("");
+  const [selectedObservations, setSelectedObservations] = useState<string[]>([]);
   const [confirmedMaterials, setConfirmedMaterials] = useState<ConfirmedMaterials>({});
-  const paneRef = useRef<HTMLDivElement>(null);
+  const analyzedTextRef = useRef("");
   const [dispatchStatus, setDispatchStatus] = useState<DispatchStreamStatus>("IDLE");
   const [dispatchPreview, setDispatchPreview] = useState<DispatchPreview | null>(null);
   const [dispatchAccepted, setDispatchAccepted] = useState(false);
@@ -64,13 +69,6 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const isSynthetic = apiConfig.demoEnabled;
   const phoneReviewReady = phoneTranscript?.reviewStatus === "FINAL_PENDING_REVIEW";
   const phoneAnalysisReady = phoneTranscript?.reviewStatus === "REVIEWED" || phoneTranscript?.reviewStatus === "ANALYZED";
-
-  useEffect(() => {
-    if (paneRef.current) {
-      paneRef.current.scrollTop = 0;
-      paneRef.current.focus();
-    }
-  }, [view]);
 
   useEffect(() => {
     if (!currentIncidentId || !session) return undefined;
@@ -127,8 +125,10 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     setPhoneBusy(true);
     setError(null);
     setCurrentIncidentId(null);
-    setView("intake");
-    setInputMode("PHONE");
+    setShowRecordForm(false);
+    setSelectedIncident("");
+    setSelectedObservations([]);
+    analyzedTextRef.current = "";
     setConfirmedMaterials({});
     setPhoneTranscript(null);
     setPhoneReviewText("");
@@ -229,8 +229,6 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     if (!dispatchPreview) return;
     setIncidentText(dispatchPreview.reportText);
     setDispatchAccepted(true);
-    setInputMode("MANUAL");
-    setView("intake");
   }
 
   async function runAnalysis(value = incidentText) {
@@ -243,24 +241,30 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
       setError("승인 후 변경된 전사는 분석할 수 없습니다. 새 전화 접수 세션에서 다시 검토하세요.");
       return;
     }
+    const submittedText = phoneTranscript ? value.trim() : composeManualReport(value, {
+      incidentType: selectedIncident,
+      facilityName: outcomeDraft.facilityName,
+      facilityAddress: outcomeDraft.facilityAddress,
+      observations: selectedObservations,
+    });
     setBusy("analysis");
     setError(null);
     try {
       const result = await analyzeIncident(phoneTranscript ? {
         incidentId: activeIncidentId ?? makeIncidentId(),
         inputType: "PHONE_TRANSCRIPT",
-        text: value.trim(),
+        text: submittedText,
         phoneTranscriptId: phoneTranscript.transcriptId,
         phoneTranscriptRevision: phoneTranscript.revision,
       } : {
         incidentId: activeIncidentId ?? makeIncidentId(),
         inputType: "MANUAL_TEXT",
-        text: value.trim(),
+        text: submittedText,
       });
       setAnalysis(result);
-      setView("field");
+      analyzedTextRef.current = submittedText;
       setSavedRecordId(null);
-      setMessages((current) => [...current, { messageId: `${Date.now()}`, role: "USER", text: value.trim(), createdAt: new Date().toISOString() }]);
+      setMessages((current) => [...current, { messageId: `${Date.now()}`, role: "USER", text: submittedText, createdAt: new Date().toISOString() }]);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "사고 분석을 시작하지 못했습니다.");
     } finally {
@@ -303,7 +307,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           text: phoneTranscript.text,
           phoneTranscriptId: phoneTranscript.transcriptId,
           phoneTranscriptRevision: phoneTranscript.revision,
-        } : { incidentId: activeIncidentId, inputType: "MANUAL_TEXT", text: incidentText.trim() });
+        } : { incidentId: activeIncidentId, inputType: "MANUAL_TEXT", text: analyzedTextRef.current || incidentText.trim() });
         setAnalysis(refreshed);
       }
     } catch (nextError) {
@@ -329,7 +333,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           text: phoneTranscript.text,
           phoneTranscriptId: phoneTranscript.transcriptId,
           phoneTranscriptRevision: phoneTranscript.revision,
-        } : { incidentId: activeIncidentId, inputType: "MANUAL_TEXT", text: incidentText.trim() });
+        } : { incidentId: activeIncidentId, inputType: "MANUAL_TEXT", text: analyzedTextRef.current || incidentText.trim() });
         setAnalysis(refreshed);
       }
     } catch (nextError) {
@@ -373,83 +377,99 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   }
 
   function useCandidate(candidate: MaterialCandidate) {
+    if (phoneTranscript) return;
     setSubstanceQuery(`${candidate.displayName} CAS ${candidate.casNumber}`);
     setIncidentText((current) => current ? `${current}\n확인 후보: ${candidate.displayName} CAS ${candidate.casNumber}` : `확인 후보: ${candidate.displayName} CAS ${candidate.casNumber}`);
-    setView("intake");
-    setInputMode("MANUAL");
   }
 
+
+  const briefProps = {
+    analysis, busy: Boolean(busy), synthetic: isSynthetic, confirmedMaterials, confirmationIds,
+    onConfirm: (role: "INCIDENT" | "FACILITY", cas: string, name: string) => void handleConfirm(role, cas, name),
+    onCancel: (role: "INCIDENT" | "FACILITY", id: string) => void handleCancel(role, id),
+  };
+  const formBusy = Boolean(busy) || phoneBusy;
+  const updateOutcome = (next: StructuredOutcomeDraft) => { setOutcomeDraft(next); setSavedRecordId(null); };
+
   return (
-    <main className="responder-workspace">
-      <header className="focus-app-header">
-        <div><button type="button" className="focus-brand" onClick={() => navigate("/")}>케미체크119</button><span>{region} {station}</span></div>
-        <span className="focus-environment">{isSynthetic ? "공개 합성 시연 · 실운영 아님" : runtimeDataMode === "LIVE_API" ? "서버 연동" : "연결 설정 필요"}</span>
+    <div className="main-page classic-workspace">
+      <header className="main-header">
+        <div className="main-header-left">
+          <button type="button" className="main-logo classic-home" onClick={() => navigate("/")}><img src="/images/logonavy.jpg" alt="케미체크119 화학재난대응지원시스템" /></button>
+          <div className="header-divider" />
+          <div className="station-badge">{region} {station}</div>
+          <span className="classic-environment">{isSynthetic ? "공개 합성 시연 · 실운영 아님" : runtimeDataMode === "LIVE_API" ? "서버 연동" : "연결 설정 필요"}</span>
+        </div>
+        <div className="main-header-right">
+          <div className={`header-phone-status ${phoneStreamError ? "is-error" : phoneAnalysisReady ? "is-received" : ""}`} aria-label="전화 연결 상태">
+            <span className="header-phone-indicator" aria-hidden="true" />
+            <div><strong>{isSynthetic ? "합성 전화 시연" : dispatchContact.phone ? `전화 ${dispatchContact.phone}` : "전화 접수"}</strong><em>{phoneStreamError ? "연결 확인 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</em></div>
+          </div>
+          <div className="record-actions">
+            <Dialog open={showRecordForm} onOpenChange={setShowRecordForm}>
+              <DialogTrigger asChild><button className="save-button" type="button" disabled={!analysis}><Save className="save-icon" />기록 저장</button></DialogTrigger>
+              <DialogContent className="classic-record-dialog">
+                <DialogTitle>대응 기록 입력</DialogTitle>
+                <DialogDescription>{isSynthetic ? "합성 시연 기록 · 운영 기록 저장소에는 반영되지 않습니다." : "현장에서 수행한 조치와 관찰한 결과만 기록하세요."}</DialogDescription>
+                {error && <p className="classic-error" role="alert">{error}</p>}
+                {savedRecordId && <p className="classic-saved" role="status"><Check size={18} />{isSynthetic ? "시연 저장 완료" : "저장 완료"}</p>}
+                <div className="classic-record-scroll"><StructuredOutcomeForm value={outcomeDraft} onChange={updateOutcome} /></div>
+                <button className="analyze-button" disabled={Boolean(busy)} onClick={() => void handleSaveRecord()}>{busy ? "저장 중…" : "현재 대응 기록 저장"}</button>
+              </DialogContent>
+            </Dialog>
+            <button className="records-link-button" type="button" onClick={() => navigate("/records")}>대응 기록 조회</button>
+          </div>
+        </div>
       </header>
-      <nav className="focus-navigation" aria-label="업무 화면">
-        <div className="focus-role-tabs">
-          <button type="button" aria-pressed={view === "intake"} onClick={() => setView("intake")}>상황실 · 신고 접수</button>
-          <button type="button" aria-pressed={view === "field"} disabled={!analysis && view !== "field"} onClick={() => setView("field")}>현장 · 확인·대응</button>
-        </div>
-        <div className="focus-utility-tabs">
-          <button type="button" aria-pressed={view === "record"} disabled={!analysis} onClick={() => setView("record")}><ClipboardList size={18} />대응 기록</button>
-          <button type="button" aria-pressed={view === "tools"} onClick={() => setView("tools")}><Wrench size={18} />지원 도구</button>
-        </div>
-      </nav>
-      {error && <div className="focus-error" role="alert"><AlertTriangle size={20} />{error}</div>}
-      <div className="focus-pane" ref={paneRef} tabIndex={-1} aria-label="현재 업무 내용">
-        <div className={`focus-view ${view === "intake" ? "focus-intake-view" : ""}`}>
-          {view === "intake" && <>
-            <header className="focus-section-heading"><div><p className="focus-eyebrow">상황실</p><h1>신고 내용을 확인하세요</h1></div>{analysis && <button className="focus-text-button" onClick={() => setView("field")}>현장 화면으로 <ArrowRight size={18} /></button>}</header>
-            {!phoneTranscript && <div className="focus-input-tabs"><button aria-pressed={inputMode === "PHONE"} onClick={() => setInputMode("PHONE")}>전화 전사</button><button aria-pressed={inputMode === "MANUAL"} onClick={() => setInputMode("MANUAL")}>직접 입력</button></div>}
-            {inputMode === "PHONE" || phoneTranscript ? <section className="focus-intake-card" aria-label="전화 신고">
-              <div className="focus-intake-status"><span className={`focus-badge ${phoneAnalysisReady ? "is-done" : "is-pending"}`} role="status">{phoneAnalysisReady && <Check size={16} />}{phoneStreamError ? "전사 연결 확인 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</span>{phoneTranscript && <button className="focus-text-button" disabled={phoneBusy || Boolean(busy)} onClick={() => void handlePreparePhoneSession()}>{isSynthetic ? "합성 통화 시작" : "새 전화 접수"}</button>}</div>
-              {!phoneTranscript && <div className="focus-phone-start"><Phone size={36} /><h2>전화 신고를 받을 준비가 됐습니다</h2><p>통화가 끝나면 담당자가 전사를 확인합니다.</p><button className="focus-primary" disabled={(!session && !isSynthetic) || phoneBusy || Boolean(busy)} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "접수 준비 중…" : isSynthetic ? "합성 통화 시작" : "전화 접수 준비"}<ArrowRight size={20} /></button></div>}
-              {phoneTranscript?.reviewStatus === "INTERIM" && <><div className="focus-transcript"><p>{phoneTranscript.text}</p></div><div className="focus-intake-action"><p>통화 중 내용은 아직 분석하지 않습니다.</p>{isSynthetic && <button className="focus-primary" onClick={handleSyntheticCallEnd}>합성 통화 종료</button>}</div></>}
-              {phoneTranscript && phoneTranscript.reviewStatus !== "INTERIM" && <>
-                <label className="focus-input-label" htmlFor="phone-review-text">{phoneAnalysisReady ? "승인된 신고 내용" : "최종 전사 확인"}</label>
-                <textarea id="phone-review-text" className="focus-transcript-input" value={phoneReviewText} readOnly={!phoneReviewReady} onChange={(event) => setPhoneReviewText(event.target.value)} />
-                <div className="focus-intake-action"><p>{phoneAnalysisReady ? "승인한 내용으로 물질 후보를 찾습니다." : "잘못 들린 내용을 수정한 뒤 승인하세요."}</p>{phoneAnalysisReady ? <button className="focus-primary" aria-label="사고 분석" disabled={Boolean(busy) || phoneBusy} onClick={() => void runAnalysis(phoneTranscript.text)}>{busy === "analysis" ? "물질 후보 찾는 중…" : "물질 후보 확인"}<ArrowRight size={20} /></button> : <button className="focus-primary" disabled={!phoneReviewReady || !phoneReviewText.trim() || phoneBusy} onClick={() => void handleReviewPhoneTranscript()}>{phoneBusy ? "승인 중…" : "이 내용으로 승인"}<Check size={20} /></button>}</div>
+      {error && !showRecordForm && <div className="classic-error" role="alert"><AlertTriangle size={18} />{error}</div>}
+      <main className="main-workspace" aria-label="현장 대응 작업공간">
+        <section className="main-panel incident-panel" aria-labelledby="classic-incident-title">
+          <div className="panel-title"><h2 id="classic-incident-title">현재 사고정보</h2></div>
+          <div className="incident-form classic-panel-scroll" aria-label="사고정보 입력 영역" tabIndex={0}>
+            <div className="classic-phone-row">
+              <span className="classic-phone-label"><Phone size={17} />{phoneStreamError ? "전사 연결 확인 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</span>
+              <button className="chemical-add-button" disabled={(!session && !isSynthetic) || formBusy} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중…" : isSynthetic ? "합성 통화 시작" : phoneTranscript ? "새 전화 접수" : "전화 접수 준비"}</button>
+            </div>
+            <div className="form-group">
+              <label>사고 유형</label>
+              <div className="incident-type-list">{["화재", "누출", "폭발", "구조", "기타"].map((type) => <button key={type} type="button" className={`incident-type-button ${selectedIncident === type ? "selected" : ""}`} aria-pressed={selectedIncident === type} disabled={formBusy || Boolean(phoneTranscript)} onClick={() => setSelectedIncident(selectedIncident === type ? "" : type)}>{type}</button>)}</div>
+            </div>
+            <div className="form-group"><label htmlFor="classic-facility">시설명</label><input id="classic-facility" value={outcomeDraft.facilityName} disabled={formBusy} onChange={(event) => updateOutcome({ ...outcomeDraft, facilityName: event.target.value })} placeholder="확인된 시설명 입력" /></div>
+            <div className="form-group"><label htmlFor="classic-address">사고 위치</label><input id="classic-address" value={outcomeDraft.facilityAddress} disabled={formBusy} onChange={(event) => updateOutcome({ ...outcomeDraft, facilityAddress: event.target.value })} placeholder="확인된 주소 입력" /></div>
+            <section className="form-group classic-report" aria-label="신고 내용">
+              {phoneTranscript?.reviewStatus === "INTERIM" ? <>
+                <label>실시간 전사 · 검토 전</label><div className="classic-transcript-draft">{phoneTranscript.text}</div>
+                <p className="classic-helper">통화 중 내용은 아직 분석하지 않습니다.</p>
+                {isSynthetic && <button className="analyze-button" onClick={handleSyntheticCallEnd}>합성 통화 종료</button>}
+              </> : phoneTranscript ? <>
+                <label htmlFor="phone-review-text">{phoneAnalysisReady ? "승인된 신고 내용" : "최종 전사 확인"}</label>
+                <textarea id="phone-review-text" value={phoneReviewText} readOnly={!phoneReviewReady} disabled={phoneBusy} onChange={(event) => setPhoneReviewText(event.target.value)} />
+                <p className="classic-helper">{phoneAnalysisReady ? "전화 분석에는 승인된 전사만 사용합니다." : "잘못 들린 내용을 수정한 뒤 승인하세요."}</p>
+                {phoneAnalysisReady ? <button className="analyze-button" aria-label="사고 분석" disabled={formBusy} onClick={() => void runAnalysis(phoneTranscript.text)}>{busy === "analysis" ? "분석 중…" : "초기 대응 분석 시작"}</button> : <button className="analyze-button" disabled={!phoneReviewReady || !phoneReviewText.trim() || phoneBusy} onClick={() => void handleReviewPhoneTranscript()}>{phoneBusy ? "승인 중…" : "이 내용으로 승인"}</button>}
+              </> : <>
+                <label>신고 내용</label>
+                <MessageComposer mode="collision" value={incidentText} loading={busy === "analysis"} unavailable={phoneBusy} speechEnabled={apiConfig.speechEnabled} incidentId={activeIncidentId} onChange={setIncidentText} onSubmit={(value) => void runAnalysis(value)} />
               </>}
-            </section> : <section className="focus-intake-card focus-manual" aria-label="사고 분석 입력"><label className="focus-input-label">신고 내용</label><MessageComposer mode="collision" value={incidentText} loading={busy === "analysis"} unavailable={phoneBusy} speechEnabled={apiConfig.speechEnabled} incidentId={activeIncidentId} onChange={setIncidentText} onSubmit={(value) => void runAnalysis(value)} /><p className="focus-helper">확인되지 않은 내용은 추정하지 말고, 신고받은 그대로 입력하세요.</p></section>}
-          </>}
-
-          {view === "field" && <>
-            {incidentText && <details className="focus-report-strip"><summary>신고 내용 <span>{incidentText.split("\n")[0]}</span></summary><p>{incidentText}</p></details>}
-            <ResponderBrief analysis={analysis} busy={Boolean(busy)} synthetic={isSynthetic} confirmedMaterials={confirmedMaterials} confirmationIds={confirmationIds} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} onCancel={(role, id) => void handleCancel(role, id)} />
-          </>}
-
-          {view === "record" && analysis && <>
-            <header className="focus-section-heading"><div><p className="focus-eyebrow">대응 기록</p><h1>수행한 조치만 기록하세요</h1></div><button className="focus-text-button" onClick={() => setView("field")}><ArrowLeft size={18} />현장 화면</button></header>
-            <section className="focus-record-card"><div className="focus-record-notice">{isSynthetic ? "합성 시연 기록 · 운영 기록 저장소에는 반영되지 않습니다." : "확인한 물질과 대응 참고 결과가 함께 저장됩니다."}{savedRecordId && <strong role="status"><Check size={18} />{isSynthetic ? "시연 저장 완료" : "저장 완료"}</strong>}</div><div className="integrated-outcome-form"><StructuredOutcomeForm value={outcomeDraft} onChange={(next) => { setOutcomeDraft(next); setSavedRecordId(null); }} /><button type="button" disabled={Boolean(busy)} onClick={() => void handleSaveRecord()} className="focus-primary focus-save">{busy ? "저장 중…" : "현재 대응 기록 저장"}</button></div></section>
-          </>}
-
-          {view === "tools" && <>
-            <header className="focus-section-heading"><div><p className="focus-eyebrow">필요할 때 사용</p><h1>지원 도구</h1></div><button className="focus-text-button" onClick={() => setView(analysis ? "field" : "intake")}><ArrowLeft size={18} />업무 화면</button></header>
-            <div className="focus-tools-layout"><FieldToolsPanel
-            station={`${region} ${station}`}
-            dispatchContact={dispatchContact}
-            dataMode={runtimeDataMode}
-            analysis={analysis}
-            incidentId={activeIncidentId}
-            messages={messages}
-            analysisIds={analysis ? [analysis.analysisId] : []}
-            confirmationIds={Object.values(confirmationIds).filter((value): value is string => Boolean(value))}
-            canSave={Boolean(analysis)}
-            recordAvailable={apiConfig.recordEnabled && Boolean(activeIncidentId)}
-            recordSaved={Boolean(savedRecordId)}
-            dispatchStreamAvailable={apiConfig.presentationScenarioEnabled}
-            dispatchStreamStatus={dispatchStatus}
-            dispatchPreview={dispatchPreview}
-            dispatchAccepted={dispatchAccepted}
-            syntheticMode={isSynthetic}
-            onRequestSave={() => setView("record")}
-            onContactAttempt={() => undefined}
-            onConnectDispatch={() => void handleConnectDispatch()}
-            onAcceptDispatch={handleAcceptDispatch}
-          /><section className="focus-tool-search"><h2>추가 물질 검색</h2><div className="focus-search-row"><input aria-label="물질명 또는 CAS" value={substanceQuery} onChange={(event) => setSubstanceQuery(event.target.value)} placeholder="물질명 또는 CAS" /><button className="focus-primary" disabled={Boolean(busy)} onClick={() => void runSubstanceSearch()}>{busy === "substance" ? "검색 중…" : "검색"}</button></div><SubstanceResults result={substanceResult} incidentAvailable={Boolean(activeIncidentId)} onUseCandidate={useCandidate} /></section></div>
-          </>}
-        </div>
-      </div>
-    </main>
+            </section>
+            {!phoneTranscript && <div className="form-group"><label>현장 관찰정보</label><div className="observation-list">{["연기", "화염", "액체 누출", "냄새", "색상"].map((item) => <button type="button" key={item} className={`observation-button ${selectedObservations.includes(item) ? "selected" : ""}`} aria-pressed={selectedObservations.includes(item)} disabled={formBusy} onClick={() => setSelectedObservations((current) => current.includes(item) ? current.filter((value) => value !== item) : [...current, item])}>{item}</button>)}</div></div>}
+            <details className="classic-secondary"><summary>화학물질 검색</summary><div className="chemical-input-row"><input aria-label="물질명 또는 CAS" value={substanceQuery} onChange={(event) => setSubstanceQuery(event.target.value)} placeholder="물질명 또는 CAS" /><button className="chemical-add-button" disabled={Boolean(busy) || !substanceQuery.trim()} onClick={() => void runSubstanceSearch()}>{busy === "substance" ? "검색 중…" : "검색"}</button></div><SubstanceResults result={substanceResult} incidentAvailable={Boolean(activeIncidentId) && !phoneTranscript} onUseCandidate={useCandidate} /></details>
+            <details className="classic-secondary"><summary>지원 도구</summary><FieldToolsPanel station={`${region} ${station}`} dispatchContact={dispatchContact} dataMode={runtimeDataMode} analysis={analysis} incidentId={activeIncidentId} messages={messages} analysisIds={analysis ? [analysis.analysisId] : []} confirmationIds={Object.values(confirmationIds).filter((value): value is string => Boolean(value))} canSave={Boolean(analysis)} recordAvailable={apiConfig.recordEnabled && Boolean(activeIncidentId)} recordSaved={Boolean(savedRecordId)} dispatchStreamAvailable={apiConfig.presentationScenarioEnabled} dispatchStreamStatus={dispatchStatus} dispatchPreview={dispatchPreview} dispatchAccepted={dispatchAccepted} syntheticMode={isSynthetic} onRequestSave={() => setShowRecordForm(true)} onContactAttempt={() => undefined} onConnectDispatch={() => void handleConnectDispatch()} onAcceptDispatch={handleAcceptDispatch} /></details>
+          </div>
+        </section>
+        <section className="main-panel analysis-panel" aria-labelledby="classic-analysis-title">
+          <div className="panel-title"><h2 id="classic-analysis-title">초기 대응 분석</h2></div>
+          <div className="analysis-result classic-panel-scroll" aria-label="물질 확인 영역" tabIndex={0}>
+            {analysis ? <ResponderBrief {...briefProps} panel="materials" /> : <div className="analysis-empty"><Info size={36} /><p>{busy === "analysis" ? "신고 내용을 분석하고 있습니다." : <>신고 내용을 확인한 뒤<br />초기 대응 분석을 시작하세요.</>}</p></div>}
+          </div>
+        </section>
+        <section className="main-panel ai-panel" aria-labelledby="classic-response-title">
+          <div className="panel-title"><h2 id="classic-response-title">AI 현장 대응 지원</h2></div>
+          <div className="chat-message-list classic-panel-scroll" aria-label="현장 대응 지원 영역" tabIndex={0}>
+            {analysis ? <ResponderBrief {...briefProps} panel="response" /> : <div className="classic-response-waiting"><LockKeyhole size={32} /><h3>물질 확인 후 제공됩니다</h3><p>사고물질과 시설물질을 각각 확인하면<br />대응 참고사항을 표시합니다.</p></div>}
+          </div>
+          <div className="classic-authority">참고 정보입니다. 최종 판단은 현장 지휘관이 합니다.</div>
+        </section>
+      </main>
+    </div>
   );
 }
