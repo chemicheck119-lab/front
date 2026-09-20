@@ -1,0 +1,114 @@
+/* 왼쪽 소개·전화 체험과 오른쪽 소방서 선택의 높이를 균형 있게 유지한다. */
+.home-entry .home-entry-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: 52px;
+  width: min(1200px, calc(100% - 96px));
+  min-height: calc(100svh - 102px);
+  margin: 0 auto;
+  padding: 36px 0 48px;
+}
+
+.home-entry-intro, .home-entry-panel { min-width: 0; }
+.home-entry-intro { text-align: left; }
+.home-entry-kicker { margin: 0 0 20px; color: #527c9b; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.home-entry-intro h1 { margin: 0; color: #17212b; font-size: clamp(32px, 3.65vw, 50px); font-weight: 900; line-height: 1.22; letter-spacing: -.065em; word-break: keep-all; overflow-wrap: anywhere; }
+.home-entry-intro h1 span { display: block; }
+.home-entry-description { margin: 22px 0 0; color: #526b80; font-size: 14px; line-height: 1.8; word-break: keep-all; }
+.home-entry-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 26px; }
+.home-entry-actions a { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; color: #183b63; font-size: 13px; font-weight: 800; text-decoration: none; }
+.home-entry-actions .home-entry-primary { padding: 0 22px; border-radius: 8px; background: #cc622b; color: #fff; }
+.home-entry-actions .home-entry-primary:hover { background: #ae4e20; }
+.home-entry-safety { margin: 18px 0 0; color: #61778a; font-size: 12px; line-height: 1.7; word-break: keep-all; }
+.home-entry-safety strong { color: #183b63; }
+
+.home-entry-panel { padding: 18px; border: 1px solid #d6e0e8; border-radius: 12px; background: rgba(255,255,255,.96); box-shadow: 10px 12px 0 rgba(215,225,233,.62); text-align: left; }
+.home-entry-panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding-bottom: 13px; border-bottom: 1px solid #d8e1e8; color: #183b63; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.home-entry-panel-head b { color: #946313; font-size: 10px; }
+.home-entry-context { display: flex; align-items: center; gap: 8px; margin: 13px 0; color: #183b63; font-size: 13px; font-weight: 800; }
+.home-entry-context svg { flex: none; color: #cd6b36; }
+.home-entry-context small { flex: none; margin-left: auto; padding: 4px 7px; border-radius: 3px; background: #fff2d5; color: #8b611b; font-size: 10px; }
+.home-entry-controls { padding: 15px; border: 1px solid #d4e1e9; border-radius: 7px; background: #fff; }
+
+.home-entry-phone { margin-top: 22px; padding: 16px; border: 1px solid #d4e1e9; border-radius: 10px; background: rgba(255,255,255,.94); }
+.home-entry-phone-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.home-entry-phone-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #fff0e3; color: #ba541f; }
+.home-entry-phone-number { min-width: 0; }
+.home-entry-phone-number small { display: block; margin-bottom: 4px; color: #61778a; font-size: 10px; }
+.home-entry-phone-number strong { display: block; color: #183b63; font-size: 24px; line-height: 1.2; letter-spacing: -.035em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.home-entry-call { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 12px; border-radius: 7px; background: #bd4c20; color: #fff; font-size: 11px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.home-entry-call:hover { background: #a8401a; }
+.home-entry-phone-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 8px; margin-top: 4px; color: #61778a; font-size: 10px; }
+.home-entry-phone-tools button { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0 2px; border: 0; background: transparent; color: #183b63; font-size: 11px; cursor: pointer; }
+.home-entry-copy-status { margin: 0; color: #183b63; font-size: 11px; line-height: 1.6; }
+.home-entry-disclaimer { margin: 4px 0 0; color: #61778a; font-size: 10px; line-height: 1.65; word-break: keep-all; overflow-wrap: anywhere; }
+.home-entry-disclaimer strong { display: block; color: #8b4d2f; }
+.home-entry-disclaimer > span { display: block; margin-top: 3px; }
+
+.home-entry-station { scroll-margin-top: 24px; }
+.home-entry-station-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.home-entry-station-heading small { color: #61778a; font-size: 10px; }
+.home-entry-station-heading h2 { margin: 5px 0 0; color: #17212b; font-size: 16px; line-height: 1.5; letter-spacing: -.035em; word-break: keep-all; }
+.home-entry-station-heading svg { flex: none; color: #cd6b36; }
+.home-entry-role-note { margin: 8px 0 12px; color: #526b80; font-size: 11px; line-height: 1.6; word-break: keep-all; }
+.home-entry-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.home-entry-fields > div { min-width: 0; }
+.home-entry-fields label { display: block; margin-bottom: 5px; color: #17212b; font-size: 12px; font-weight: 800; }
+.home-entry-fields select { display: block; width: 100%; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #cbd9e4; border-radius: 7px; background: #fff; color: #183b63; font-size: 13px; }
+.home-entry-fields select:disabled { background: #f7f9fb; color: #61778a; cursor: not-allowed; }
+.home-entry-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; border: 0; border-radius: 7px; background: #c55d2c; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; }
+.home-entry-submit:hover:not(:disabled) { background: #a8401a; }
+.home-entry-submit:disabled { background: #f3d9cd; color: #80513c; cursor: not-allowed; }
+.home-entry-selection { margin: 7px 0 0; min-height: 16px; color: #526b80; font-size: 10px; line-height: 1.6; text-align: center; word-break: keep-all; }
+.home-entry-boundary { margin: 7px 0 0; color: #61778a; font-size: 10px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+
+/* Explicit block layout prevents the former title/body/review flex-row bug. */
+.home-entry-brief { display: block; min-width: 0; margin-top: 12px; padding: 12px 14px; border: 1px solid #d4e1e9; border-radius: 8px; background: #f7f9fb; word-break: keep-all; overflow-wrap: anywhere; }
+.home-entry-brief-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px 10px; }
+.home-entry-brief h2 { margin: 0; color: #183b63; font-size: 12px; line-height: 1.5; font-weight: 800; }
+.home-entry-brief-heading small { color: #7a622e; font-size: 9px; }
+.home-entry-brief > p { margin: 8px 0; color: #183b63; font-size: 12px; line-height: 1.65; }
+.home-entry-review { display: flex; align-items: flex-start; gap: 6px; color: #526b80; font-size: 11px; line-height: 1.6; }
+.home-entry-review svg { flex: none; margin-top: 2px; }
+.home-entry-review span { min-width: 0; }
+.home-entry-gate { display: flex; align-items: flex-start; gap: 6px; margin: 11px 0 0; color: #526b80; font-size: 10px; line-height: 1.6; word-break: keep-all; }
+.home-entry-gate svg { flex: none; margin-top: 1px; }
+.home-entry :is(a, button, select):focus-visible { outline: 3px solid #246b9e; outline-offset: 4px; }
+
+@media (max-width: 1100px) {
+  .welcome-page.landing-v2 > .home-entry .landing-header-nav { width: calc(100% - 48px) !important; }
+  .home-entry .home-entry-layout { width: calc(100% - 48px); gap: 28px; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+  .home-entry-intro h1 { font-size: clamp(30px, 3.55vw, 40px); }
+  .home-entry-phone-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .home-entry-phone-icon { display: none; }
+  .home-entry-phone-number strong { font-size: 22px; }
+}
+
+@media (max-width: 900px) {
+  .home-entry .home-entry-layout { grid-template-columns: minmax(0, 1fr); max-width: 660px; min-height: 0; gap: 28px; }
+  .home-entry-intro h1 { font-size: clamp(30px, 5vw, 42px); }
+  .home-entry-phone-row { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .home-entry-phone-icon { display: grid; }
+  .home-entry-phone-number strong { font-size: 24px; }
+}
+
+@media (max-width: 800px) {
+  .welcome-page.landing-v2 > .home-entry .landing-header-nav { width: calc(100% - 40px) !important; }
+  .home-entry .home-entry-layout { width: calc(100% - 40px); padding: 28px 0 40px; }
+}
+
+@media (max-width: 480px) {
+  .home-entry-intro h1 { font-size: clamp(25px, 6.8vw, 32px); }
+  .home-entry-description { font-size: 13px; }
+  .home-entry-panel { padding: 14px; box-shadow: 6px 8px 0 rgba(215,225,233,.62); }
+  .home-entry-controls { padding: 12px; }
+  .home-entry-phone-row { grid-template-columns: 36px minmax(0, 1fr); }
+  .home-entry-call { grid-column: 1 / -1; }
+  .home-entry-phone-number strong { font-size: 23px; }
+  .home-entry-phone-tools { font-size: 9px; }
+  .home-entry-context { font-size: 12px; }
+  .home-entry-context small { display: none; }
+}

@@ -111,9 +111,6 @@
 .landing-v2 .first-slide .open-brand {
   color: #f8f3ee !important;
 }
-.landing-v2 .first-slide .open-brand span {
-  color: #f5b178 !important;
-}
 .landing-v2 .first-slide .landing-tab,
 .landing-v2 .first-slide .open-nav-links a {
   color: rgba(255,255,255,.72) !important;
@@ -387,11 +384,13 @@
 .landing-v2 .welcome-page > .first-slide,
 .welcome-page.landing-v2 > .first-slide {
   min-height: calc(100vh - var(--signal-height) - var(--header-height)) !important;
-  background: #f6f8fa !important;
+  background: var(--canvas) !important;
   color: #17212b !important;
 }
+/* 기능 소개 기준의 배경·투명도를 모든 공개 탭에서 공유한다. */
+.product-page.landing-v2::before,
 .welcome-page.landing-v2 > .first-slide::before {
-  background: linear-gradient(90deg, rgba(246,248,250,.91) 0%, rgba(246,248,250,.82) 58%, rgba(246,248,250,.70) 100%), url("/images/chemicheck_wcm.png") center / cover no-repeat !important;
+  background: linear-gradient(90deg, rgba(246,248,250,.90) 0%, rgba(246,248,250,.78) 58%, rgba(246,248,250,.68) 100%), url("/images/chemicheck_wcm.png") center / cover no-repeat !important;
   opacity: .96 !important;
 }
 .welcome-page.landing-v2 > .first-slide .first-slide-content {
@@ -459,4 +458,16 @@
   .welcome-page.landing-v2 > .first-slide .first-slide-heading h1 > span { display: block !important; }
   .welcome-page.landing-v2 > .first-slide .first-slide-heading h1 > span + span::before { content: none; }
   .welcome-page.landing-v2 > .first-slide .first-slide-actions { display: flex !important; }
+}
+
+/* Keep the public navigation usable on narrow screens. */
+@media (max-width: 800px) {
+  .landing-v2 .landing-header-signal > span { display: none !important; }
+  .landing-v2 .landing-header-signal { flex-wrap: wrap !important; justify-content: center !important; gap: 4px 12px !important; height: auto !important; padding-block: 8px !important; }
+  .landing-v2 .landing-header-signal > strong { flex: 1 1 100% !important; }
+  .landing-v2 .landing-header-signal > a { margin: 0 !important; }
+  .landing-v2 .landing-header-nav { flex-wrap: wrap !important; height: auto !important; padding-top: 12px !important; gap: 8px !important; }
+  .landing-v2 .landing-header-nav .mobile-start-link { align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; }
+  .landing-v2 .landing-tabs { order: 3; flex-basis: 100%; justify-content: space-between !important; gap: 8px !important; }
+  .landing-v2 .landing-tab { height: 44px !important; min-height: 44px !important; }
 }
