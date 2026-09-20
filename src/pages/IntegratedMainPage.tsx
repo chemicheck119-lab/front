@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, LoaderCircle, MapPinned } from "lucide-react";
 import { analyzeIncident } from "../api/incidents";
@@ -6,8 +6,9 @@ import { confirmSubstance, cancelConfirmation } from "../api/confirmations";
 import { discoverSubstances } from "../api/substances";
 import { saveIncidentRecord } from "../api/records";
 import { receiveContestIncident } from "../api/intake";
+import { createPhoneSession, reviewPhoneTranscript, subscribeToPhoneTranscripts } from "../api/phone";
 import { apiConfig, runtimeDataMode } from "../api/config";
-import type { IncidentAnalysisResponse, MaterialCandidate, SessionContextResponse } from "../api/contracts";
+import type { IncidentAnalysisResponse, MaterialCandidate, PhoneTranscriptEvent, SessionContextResponse } from "../api/contracts";
 import { getDemoAnalysis } from "../fixtures/demo";
 import { useResponderLocation } from "../hooks/useResponderLocation";
 import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard";
@@ -39,19 +40,47 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const [busy, setBusy] = useState<"analysis" | "substance" | "confirmation" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<FieldRecordMessage[]>([]);
-  const [confirmationIds, setConfirmationIds] = useState<string[]>([]);
+  const [confirmationIds, setConfirmationIds] = useState<Partial<Record<"INCIDENT" | "FACILITY", string>>>({});
   const [outcomeDraft, setOutcomeDraft] = useState<StructuredOutcomeDraft>(() => emptyStructuredOutcomeDraft());
   const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [dispatchStatus, setDispatchStatus] = useState<DispatchStreamStatus>("IDLE");
   const [dispatchPreview, setDispatchPreview] = useState<DispatchPreview | null>(null);
   const [dispatchAccepted, setDispatchAccepted] = useState(false);
+  const [phoneTranscript, setPhoneTranscript] = useState<PhoneTranscriptEvent | null>(null);
+  const [phoneReviewText, setPhoneReviewText] = useState("");
+  const [phoneStreamError, setPhoneStreamError] = useState(false);
+  const [phoneBusy, setPhoneBusy] = useState(false);
 
   const locationState = useResponderLocation(Boolean(analysis));
   const gps = getLocationPresentation(locationState.state, locationState.position?.observedAt, locationState.position?.accuracyM);
   const mapContext = analysis?.agent?.mapContext ?? null;
   const activeIncidentId = analysis?.incidentId ?? currentIncidentId;
   const isSynthetic = apiConfig.demoEnabled;
+  const phoneReviewReady = phoneTranscript?.reviewStatus === "FINAL_PENDING_REVIEW";
+  const phoneAnalysisReady = phoneTranscript?.reviewStatus === "REVIEWED" || phoneTranscript?.reviewStatus === "ANALYZED";
+
+  useEffect(() => {
+    if (!currentIncidentId || !session) return undefined;
+    let subscription: { close: () => void } | undefined;
+    try {
+      subscription = subscribeToPhoneTranscripts(
+        currentIncidentId,
+        (event) => {
+          setPhoneTranscript(event);
+          setPhoneStreamError(false);
+          if (event.reviewStatus !== "INTERIM") {
+            setPhoneReviewText(event.text);
+            setIncidentText(event.text);
+          }
+        },
+        () => setPhoneStreamError(true),
+      );
+    } catch {
+      setPhoneStreamError(true);
+    }
+    return () => subscription?.close();
+  }, [currentIncidentId, session]);
 
   const dispatchContact = useMemo(() => ({
     name: "케미체크119 상황실",
@@ -81,6 +110,92 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     }
   }
 
+  async function handlePreparePhoneSession() {
+    if ((!session && !isSynthetic) || phoneBusy) return;
+    setPhoneBusy(true);
+    setError(null);
+    setPhoneTranscript(null);
+    try {
+      if (isSynthetic) {
+        const syntheticIncidentId = `INC-PUBLIC-PHONE-${Date.now()}`;
+        setCurrentIncidentId(syntheticIncidentId);
+        setPhoneTranscript({
+          eventId: "TRX-PUBLIC-SYNTHETIC:r0",
+          incidentId: syntheticIncidentId,
+          transcriptId: "TRX-PUBLIC-SYNTHETIC",
+          callId: "CALL-PUBLIC-SYNTHETIC",
+          text: "탱크 주변에서 자극적인 냄새가 나고 흰 연기가 보입니다.",
+          language: "ko",
+          isFinal: false,
+          reviewStatus: "INTERIM",
+          revision: 0,
+          segmentIndex: 1,
+          reviewedBy: null,
+          reviewedAt: null,
+          receivedAt: new Date().toISOString(),
+        });
+        setPhoneStreamError(false);
+        return;
+      }
+      const created = await createPhoneSession();
+      setCurrentIncidentId(created.incidentId);
+      setPhoneStreamError(false);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "전화 접수 세션을 만들지 못했습니다.");
+    } finally {
+      setPhoneBusy(false);
+    }
+  }
+
+  function handleSyntheticCallEnd() {
+    if (!isSynthetic || !currentIncidentId || phoneTranscript?.reviewStatus !== "INTERIM") return;
+    const finalEvent: PhoneTranscriptEvent = {
+      ...phoneTranscript,
+      eventId: "TRX-PUBLIC-SYNTHETIC-FINAL:r0",
+      transcriptId: "TRX-PUBLIC-SYNTHETIC-FINAL",
+      text: "탱크 주변에서 자극적인 냄새와 흰 연기가 보이며 작업자 한 명이 어지러움을 호소합니다.",
+      isFinal: true,
+      reviewStatus: "FINAL_PENDING_REVIEW",
+      segmentIndex: 2,
+      receivedAt: new Date().toISOString(),
+    };
+    setPhoneTranscript(finalEvent);
+    setPhoneReviewText(finalEvent.text);
+    setIncidentText(finalEvent.text);
+  }
+
+  async function handleReviewPhoneTranscript() {
+    if (!currentIncidentId || !phoneTranscript || !phoneReviewReady || phoneBusy) return;
+    setPhoneBusy(true);
+    setError(null);
+    try {
+      if (isSynthetic) {
+        const reviewed: PhoneTranscriptEvent = {
+          ...phoneTranscript,
+          eventId: `${phoneTranscript.transcriptId}:r1`,
+          text: phoneReviewText.trim(),
+          reviewStatus: "REVIEWED",
+          revision: 1,
+          reviewedBy: "PUBLIC_SYNTHETIC_OPERATOR",
+          reviewedAt: new Date().toISOString(),
+        };
+        setPhoneTranscript(reviewed);
+        setIncidentText(reviewed.text);
+        return;
+      }
+      const reviewed = await reviewPhoneTranscript(currentIncidentId, phoneTranscript.transcriptId, {
+        text: phoneReviewText.trim(),
+        expectedRevision: phoneTranscript.revision,
+      });
+      setPhoneTranscript(reviewed);
+      setIncidentText(reviewed.text);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "최종 전사를 승인하지 못했습니다.");
+    } finally {
+      setPhoneBusy(false);
+    }
+  }
+
   function handleAcceptDispatch() {
     if (!dispatchPreview) return;
     setIncidentText(dispatchPreview.reportText);
@@ -89,10 +204,24 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
 
   async function runAnalysis(value = incidentText) {
     if (!value.trim() || busy) return;
+    if (phoneTranscript && !phoneAnalysisReady) {
+      setError("최종 전화 전사를 수정·승인한 뒤 분석할 수 있습니다.");
+      return;
+    }
+    if (phoneTranscript && value.trim() !== phoneTranscript.text.trim()) {
+      setError("승인 후 변경된 전사는 분석할 수 없습니다. 새 전화 접수 세션에서 다시 검토하세요.");
+      return;
+    }
     setBusy("analysis");
     setError(null);
     try {
-      const result = await analyzeIncident({
+      const result = await analyzeIncident(phoneTranscript ? {
+        incidentId: activeIncidentId ?? makeIncidentId(),
+        inputType: "PHONE_TRANSCRIPT",
+        text: value.trim(),
+        phoneTranscriptId: phoneTranscript.transcriptId,
+        phoneTranscriptRevision: phoneTranscript.revision,
+      } : {
         incidentId: activeIncidentId ?? makeIncidentId(),
         inputType: "MANUAL_TEXT",
         text: value.trim(),
@@ -131,9 +260,15 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         confirmationBasis: "RESPONDER_OBSERVATION",
         observedAt: new Date().toISOString(),
       });
-      setConfirmationIds((current) => [...current, response.confirmationId]);
+      setConfirmationIds((current) => ({ ...current, [role]: response.confirmationId }));
       if (incidentText.trim()) {
-        const refreshed = await analyzeIncident({ incidentId: activeIncidentId, inputType: "MANUAL_TEXT", text: incidentText.trim() });
+        const refreshed = await analyzeIncident(phoneTranscript ? {
+          incidentId: activeIncidentId,
+          inputType: "PHONE_TRANSCRIPT",
+          text: phoneTranscript.text,
+          phoneTranscriptId: phoneTranscript.transcriptId,
+          phoneTranscriptRevision: phoneTranscript.revision,
+        } : { incidentId: activeIncidentId, inputType: "MANUAL_TEXT", text: incidentText.trim() });
         setAnalysis(refreshed);
       }
     } catch (nextError) {
@@ -146,9 +281,20 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   async function handleCancel(role: "INCIDENT" | "FACILITY", confirmationId: string) {
     if (!activeIncidentId || busy) return;
     setBusy("confirmation");
+    setAnalysis(null);
     try {
       await cancelConfirmation(activeIncidentId, role, confirmationId);
-      setConfirmationIds((current) => current.filter((id) => id !== confirmationId));
+      setConfirmationIds((current) => ({ ...current, [role]: undefined }));
+      if (incidentText.trim()) {
+        const refreshed = await analyzeIncident(phoneTranscript ? {
+          incidentId: activeIncidentId,
+          inputType: "PHONE_TRANSCRIPT",
+          text: phoneTranscript.text,
+          phoneTranscriptId: phoneTranscript.transcriptId,
+          phoneTranscriptRevision: phoneTranscript.revision,
+        } : { incidentId: activeIncidentId, inputType: "MANUAL_TEXT", text: incidentText.trim() });
+        setAnalysis(refreshed);
+      }
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "현장 확인을 취소하지 못했습니다.");
     } finally {
@@ -171,7 +317,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     try {
       const response = await saveIncidentRecord(activeIncidentId, {
         analysisIds: [analysis.analysisId],
-        confirmationIds,
+        confirmationIds: Object.values(confirmationIds).filter((value): value is string => Boolean(value)),
         conversationStartedAt: messages[0]?.createdAt ?? new Date().toISOString(),
         messages: messages.map((message, index) => ({ ...message, sequence: index + 1 })),
         outcomeReport,
@@ -214,7 +360,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
             incidentId={activeIncidentId}
             messages={messages}
             analysisIds={analysis ? [analysis.analysisId] : []}
-            confirmationIds={confirmationIds}
+            confirmationIds={Object.values(confirmationIds).filter((value): value is string => Boolean(value))}
             canSave={Boolean(analysis)}
             recordAvailable={apiConfig.recordEnabled && Boolean(activeIncidentId)}
             dispatchStreamAvailable={apiConfig.presentationScenarioEnabled}
@@ -233,13 +379,32 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           <div className="integrated-content-heading"><div><p className="integrated-kicker">FIELD RESPONSE WORKSPACE</p><h1>사고 맥락을 정리하고<br />확인할 다음 행동을 준비합니다.</h1></div><div className="integrated-incident-id">{activeIncidentId ?? "사고 접수 전"}</div></div>
           {error && <div className="integrated-error" role="alert"><AlertTriangle size={15} />{error}</div>}
 
+          <section className="integrated-card phone-review-card" aria-labelledby="phone-review-title">
+            <div className="integrated-card-heading">
+              <div><h2 id="phone-review-title">ClawOps 전화 접수</h2><p className="integrated-card-subtitle">통화 중 발화는 잠정 전사로만 표시되며, 통화 후 최종본을 담당자가 승인해야 분석됩니다.</p></div>
+              <button type="button" disabled={(!session && !isSynthetic) || phoneBusy} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중" : isSynthetic ? "합성 통화 시작" : "전화 접수 준비"}</button>
+            </div>
+            <div className="phone-review-status" role="status">
+              <strong>{isSynthetic ? "PUBLIC_SYNTHETIC · " : ""}{!currentIncidentId ? "접수 세션 없음" : phoneStreamError ? "연결 확인 필요" : phoneTranscript ? phoneTranscript.reviewStatus : "통화·전사 대기"}</strong>
+              <span>{currentIncidentId ?? "인증된 상황실에서 접수 세션을 먼저 생성하세요."}</span>
+            </div>
+            {phoneTranscript?.reviewStatus === "INTERIM" && <div className="phone-interim"><b>통화 중 잠정 발화</b><p>{phoneTranscript.text}</p><small>분석 입력에는 사용되지 않습니다.</small>{isSynthetic && <button type="button" onClick={handleSyntheticCallEnd}>합성 통화 종료·최종본 수신</button>}</div>}
+            {phoneTranscript && phoneTranscript.reviewStatus !== "INTERIM" && (
+              <div className="phone-final-review">
+                <label htmlFor="phone-review-text">최종 전사 검토본</label>
+                <textarea id="phone-review-text" value={phoneReviewText} readOnly={!phoneReviewReady} onChange={(event) => setPhoneReviewText(event.target.value)} />
+                <div><span>revision {phoneTranscript.revision} · {phoneTranscript.reviewStatus}</span><button type="button" disabled={!phoneReviewReady || !phoneReviewText.trim() || phoneBusy} onClick={() => void handleReviewPhoneTranscript()}>{phoneAnalysisReady ? "승인 완료" : "수정본 승인"}</button></div>
+              </div>
+            )}
+          </section>
+
           <section className="integrated-composer-panel" aria-label="사고 분석 입력">
             <div><h2>신고 내용과 현장 관찰</h2><p>후보는 자동 확정하지 않습니다. 신고문을 입력하면 공식 근거와 현장 확인 순서를 정리합니다.</p></div>
-            <MessageComposer mode="collision" value={incidentText} loading={busy === "analysis"} unavailable={false} speechEnabled={apiConfig.speechEnabled} incidentId={activeIncidentId} onChange={setIncidentText} onSubmit={(value) => void runAnalysis(value)} />
+            <MessageComposer mode="collision" value={incidentText} loading={busy === "analysis"} unavailable={Boolean(phoneTranscript && !phoneAnalysisReady)} speechEnabled={apiConfig.speechEnabled} incidentId={activeIncidentId} onChange={setIncidentText} onSubmit={(value) => void runAnalysis(value)} />
           </section>
 
           <div className="integrated-columns">
-            <section className="integrated-card integrated-analysis-card"><div className="integrated-card-heading"><h2>초기 분석과 현장 확인</h2>{busy === "confirmation" && <LoaderCircle size={16} className="animate-spin" />}</div><IncidentAnalysisCard analysis={analysis} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} confirmingRole={busy === "confirmation" ? "INCIDENT" : null} onCancel={(role, id) => void handleCancel(role, id)} confirmationMode={isSynthetic ? "PUBLIC_SYNTHETIC" : "FIELD"} /></section>
+            <section className="integrated-card integrated-analysis-card"><div className="integrated-card-heading"><h2>초기 분석과 현장 확인</h2>{busy === "confirmation" && <LoaderCircle size={16} className="animate-spin" />}</div><IncidentAnalysisCard analysis={analysis} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} confirmingRole={busy === "confirmation" ? "INCIDENT" : null} onCancel={(role, id) => void handleCancel(role, id)} activeConfirmationIds={confirmationIds} confirmationMode={isSynthetic ? "PUBLIC_SYNTHETIC" : "FIELD"} /></section>
             <section className="integrated-card integrated-agent-card"><div className="integrated-card-heading"><h2>운영 에이전트</h2></div><AgentPanel agent={analysis?.agent} syntheticMode={isSynthetic} loading={busy === "analysis"} /></section>
           </div>
 

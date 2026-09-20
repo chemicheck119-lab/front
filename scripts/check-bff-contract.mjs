@@ -20,14 +20,24 @@ const expectedOperations = [
   ["/api/c2guard/v1/logout", "post"],
   ["/api/c2guard/v1/transcriptions", "post"],
   ["/api/c2guard/v1/incidents/analyze", "post"],
+  ["/api/c2guard/v1/incidents/brief", "post"],
+  ["/api/c2guard/v1/phone-sessions", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/confirmations", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/confirmations/{role}/{confirmationId}", "delete"],
   ["/api/c2guard/v1/incidents/{incidentId}/movement", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/record", "post"],
   ["/api/c2guard/v1/incidents/{incidentId}/transcriptions", "post"],
+  ["/api/c2guard/v1/incidents/{incidentId}/phone-transcripts/{transcriptId}/review", "put"],
+  ["/api/c2guard/v1/incidents/{incidentId}/phone-transcripts/stream", "get"],
+  ["/api/c2guard/v1/records", "get"],
+  ["/api/c2guard/v1/records/{recordId}", "get"],
   ["/api/c2guard/v1/substances/discover", "post"],
 ];
-const expectedPaths = [...new Set(expectedOperations.map(([path]) => path))];
+const phoneIngressPath = "/api/c2guard/v1/incidents/{incidentId}/phone-transcripts";
+const expectedPaths = [...new Set([
+  ...expectedOperations.map(([path]) => path),
+  phoneIngressPath,
+])];
 
 function assertContract(condition, message) {
   if (!condition) throw new Error(`[BFF contract drift] ${message}`);
@@ -56,6 +66,18 @@ for (const [path, method] of expectedOperations) {
   assertContract(operation.security?.some((entry) => Object.hasOwn(entry, "ServiceSession")), `${path}에 ServiceSession 보안 경계가 없습니다.`);
   assertContract(operation["x-model-api-direct-browser-call-allowed"] === false, `${path}가 브라우저의 모델 API 직접 호출을 허용합니다.`);
 }
+
+const phoneIngress = contract.paths?.[phoneIngressPath]?.post;
+assertContract(phoneIngress?.security?.some((entry) => Object.hasOwn(entry, "PhoneIngressToken")), "phone ingress는 provider token으로 보호되어야 합니다.");
+assertContract(phoneIngress?.["x-browser-call-allowed"] === false, "브라우저는 phone ingress를 호출할 수 없습니다.");
+
+const phoneEvent = contract.components?.schemas?.DashboardPhoneTranscriptEvent;
+assertContract(phoneEvent?.properties?.eventId?.type === "string", "SSE eventId는 DB 복원 가능한 문자열이어야 합니다.");
+for (const status of ["INTERIM", "FINAL_PENDING_REVIEW", "REVIEWED", "ANALYZED"]) {
+  assertContract(phoneEvent?.properties?.reviewStatus?.enum?.includes(status), `전화 상태 ${status}가 계약에 없습니다.`);
+}
+const analyzeInputTypes = contract.components?.schemas?.DashboardIncidentAnalyzeRequest?.properties?.inputType?.enum ?? [];
+assertContract(analyzeInputTypes.includes("PHONE_TRANSCRIPT"), "승인된 전화 revision 분석 입력이 계약에 없습니다.");
 
 for (const path of [
   "/api/c2guard/v1/transcriptions",
