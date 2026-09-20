@@ -373,23 +373,18 @@ export function makeDemoRecordList(): RecordSummary[] {
   return DEMO_RECORD_SUMMARIES.map((record) => ({ ...record }));
 }
 
-export function makeDemoRecordDetail(recordId: string): RecordDetailResponse {
-  const summary = DEMO_RECORD_SUMMARIES.find((record) => record.recordId === recordId) ?? DEMO_RECORD_SUMMARIES[0];
-  return {
-    schemaVersion: "chemicheck119-dashboard-bff-v1",
-    requestId: "REQ-DEMO-RECORD-DETAIL-001",
-    recordId: summary.recordId,
-    incidentId: summary.incidentId,
+type DemoRecordDetailBody = Pick<
+  RecordDetailResponse,
+  "conversationStartedAt" | "facilityAddress" | "incidentSubstanceCas" | "performedActions" | "additionalFactors" | "conflictRisk" | "messages"
+>;
+
+const DEMO_RECORD_DETAILS: Record<string, DemoRecordDetailBody> = {
+  "REC-DEMO-0001": {
     conversationStartedAt: "2026-09-16T21:00:00Z",
-    savedAt: summary.savedAt,
-    facilityName: summary.facilityName,
     facilityAddress: "울산광역시 남구 산업로 119",
-    incidentSubstanceName: summary.incidentSubstanceName,
     incidentSubstanceCas: "7681-52-9",
-    briefApplicationStatus: summary.briefApplicationStatus,
     performedActions: ["ZONE_CONTROL", "LEAK_SOURCE_CONTROL"],
     additionalFactors: ["ENCLOSED_SPACE"],
-    finalResponseOutcome: summary.finalResponseOutcome,
     conflictRisk: {
       analysisId: "ANL-DEMO-0001",
       incidentCas: "7681-52-9",
@@ -410,5 +405,34 @@ export function makeDemoRecordDetail(recordId: string): RecordDetailResponse {
       { messageId: "MSG-0001", sequence: 1, role: "USER", text: "차아염소산나트륨 저장탱크 누출", createdAt: "2026-09-16T21:00:00Z", analysisId: null },
       { messageId: "MSG-0002", sequence: 2, role: "ASSISTANT", text: "현장 확인이 필요합니다.", createdAt: "2026-09-16T21:00:02Z", analysisId: "ANL-DEMO-0001" },
     ],
+  },
+  "REC-DEMO-0002": {
+    conversationStartedAt: "2026-09-16T18:30:00Z",
+    facilityAddress: "울산광역시 남구 공단로 45",
+    incidentSubstanceCas: "7647-01-0",
+    performedActions: ["EVACUATION", "VENTILATION"],
+    additionalFactors: [],
+    conflictRisk: null,
+    messages: [
+      { messageId: "MSG-0001", sequence: 1, role: "USER", text: "염산 이송배관 미세 누출", createdAt: "2026-09-16T18:30:00Z", analysisId: null },
+      { messageId: "MSG-0002", sequence: 2, role: "ASSISTANT", text: "시설 물질 확인 전이라 반응 위험 검토를 표시할 수 없습니다.", createdAt: "2026-09-16T18:30:02Z", analysisId: "ANL-DEMO-0002" },
+    ],
+  },
+};
+
+export function makeDemoRecordDetail(recordId: string): RecordDetailResponse {
+  const summary = DEMO_RECORD_SUMMARIES.find((record) => record.recordId === recordId) ?? DEMO_RECORD_SUMMARIES[0];
+  const body = DEMO_RECORD_DETAILS[summary.recordId];
+  return {
+    schemaVersion: "chemicheck119-dashboard-bff-v1",
+    requestId: "REQ-DEMO-RECORD-DETAIL-001",
+    recordId: summary.recordId,
+    incidentId: summary.incidentId,
+    savedAt: summary.savedAt,
+    facilityName: summary.facilityName,
+    incidentSubstanceName: summary.incidentSubstanceName,
+    briefApplicationStatus: summary.briefApplicationStatus,
+    finalResponseOutcome: summary.finalResponseOutcome,
+    ...body,
   };
 }

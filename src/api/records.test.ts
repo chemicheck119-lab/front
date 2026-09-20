@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiConfig } from "./config";
+import { makeDemoRecordDetail, makeDemoRecordList } from "../fixtures/demo";
 import { getIncidentRecord, listIncidentRecords, shouldResetAfterSave } from "./records";
 
 const originalConfig = { ...apiConfig };
@@ -62,5 +63,17 @@ describe("대응 기록 조회", () => {
     const detail = await getIncidentRecord(list[0].recordId);
     expect(detail.recordId).toBe(list[0].recordId);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("데모 상세는 선택한 목록 행과 같은 물질·CAS·시설을 돌려준다", () => {
+    const expectedCas: Record<string, string> = { "REC-DEMO-0001": "7681-52-9", "REC-DEMO-0002": "7647-01-0" };
+    for (const summary of makeDemoRecordList()) {
+      const detail = makeDemoRecordDetail(summary.recordId);
+      expect(detail.recordId).toBe(summary.recordId);
+      expect(detail.facilityName).toBe(summary.facilityName);
+      expect(detail.incidentSubstanceName).toBe(summary.incidentSubstanceName);
+      expect(detail.incidentSubstanceCas).toBe(expectedCas[summary.recordId]);
+      if (detail.conflictRisk) expect(detail.conflictRisk.incidentCas).toBe(detail.incidentSubstanceCas);
+    }
   });
 });

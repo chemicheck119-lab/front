@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
+import { apiConfig } from "../api/config";
 import type { RecordDetailResponse, RecordSummary } from "../api/contracts";
 import { getIncidentRecord, listIncidentRecords } from "../api/records";
 import {
@@ -35,10 +36,16 @@ function joinLabels(options: Array<{ value: string; label: string }>, values: st
 
 export function formatRecordDetail(record: RecordDetailResponse): string {
   const lines: string[] = [];
+  lines.push("※ 저장 당시의 대응 기록이며 현재 시설 재고·상태가 아닙니다.");
+  lines.push("");
   lines.push(`시설명: ${record.facilityName ?? "-"}`);
   lines.push(`시설 주소: ${record.facilityAddress ?? "-"}`);
   lines.push("");
-  lines.push(`확인된 사고 화학물질: ${record.incidentSubstanceName ?? "-"}${record.incidentSubstanceCas ? ` (CAS ${record.incidentSubstanceCas})` : ""}`);
+  if (record.incidentSubstanceCas) {
+    lines.push(`확인된 사고 화학물질: ${record.incidentSubstanceName ?? "-"} (CAS ${record.incidentSubstanceCas})`);
+  } else {
+    lines.push(`사고 물질(CAS 미확인): ${record.incidentSubstanceName ?? "-"}`);
+  }
   lines.push("");
   lines.push(`수행된 조치: ${joinLabels(PERFORMED_ACTION_OPTIONS, record.performedActions)}`);
   lines.push(`추가 고려사항: ${joinLabels(ADDITIONAL_FACTOR_OPTIONS, record.additionalFactors)}`);
@@ -52,6 +59,7 @@ export function formatRecordDetail(record: RecordDetailResponse): string {
     lines.push("물질 반응 위험:");
     lines.push(`${risk.facilitySubstanceName ?? "시설 물질"} (CAS ${risk.facilitySubstanceCas})와의 반응 위험도 ${risk.riskLevelKo}`);
     lines.push(risk.briefText);
+    lines.push("※ CAMEO 반응성 그룹 스크리닝의 서수(순서형) 결과입니다. 확률·백분율이나 AI 진단이 아니며 현장 대원의 확인이 필요합니다.");
     if (!risk.expertReviewed) lines.push("(전문 검수 전 정보입니다.)");
   }
 
@@ -93,22 +101,32 @@ export default function RecordsPage() {
     return () => controller.abort();
   }, []);
 
+  const detailRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => detailRequest.current?.abort(), []);
+
   const openRecord = (recordId: string) => {
+    detailRequest.current?.abort();
+    const controller = new AbortController();
+    detailRequest.current = controller;
     setSelectedDetail(null);
     setDetailError("");
     setDetailState("loading");
-    getIncidentRecord(recordId)
+    getIncidentRecord(recordId, controller.signal)
       .then((detail) => {
+        if (controller.signal.aborted) return;
         setSelectedDetail(detail);
         setDetailState("ready");
       })
       .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
         setDetailError(errorMessage(error, "상세 기록을 불러오지 못했습니다."));
         setDetailState("error");
       });
   };
 
   const closeDetail = () => {
+    detailRequest.current?.abort();
+    detailRequest.current = null;
     setSelectedDetail(null);
     setDetailState("idle");
     setDetailError("");
@@ -125,6 +143,7 @@ export default function RecordsPage() {
         </header>
 
         <main className="record-detail">
+          {apiConfig.demoEnabled && <div className="record-content" role="note">데모 데이터입니다. 실제로 저장된 대응 기록이 아닙니다.</div>}
           {detailState === "loading" && <div className="record-content">불러오는 중입니다...</div>}
           {detailState === "error" && <div className="record-content">{detailError}</div>}
           {detailState === "ready" && selectedDetail && (
@@ -155,6 +174,7 @@ export default function RecordsPage() {
           <span>{listState === "ready" ? `${records.length}건` : ""}</span>
         </div>
 
+        {apiConfig.demoEnabled && <div className="record-content" role="note">데모 데이터입니다. 실제로 저장된 대응 기록이 아닙니다.</div>}
         {listState === "loading" && <div className="record-content">불러오는 중입니다...</div>}
         {listState === "error" && <div className="record-content">{listError}</div>}
 
