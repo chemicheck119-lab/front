@@ -1,5 +1,11 @@
 # GCP develop 배포
 
+## 승인 기반 자동 배포 (2026-09-20 추가)
+
+기존 Firebase Hosting과 도메인을 유지하고 GitHub Actions에서 미리보기·승인·동일 버전 승격·복구를 관리합니다.
+사용 방법과 검증 한계는 [Hosting 배포·복구 런북](./HOSTING_RELEASE_RUNBOOK.md)을 우선 따릅니다.
+아래의 2026-09-07 BFF revision과 수동 배포 설명은 과거 연결 이력이며 현재 상태는 Hosting live version에서 조회합니다.
+
 FE develop 시연 배포는 BE staging과 같은 GCP 프로젝트·서울 리전에 둡니다.
 
 | 항목 | 값 |
@@ -25,10 +31,8 @@ Backend를 새로 배포해도 Hosting이 자동으로 최신 revision을 따라
 session 확인 200을 관찰했습니다. 이는 개발용 공개 파일럿의 단일 smoke이지 고가용성 근거가
 아닙니다.
 
-```bash
-corepack pnpm build:staging
-npx firebase-tools deploy --only hosting --project chemi-check
-```
+새 배포는 `pnpm build:hosting`의 `dist/hosting` 번들을 사용합니다.
+수동 `firebase deploy`는 `pinTag`를 다시 해석해 Backend 연결을 바꿀 수 있으므로, 승인 배포 파이프라인과 병행하지 않습니다.
 
 ## 전달받은 BE staging 설정
 

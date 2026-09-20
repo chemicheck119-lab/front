@@ -120,6 +120,8 @@ dist
 
 # Firebase cache directory
 .firebase/
+gha-creds-*.json
+deployment-evidence/
 
 # TernJS port file
 .tern-port
