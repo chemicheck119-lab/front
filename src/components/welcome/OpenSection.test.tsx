@@ -92,7 +92,7 @@ describe("전화 중심 메인페이지", () => {
     expect(phone).toHaveClass("phone-entry-accent");
     expect(phone.parentElement).toBe(station.parentElement);
     expect(phone.compareDocumentPosition(station) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(phone).getByText("에이전트 신고 전용 · 확인 후 분석")).toBeInTheDocument();
+    expect(within(phone).getByText("시범 전화 신고 · 확인 후 분석")).toBeInTheDocument();
     expect(screen.getAllByRole("region", { name: "시범 신고 전화" })).toHaveLength(1);
     expect(panel).toContainElement(preview);
     expect(station.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

@@ -474,39 +474,6 @@ export default function MainPage() {
           {recordStatus && <p className="analysis-form-success" role="status">{recordStatus}</p>}
         </section>
 
-        {/* =========================
-            03 AI 현장 대응 지원
-        ========================= */}
-
-        <section className="main-panel ai-panel">
-          <div className="ai-header">
-            <h2>
-              AI 현장 대응 지원
-            </h2>
-
-            <p>
-              현재 사고정보와 화학물질 대응자료를 기반으로
-              답변합니다.
-            </p>
-          </div>
-
-          {/* =========================
-              Chat
-          ========================= */}
-
-          {analysis?.agent ? (
-            <div className="ai-agent-result" aria-live="polite">
-              <p>{analysis.agent.currentObjective}</p>
-              <ol>{analysis.agent.nextActions.map((action) => <li key={action}>{action}</li>)}</ol>
-              <small>최종 판단: {analysis.agent.finalDecisionAuthority}</small>
-            </div>
-          ) : (
-            <div className="ai-empty ai-disabled-state">
-              <div className="search-icon" />
-              <p>초기 대응 분석 후<br />현장 대응 지원이 준비됩니다.</p>
-            </div>
-          )}
-        </section>
       </main>
     </div>
   );

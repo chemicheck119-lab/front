@@ -296,9 +296,6 @@ export function IncidentAnalysisCard({
           </section>
         )}
 
-        <footer className="border-t border-border bg-muted/40 text-[10px] text-muted-foreground">
-          <details><summary className="cursor-pointer px-3 py-2.5 font-semibold">분석 버전·판정 경계 보기</summary><p className="border-t border-border px-3 py-2">분석 ID {analysis.analysisId} · 모델 {analysis.provenance.modelVersion} · 데이터 {analysis.provenance.dataVersion} · 규칙 {analysis.provenance.rulePolicy} · 최종 판단 {analysis.provenance.finalDecisionAuthority}</p></details>
-        </footer>
       </article>
 
       <GroundedEvidenceAccordion rag={analysis.groundedRag} />

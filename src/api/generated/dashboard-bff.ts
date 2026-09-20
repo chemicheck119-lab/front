@@ -466,7 +466,6 @@ export interface components {
         };
         /** DashboardAwaitingAnalysisResponse */
         DashboardAwaitingAnalysisResponse: {
-            agent?: components["schemas"]["DashboardOperationsAgentSnapshot"] | null;
             /** Analysisid */
             analysisId: string;
             confirmationGate: components["schemas"]["DashboardConfirmationGate"];
@@ -513,7 +512,6 @@ export interface components {
         };
         /** DashboardCompletedAnalysisResponse */
         DashboardCompletedAnalysisResponse: {
-            agent?: components["schemas"]["DashboardOperationsAgentSnapshot"] | null;
             /** Analysisid */
             analysisId: string;
             confirmationGate: components["schemas"]["DashboardConfirmationGate"];
@@ -1043,7 +1041,6 @@ export interface components {
         };
         /** DashboardInconclusiveAnalysisResponse */
         DashboardInconclusiveAnalysisResponse: {
-            agent?: components["schemas"]["DashboardOperationsAgentSnapshot"] | null;
             /** Analysisid */
             analysisId: string;
             confirmationGate: components["schemas"]["DashboardConfirmationGate"];
