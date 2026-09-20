@@ -20,8 +20,6 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof FieldToolsPa
     station: "경기 수원소방서",
     dispatchContact: { name: "경기 상황실", phone: "" },
     dataMode: "DEMO_SIMULATION",
-    gpsLabel: "시연 위치",
-    gpsDetail: "실제 GPS가 아닙니다",
     analysis: null,
     incidentId: null,
     messages,
@@ -153,6 +151,13 @@ describe("좌측 현장 도구", () => {
     expect(screen.getAllByText("미저장 2건")).toHaveLength(2);
     fireEvent.click(screen.getByRole("button", { name: "현재 대응 기록 저장" }));
     expect(onRequestSave).toHaveBeenCalledOnce();
+  });
+
+  it("지도 대신 사고 확인과 기록에 집중하는 운영 상태를 표시한다", () => {
+    renderPanel();
+
+    expect(screen.getByRole("complementary", { name: "현장 도구" })).toHaveTextContent("현재 사고의 확인 상태와 대응 기록에 집중합니다.");
+    expect(screen.queryByText(/GPS|현재 위치/)).not.toBeInTheDocument();
   });
 
   it("record API가 준비되지 않아도 내역 조회는 유지하고 저장만 명시적으로 막는다", () => {

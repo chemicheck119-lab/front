@@ -1,6 +1,6 @@
 /**
  * chemicheck119-dashboard-bff-v1 화면 사용 타입.
- * 권위 원본: chemicheck119-lab/back b982674e / contracts/dashboard-bff-v1.openapi.json
+ * 권위 원본: chemicheck119-lab/back 74d44031 / contracts/dashboard-bff-v1.openapi.json
  * FE는 이 계약을 표시용으로만 사용하고 모델 API를 직접 호출하지 않는다.
  */
 import type { components as DashboardBffComponents } from "./generated/dashboard-bff";
@@ -11,13 +11,6 @@ export type DataMode = "LIVE_API" | "CACHED_API" | "DEMO_SIMULATION" | "UNAVAILA
 export type SessionContextResponse = DashboardBffSchemas["DashboardSessionContextResponse"];
 export type SpeechTranscriptionResponse = DashboardBffSchemas["DashboardSpeechTranscriptionResponse"];
 export type JourneyState = "DISPATCHED" | "EN_ROUTE" | "ARRIVED" | "ON_SCENE";
-export type AgentPhase =
-  | "INCIDENT_INTAKE"
-  | "EN_ROUTE_TRIAGE"
-  | "ON_SCENE_CONFIRMATION"
-  | "CONFLICT_SCREENING_COMPLETE"
-  | "EVIDENCE_REVIEW_REQUIRED";
-
 export interface PositionSnapshot {
   latitude: number;
   longitude: number;
@@ -70,30 +63,6 @@ export interface MapContext {
     routeAnimationSupported: true;
   };
   hazardOverlayStatus: "NOT_COMPUTED_NO_VALIDATED_DISPERSION_MODEL";
-}
-
-export interface OperationsAgentSnapshot {
-  schemaVersion: "chemicheck119-operations-agent-v1";
-  agentType: "DETERMINISTIC_FIELD_RESPONSE_ORCHESTRATOR";
-  phase: AgentPhase;
-  currentObjective: string;
-  nextActions: string[];
-  workflow: Array<{
-    stepId: string;
-    label: string;
-    status: "COMPLETED" | "IN_PROGRESS" | "WAITING" | "BLOCKED" | "NOT_APPLICABLE";
-    detail: string;
-  }>;
-  toolExecutions: Array<{
-    toolId: string;
-    status: "COMPLETED" | "WAITING" | "BLOCKED" | "FALLBACK" | "NOT_RUN" | "UNAVAILABLE";
-    outputReference: string;
-    summary: string;
-  }>;
-  mapContext: MapContext;
-  autonomousRiskDecisionAllowed: false;
-  finalDecisionAuthority: "현장 지휘관";
-  traceIsChainOfThought: false;
 }
 
 export interface EvidenceCard {
@@ -219,7 +188,6 @@ export interface IncidentAnalysisResponse {
   };
   evidenceCards: EvidenceCard[];
   groundedRag?: GroundedRagResult | null;
-  agent?: OperationsAgentSnapshot | null;
   confirmationGate: {
     incidentConfirmed: boolean;
     facilityConfirmed: boolean;

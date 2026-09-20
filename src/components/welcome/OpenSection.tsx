@@ -48,7 +48,7 @@ export default function OpenSection() {
             <section className="phone-entry-accent" aria-label="시범 신고 전화">
               <div className="mvp-entry-phone">
                 <span><PhoneCall size={20} aria-hidden="true" /></span>
-                <div className="phone-entry-number"><small>에이전트 신고</small><strong>{PHONE_ENTRY.display}</strong><em>에이전트 신고 전용 · 확인 후 분석</em></div>
+                <div className="phone-entry-number"><small>전화 신고</small><strong>{PHONE_ENTRY.display}</strong><em>시범 전화 신고 · 확인 후 분석</em></div>
                 <a href={PHONE_ENTRY.href} aria-label={`전화로 체험하기 ${PHONE_ENTRY.display}`} aria-describedby="phone-entry-disclaimer">전화하기 <ArrowRight size={14} aria-hidden="true" /></a>
               </div>
             </section>

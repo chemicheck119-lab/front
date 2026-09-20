@@ -14,10 +14,11 @@ describe("공통 스타일 진입점", () => {
     expect(landingStyles).toBeGreaterThan(globalStyles);
   });
 
-  it("공통 스타일에 유틸리티·테마·지도 스타일을 유지한다", () => {
+  it("공통 스타일에는 사용자 화면에 필요한 유틸리티·테마만 유지한다", () => {
     const stylesheet = readFileSync(resolve(process.cwd(), "src/styles/index.css"), "utf8");
-    for (const dependency of ["tailwind.css", "theme.css", "map.css"]) {
+    for (const dependency of ["tailwind.css", "theme.css"]) {
       expect(stylesheet).toContain(`@import './${dependency}'`);
     }
+    expect(stylesheet).not.toContain("map.css");
   });
 });

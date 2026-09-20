@@ -55,8 +55,6 @@ interface FieldToolsPanelProps {
   station: string;
   dispatchContact: DispatchContact;
   dataMode: DataMode;
-  gpsLabel: string;
-  gpsDetail: string;
   analysis: IncidentAnalysisResponse | null;
   incidentId: string | null;
   messages: FieldRecordMessage[];
@@ -182,8 +180,6 @@ export function FieldToolsPanel({
   station,
   dispatchContact,
   dataMode,
-  gpsLabel,
-  gpsDetail,
   analysis,
   incidentId,
   messages,
@@ -256,9 +252,8 @@ export function FieldToolsPanel({
 
         <div className="mt-auto space-y-2.5 rounded-xl border border-sidebar-border bg-sidebar-accent/55 p-3 text-xs text-muted-foreground" aria-label="운영 상태">
           <div className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${dataStatus.tone}`} /><span className="truncate">{dataStatus.label}</span></div>
-          <div className="flex items-center gap-2"><Radio size={11} className="shrink-0" /><span className="truncate">{gpsLabel}</span></div>
           <div className="flex items-center gap-2"><FileClock size={11} className="shrink-0" /><span>{recordAvailable ? (unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 없음") : (unsavedCount ? `세션 기록 ${unsavedCount}건` : "세션 기록 없음")}</span></div>
-          <p className="border-t border-sidebar-border pt-2 leading-relaxed">{gpsDetail}</p>
+          <p className="border-t border-sidebar-border pt-2 leading-relaxed">현재 사고의 확인 상태와 대응 기록에 집중합니다.</p>
         </div>
       </aside>
 
@@ -381,7 +376,7 @@ export function FieldToolsPanel({
             {messages.length > 1 ? messages.slice(1).map((message) => (
               <article key={message.messageId} className="grid grid-cols-[44px_1fr] gap-2 rounded-xl border border-border p-3">
                 <time className="text-[9px] font-semibold text-muted-foreground">{formatRecordTime(message.createdAt)}</time>
-                <div><p className="text-[9px] font-bold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "에이전트" : "시스템"}</p><p className="mt-1 text-[11px] leading-relaxed">{message.text}</p></div>
+                <div><p className="text-[9px] font-bold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "대응 안내" : "시스템"}</p><p className="mt-1 text-[11px] leading-relaxed">{message.text}</p></div>
               </article>
             )) : <div className="rounded-xl border border-dashed border-border p-5 text-center text-[10px] text-muted-foreground">신고를 접수하면 기록이 시작됩니다.</div>}
           </div>

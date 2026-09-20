@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle, LoaderCircle, MapPinned } from "lucide-react";
+import { AlertTriangle, LoaderCircle } from "lucide-react";
 import { analyzeIncident } from "../api/incidents";
 import { confirmSubstance, cancelConfirmation } from "../api/confirmations";
 import { discoverSubstances } from "../api/substances";
@@ -10,12 +10,8 @@ import { createPhoneSession, reviewPhoneTranscript, subscribeToPhoneTranscripts 
 import { apiConfig, runtimeDataMode } from "../api/config";
 import type { IncidentAnalysisResponse, MaterialCandidate, PhoneTranscriptEvent, SessionContextResponse } from "../api/contracts";
 import { getDemoAnalysis } from "../fixtures/demo";
-import { useResponderLocation } from "../hooks/useResponderLocation";
 import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard";
-import { AgentPanel } from "../features/operations-agent/AgentPanel";
 import { FieldToolsPanel, type DispatchPreview, type DispatchStreamStatus, type FieldRecordMessage } from "../features/field-tools/FieldToolsPanel";
-import { IncidentMap } from "../features/map/IncidentMap";
-import { getLocationPresentation } from "../features/map/mapState";
 import { MessageComposer } from "../features/composer/MessageComposer";
 import { SubstanceResults } from "../features/substance-search/SubstanceResults";
 import { StructuredOutcomeForm, emptyStructuredOutcomeDraft, toStructuredOutcomeReport, type StructuredOutcomeDraft } from "../features/records/StructuredOutcomeForm";
@@ -24,6 +20,16 @@ import "../styles/integrated-main.css";
 
 function makeIncidentId() {
   return `INC-${Date.now()}`;
+}
+
+function phoneReviewStatusLabel(status: PhoneTranscriptEvent["reviewStatus"] | undefined) {
+  switch (status) {
+    case "INTERIM": return "통화 중";
+    case "FINAL_PENDING_REVIEW": return "최종 전사 확인 필요";
+    case "REVIEWED": return "담당자 승인 완료";
+    case "ANALYZED": return "분석 완료";
+    default: return "통화 대기";
+  }
 }
 
 export default function IntegratedMainPage({ session = null }: { session?: SessionContextResponse | null }) {
@@ -52,9 +58,6 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const [phoneStreamError, setPhoneStreamError] = useState(false);
   const [phoneBusy, setPhoneBusy] = useState(false);
 
-  const locationState = useResponderLocation(Boolean(analysis));
-  const gps = getLocationPresentation(locationState.state, locationState.position?.observedAt, locationState.position?.accuracyM);
-  const mapContext = analysis?.agent?.mapContext ?? null;
   const activeIncidentId = analysis?.incidentId ?? currentIncidentId;
   const isSynthetic = apiConfig.demoEnabled;
   const phoneReviewReady = phoneTranscript?.reviewStatus === "FINAL_PENDING_REVIEW";
@@ -354,8 +357,6 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
             station={`${region} ${station}`}
             dispatchContact={dispatchContact}
             dataMode={runtimeDataMode}
-            gpsLabel={gps.label}
-            gpsDetail={gps.detail}
             analysis={analysis}
             incidentId={activeIncidentId}
             messages={messages}
@@ -376,43 +377,53 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         </aside>
 
         <section className="integrated-main-content">
-          <div className="integrated-content-heading"><div><p className="integrated-kicker">FIELD RESPONSE WORKSPACE</p><h1>사고 맥락을 정리하고<br />확인할 다음 행동을 준비합니다.</h1></div><div className="integrated-incident-id">{activeIncidentId ?? "사고 접수 전"}</div></div>
+          <div className="integrated-content-heading"><div><p className="integrated-kicker">상황실·현장 공동 대응</p><h1>확인할 정보와 다음 행동만 보여드립니다.</h1></div><div className="integrated-incident-id">{activeIncidentId ?? "사고 접수 전"}</div></div>
           {error && <div className="integrated-error" role="alert"><AlertTriangle size={15} />{error}</div>}
 
-          <section className="integrated-card phone-review-card" aria-labelledby="phone-review-title">
-            <div className="integrated-card-heading">
-              <div><h2 id="phone-review-title">ClawOps 전화 접수</h2><p className="integrated-card-subtitle">통화 중 발화는 잠정 전사로만 표시되며, 통화 후 최종본을 담당자가 승인해야 분석됩니다.</p></div>
-              <button type="button" disabled={(!session && !isSynthetic) || phoneBusy} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중" : isSynthetic ? "합성 통화 시작" : "전화 접수 준비"}</button>
-            </div>
-            <div className="phone-review-status" role="status">
-              <strong>{isSynthetic ? "PUBLIC_SYNTHETIC · " : ""}{!currentIncidentId ? "접수 세션 없음" : phoneStreamError ? "연결 확인 필요" : phoneTranscript ? phoneTranscript.reviewStatus : "통화·전사 대기"}</strong>
-              <span>{currentIncidentId ?? "인증된 상황실에서 접수 세션을 먼저 생성하세요."}</span>
-            </div>
-            {phoneTranscript?.reviewStatus === "INTERIM" && <div className="phone-interim"><b>통화 중 잠정 발화</b><p>{phoneTranscript.text}</p><small>분석 입력에는 사용되지 않습니다.</small>{isSynthetic && <button type="button" onClick={handleSyntheticCallEnd}>합성 통화 종료·최종본 수신</button>}</div>}
-            {phoneTranscript && phoneTranscript.reviewStatus !== "INTERIM" && (
-              <div className="phone-final-review">
-                <label htmlFor="phone-review-text">최종 전사 검토본</label>
-                <textarea id="phone-review-text" value={phoneReviewText} readOnly={!phoneReviewReady} onChange={(event) => setPhoneReviewText(event.target.value)} />
-                <div><span>revision {phoneTranscript.revision} · {phoneTranscript.reviewStatus}</span><button type="button" disabled={!phoneReviewReady || !phoneReviewText.trim() || phoneBusy} onClick={() => void handleReviewPhoneTranscript()}>{phoneAnalysisReady ? "승인 완료" : "수정본 승인"}</button></div>
+          <div className="integrated-operational-layout">
+            <section className="integrated-workstream" aria-labelledby="dispatch-workstream-title">
+              <header className="integrated-workstream-heading"><div><span>상황실</span><h2 id="dispatch-workstream-title">신고 접수·검토</h2></div><p>최종 전사를 확인한 뒤에만 분석합니다.</p></header>
+              <div className="integrated-workstream-scroll">
+                <section className="integrated-card phone-review-card" aria-labelledby="phone-review-title">
+                  <div className="integrated-card-heading">
+                    <div><h2 id="phone-review-title">전화 신고</h2><p className="integrated-card-subtitle">통화 중 내용은 임시로만 표시하고, 종료 후 담당자가 수정·승인합니다.</p></div>
+                    <button type="button" disabled={(!session && !isSynthetic) || phoneBusy} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중" : isSynthetic ? "합성 통화 시작" : "전화 접수 준비"}</button>
+                  </div>
+                  <div className="phone-review-status" role="status">
+                    <strong>{isSynthetic ? "합성 시연 · " : ""}{!currentIncidentId ? "접수 전" : phoneStreamError ? "연결 확인 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</strong>
+                    <span>{currentIncidentId ?? "전화 접수 준비를 눌러 시작하세요."}</span>
+                  </div>
+                  {phoneTranscript?.reviewStatus === "INTERIM" && <div className="phone-interim"><b>통화 중 내용 · 분석 불가</b><p>{phoneTranscript.text}</p><small>최종 전사가 아니므로 분석에 사용하지 않습니다.</small>{isSynthetic && <button type="button" onClick={handleSyntheticCallEnd}>합성 통화 종료</button>}</div>}
+                  {phoneTranscript && phoneTranscript.reviewStatus !== "INTERIM" && (
+                    <div className="phone-final-review">
+                      <label htmlFor="phone-review-text">최종 전사 확인</label>
+                      <textarea id="phone-review-text" value={phoneReviewText} readOnly={!phoneReviewReady} onChange={(event) => setPhoneReviewText(event.target.value)} />
+                      <div><span>{phoneAnalysisReady ? "담당자 승인 완료" : "수정 후 승인 필요"}</span><button type="button" disabled={!phoneReviewReady || !phoneReviewText.trim() || phoneBusy} onClick={() => void handleReviewPhoneTranscript()}>{phoneAnalysisReady ? "승인 완료" : "이 내용으로 승인"}</button></div>
+                    </div>
+                  )}
+                </section>
+
+                <section className="integrated-composer-panel" aria-label="사고 분석 입력">
+                  <div><h2>확인된 신고 내용</h2><p>승인된 내용만 분석하며, 물질 후보는 자동 확정하지 않습니다.</p></div>
+                  <MessageComposer mode="collision" value={incidentText} loading={busy === "analysis"} unavailable={Boolean(phoneTranscript && !phoneAnalysisReady)} speechEnabled={apiConfig.speechEnabled} incidentId={activeIncidentId} onChange={setIncidentText} onSubmit={(value) => void runAnalysis(value)} />
+                </section>
               </div>
-            )}
-          </section>
+            </section>
 
-          <section className="integrated-composer-panel" aria-label="사고 분석 입력">
-            <div><h2>신고 내용과 현장 관찰</h2><p>후보는 자동 확정하지 않습니다. 신고문을 입력하면 공식 근거와 현장 확인 순서를 정리합니다.</p></div>
-            <MessageComposer mode="collision" value={incidentText} loading={busy === "analysis"} unavailable={Boolean(phoneTranscript && !phoneAnalysisReady)} speechEnabled={apiConfig.speechEnabled} incidentId={activeIncidentId} onChange={setIncidentText} onSubmit={(value) => void runAnalysis(value)} />
-          </section>
+            <section className="integrated-workstream" aria-labelledby="field-workstream-title">
+              <header className="integrated-workstream-heading"><div><span>현장 대응</span><h2 id="field-workstream-title">확인·대응 브리프</h2></div><p>확인된 사실, 미확인 정보, 다음 행동을 구분합니다.</p></header>
+              <div className="integrated-workstream-scroll">
+                <section className="integrated-card integrated-analysis-card"><div className="integrated-card-heading"><h2>현장 확인과 대응 참고</h2>{busy === "confirmation" && <LoaderCircle size={16} className="animate-spin" />}</div><IncidentAnalysisCard analysis={analysis} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} confirmingRole={busy === "confirmation" ? "INCIDENT" : null} onCancel={(role, id) => void handleCancel(role, id)} activeConfirmationIds={confirmationIds} confirmationMode={isSynthetic ? "PUBLIC_SYNTHETIC" : "FIELD"} /></section>
 
-          <div className="integrated-columns">
-            <section className="integrated-card integrated-analysis-card"><div className="integrated-card-heading"><h2>초기 분석과 현장 확인</h2>{busy === "confirmation" && <LoaderCircle size={16} className="animate-spin" />}</div><IncidentAnalysisCard analysis={analysis} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} confirmingRole={busy === "confirmation" ? "INCIDENT" : null} onCancel={(role, id) => void handleCancel(role, id)} activeConfirmationIds={confirmationIds} confirmationMode={isSynthetic ? "PUBLIC_SYNTHETIC" : "FIELD"} /></section>
-            <section className="integrated-card integrated-agent-card"><div className="integrated-card-heading"><h2>운영 에이전트</h2></div><AgentPanel agent={analysis?.agent} syntheticMode={isSynthetic} loading={busy === "analysis"} /></section>
+                {analysis && <section className="integrated-card"><div className="integrated-card-heading"><div><h2>대응 결과 기록</h2><p className="integrated-card-subtitle">현장에서 수행한 조치와 결과만 기록합니다.</p></div>{savedRecordId && <span className="integrated-saved">저장 완료 · {savedRecordId}</span>}</div><div className="integrated-outcome-form"><StructuredOutcomeForm value={outcomeDraft} onChange={setOutcomeDraft} /><button type="button" disabled={busy === "confirmation"} onClick={() => void handleSaveRecord()} className="integrated-save-button">{busy === "confirmation" ? "저장 중..." : "현재 대응 기록 저장"}</button></div></section>}
+
+                <details className="integrated-card integrated-secondary-search">
+                  <summary>추가 물질 검색</summary>
+                  <div className="integrated-secondary-search-body"><div className="integrated-search"><input value={substanceQuery} onChange={(event) => setSubstanceQuery(event.target.value)} placeholder="물질명 또는 CAS" /><button type="button" disabled={busy === "substance"} onClick={() => void runSubstanceSearch()}>{busy === "substance" ? "검색 중" : "검색"}</button></div><SubstanceResults result={substanceResult} incidentAvailable={Boolean(activeIncidentId)} onUseCandidate={useCandidate} /></div>
+                </details>
+              </div>
+            </section>
           </div>
-
-          {analysis && <section className="integrated-card"><div className="integrated-card-heading"><div><h2>구조화된 대응 기록</h2><p className="integrated-card-subtitle">실제 현장 결과를 입력한 뒤 저장합니다. 후보·분석 결과는 서버 기록과 연결됩니다.</p></div>{savedRecordId && <span className="integrated-saved">저장 완료 · {savedRecordId}</span>}</div><div className="integrated-outcome-form"><StructuredOutcomeForm value={outcomeDraft} onChange={setOutcomeDraft} /><button type="button" disabled={busy === "confirmation"} onClick={() => void handleSaveRecord()} className="integrated-save-button">{busy === "confirmation" ? "저장 중..." : "현재 대응 기록 저장"}</button></div></section>}
-
-          <section className="integrated-card"><div className="integrated-card-heading"><h2>공공 데이터 기반 물질 후보 탐색</h2><div className="integrated-search"><input value={substanceQuery} onChange={(event) => setSubstanceQuery(event.target.value)} placeholder="물질명·CAS·색·냄새·상태" /><button type="button" disabled={busy === "substance"} onClick={() => void runSubstanceSearch()}>{busy === "substance" ? "검색 중" : "검색"}</button></div></div><SubstanceResults result={substanceResult} incidentAvailable={Boolean(activeIncidentId)} onUseCandidate={useCandidate} /></section>
-
-          <section className="integrated-card integrated-map-card"><div className="integrated-card-heading"><h2>사고·출동 위치</h2><span>{gps.label}</span></div>{mapContext ? <IncidentMap context={mapContext} isDark={false} gps={gps} /> : <div className="integrated-map-empty"><MapPinned size={24} /><p>분석 결과에 위치 정보가 포함되면 지도와 경로를 표시합니다.</p></div>}</section>
         </section>
       </section>
     </main>
