@@ -4,7 +4,25 @@
 사용 중인 실제 사이트는 `https://chemicheck119.site`이며 Firebase Hosting 사이트 `chemi-check`를 그대로 사용합니다.
 새 Cloud Run·VM·GPU·DB나 장기 서비스 계정 키를 만들지 않습니다.
 
-> **2026-09-20 실제 검증 상태: 사용자 승인 후 미리보기 재검증 중.** PR #58의 CI·빌드와 보호 테스트 25개는 통과했고 GitHub→GCP WIF 인증도 성공했습니다. Hosting version 생성은 HTTP 403으로 중단됐으며, Firebase Hosting의 custom IAM role 미지원 제약을 확인했습니다. 사용자 승인 후 표준 `roles/firebasehosting.admin`과 quota 사용용 `roles/serviceusage.serviceUsageConsumer`를 부여하고 시험용 custom role binding은 제거했습니다. 아직 미리보기 성공이나 운영 전환을 완료로 주장하지 않습니다. 운영 version `4cfe0bf0a437bd8b`는 유지됩니다. [Firebase 권한 제약](https://firebase.google.com/docs/projects/iam/permissions#hosting), [검증 이슈 #57](https://github.com/chemicheck119-lab/front/issues/57).
+> **2026-09-20 실제 검증 상태: CI·실제 미리보기 배포 통과, 운영 전환 미실행.** 사용자 승인 후 Hosting Admin·quota 사용 권한을 설정하고, 기존 BFF 서비스 하나에 `run.services.get`만 추가했습니다. [Actions 실행 35496286086의 2차 시도](https://github.com/chemicheck119-lab/front/actions/runs/35496286086/attempts/2)에서 업로드·미리보기·HTTP 검사가 통과했습니다. 프론트 141개와 Hosting 보호 26개 테스트가 통과했으며, 운영 version `4cfe0bf0a437bd8b`와 BFF rewrite 설정은 유지됩니다. **운영 승격·실제 롤백·사용자 세션 무중단은 아직 실행 검증하지 않았습니다.**
+
+## 확인 가능한 첫 성공 결과
+
+| 항목 | 실제 기록 |
+|---|---|
+| 미리보기 | [CI 미리보기 열기](https://chemi-check--ci-35496286086-2-qraarcir.web.app) — 7일 후 만료 |
+| 후보 version | `fca1308ce8827702` |
+| 당시 운영 version | `4cfe0bf0a437bd8b` — 변경 없음 |
+| 소스 commit | `24af611877c20d13d30555c1f453e8edd750bd79` |
+| 검사 시간 | `2026-09-20T07:19:30.013Z` |
+| 새 번들 크기 | 6,458,764 bytes, 이전 asset 추가 보존 1개 |
+| config SHA-256 | `4fa13a02e146f6afd9ab9039cb4e93f6d20b14b4531e339a1f37bfc63b7704c7` |
+| 파일 manifest SHA-256 | `783cf7297dfb24d8576ae85e6c43ddf7dea1a1701050e91738ebd19a18b9b461` |
+| index SHA-256 | `59a9d705e5c910f964b911fc66feff7d4341057f317a9b8b70267e77d50a4fad` |
+| HTTP 검사 | `/`, `/features`, `/public-data`, `/trends`, JS/CSS, 소방서 GET 계약 |
+| 브라우저 확인 | 홈 렌더링·기능 소개 이동 확인. 로그인·신고 생성·전화 발신은 수행하지 않음 |
+
+이 표는 첫 성공의 고정 기록입니다. 실제 승격 시에는 **최신 실행 Summary**의 후보·운영 version을 확인해야 합니다. 위 ID를 최신 상태 확인 없이 복사하지 마세요.
 
 ## 팀원이 사용하는 순서
 
@@ -55,7 +73,7 @@ gh workflow run hosting-release.yml --repo chemicheck119-lab/front --ref develop
 파일 크기 상한은 비용 차단 장치가 아닙니다. 기존 Hosting 저장·트래픽과 GitHub Actions 이용량은 과금 대상일 수 있습니다.
 
 **수동 CLI 배포를 동시에 실행하지 마세요.** Hosting release 생성 API에는 이 코드가 쓸 수 있는 원자적 compare-and-swap 조건이 없어, 최종 확인과 전환 사이의 외부 수동 배포 경합까지 제거하지는 못합니다. workflow 밖의 배포 권한·변경 관리도 필요합니다.
-Backend 운영자는 기존 release tag를 다른 revision으로 재지정하지 않아야 합니다. 이 FE 전용 계정에는 Cloud Run 조회·변경 권한이 없으므로, 외부에서 tag의 대상을 바꾼 사실까지 검증하는 것은 아닙니다.
+Backend 운영자는 기존 release tag를 다른 revision으로 재지정하지 않아야 합니다. FE 전용 계정에는 Hosting rewrite 검증을 위해 해당 BFF 서비스 하나의 `run.services.get` 조회 권한만 부여했습니다. 현재 스크립트가 tag→revision 매핑을 저장·비교하는 것은 아니므로, 외부에서 tag의 대상을 바꾼 사실까지 검증하지는 않습니다. Cloud Run 변경 권한은 없습니다.
 
 ## 인증·권한 설정
 
@@ -68,6 +86,7 @@ Backend 운영자는 기존 release tag를 다른 revision으로 재지정하지
 | Service account | `chemicheck119-hosting-deploy@chemi-check.iam.gserviceaccount.com` |
 | Hosting 권한 | `roles/firebasehosting.admin` — 사용자 승인 후 부여, Hosting 사이트 생성·삭제 포함 |
 | API quota 사용 | `roles/serviceusage.serviceUsageConsumer` — 프로젝트 quota 사용, API 활성화·비활성화 권한 아님 |
+| BFF 연결 확인 | `projects/chemi-check/roles/chemicheck119HostingBackendReader` — `run.services.get` 한 개만 포함, `asia-northeast3/chemicheck119-be-staging` 서비스에만 binding |
 | 시험 구성한 Custom IAM role | `projects/chemi-check/roles/chemicheck119HostingDeployer` — 미지원, 배포 계정의 binding 제거 |
 | GitHub variables | `HOSTING_WIF_PROVIDER`, `HOSTING_SERVICE_ACCOUNT` |
 | GitHub environments | `hosting-preview`, `hosting-production` |
@@ -76,8 +95,9 @@ WIF는 숫자 repository ID `1357789419`, owner ID `325139595`, `refs/heads/deve
 저장소는 immutable subject를 사용하므로 subject prefix는 `repo:chemicheck119-lab@325139595/front@1357789419`입니다. ID가 없는 과거 형식을 사용한 첫 시도는 거부됐고, 실제 저장소 OIDC 설정을 확인해 수정했습니다.
 다른 저장소·PR 브랜치·임의 workflow는 배포 계정을 사용할 수 없습니다. 서비스 계정 키는 생성하지 않습니다.
 
-시험 구성한 Custom role 권한은 `firebasehosting.sites.get/list/update`, `resourcemanager.projects.get`, `serviceusage.services.use`이지만, Hosting의 custom role 미지원으로 실제 version 생성에 실패했습니다. 이를 성공한 최소 권한 배포 구성으로 설명하지 않습니다.
+시험 구성한 Hosting Custom role 권한은 `firebasehosting.sites.get/list/update`, `resourcemanager.projects.get`, `serviceusage.services.use`이며 실제 version 생성에 실패했습니다. Hosting의 custom role 미지원 제약도 확인했으므로 채택하지 않습니다. 표준 Hosting Admin으로 교체한 뒤의 상세 오류는 BFF의 `run.services.get` 누락이었습니다. 초기 403의 원인을 custom role 문제 하나로만 단정하지 않습니다.
 사용자 승인 후 표준 Hosting Admin과 Service Usage Consumer로 교체했으며 시험용 custom role binding은 제거했습니다. 이 표준 Hosting 역할에는 사이트 생성·삭제 권한도 포함됩니다. Cloud Run·SQL·Secret·IAM 관리 권한은 부여하지 않습니다.
+추가 사용자 승인으로 BFF 서비스 하나에 `run.services.get`만 부여했습니다. 이 Cloud Run custom role은 프로젝트 전체에 binding하지 않으며, Hosting 전용 custom role과 다른 역할입니다. 서비스 설정·메타데이터를 읽을 수 있지만 수정·삭제·재배포·IAM 변경·Secret Manager 값 조회 권한은 포함하지 않습니다. 서비스 설정에 평문 환경변수가 있다면 조회 범위에 포함되므로 조회 결과 전체나 환경변수는 CI 로그에 출력하지 않습니다.
 preview와 live의 IAM 권한 자체는 분리되지 않으며, 운영 승인 경계는 보호된 workflow·GitHub environment입니다. Hosting 권한의 범위는 프로젝트입니다.
 
 actions는 commit SHA로 고정했습니다. 빌드 job에는 OIDC 권한이 없고, 배포 job에서는 npm 의존성을 설치하지 않습니다.
@@ -101,7 +121,8 @@ node scripts/hosting/release.mjs inspect # 운영 version 읽기만, gcloud 인�
 
 | 항목 | 사실 상태 |
 |---|---|
-| staging 빌드·preview·승인·동일 버전 승격·복구 코드 | 부분 구현 또는 개발용 데모 — 개별 실행 결과는 Actions와 연결 이슈에서 확인 |
+| staging 빌드·WIF 인증·실제 preview·HTTP 검사 | 구현 완료 — 위 실행·artifact에서 재현 확인 |
+| 승인 환경·동일 버전 승격·실패 시 복구 코드 | 부분 구현 또는 개발용 데모 — 보호 로직 테스트 통과, 운영 실행은 미검증 |
 | 운영 전환·실제 운영 롤백 훈련 | 부분 구현 또는 개발용 데모 — 코드·모의 실패 테스트와 별개로 **운영 실행 검증은 사람 승인 후 별도** |
 | 전사 중 사용자 영향 0·현장 고가용성·무중단 보장 | 검증되지 않은 가설 |
 
