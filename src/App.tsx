@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import WelcomePage from "./pages/WelcomePage";
 import OnboardingPage from "./pages/OnboardingPage";
-import MainPage from "./pages/MainPage";
 import RecordsPage from "./pages/RecordsPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import PublicDataPage from "./pages/PublicDataPage";
@@ -15,7 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<WelcomePage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/main" element={<MainPage />} />
+        <Route path="/main" element={<AuthenticatedRoute>{(session) => <IntegratedMainPage session={session} />}</AuthenticatedRoute>} />
         <Route path="/workspace" element={<AuthenticatedRoute>{(session) => <IntegratedMainPage session={session} />}</AuthenticatedRoute>} />
         <Route path="/records" element={<RecordsPage />} />
         <Route path="/features" element={<FeaturesPage />} />

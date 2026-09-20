@@ -29,6 +29,23 @@
 .integrated-save-button { width: 100%; min-height: 46px; margin-top: 18px; border: 0; border-radius: 9px; background: #203f68; color: #fff; font-size: 12px; font-weight: 800; }
 .integrated-save-button:disabled { opacity: .5; }
 .integrated-card > :not(.integrated-card-heading) { margin: 0; }
+.phone-review-card { display: grid; gap: 14px; padding-bottom: 18px; }
+.phone-review-card .integrated-card-heading > button, .phone-final-review button { border: 0; border-radius: 10px; background: #123b5d; color: #fff; padding: 10px 14px; font-weight: 800; cursor: pointer; }
+.phone-review-card button:disabled { cursor: not-allowed; opacity: .48; }
+.phone-review-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 18px !important; padding: 12px 14px; border: 1px solid #cbd8e3; border-radius: 10px; background: #f7fafc; }
+.phone-review-status strong { color: #123b5d; }
+.phone-review-status span { color: #526574; font-size: 13px; overflow-wrap: anywhere; }
+.phone-interim { margin: 0 18px !important; padding: 14px; border: 1px dashed #9aaab8; border-radius: 10px; background: #fffaf0; }
+.phone-interim b { color: #8b5d11; }
+.phone-interim p { margin: 8px 0; white-space: pre-wrap; }
+.phone-interim small { color: #6a7178; }
+.phone-interim button { display: block; margin-top: 10px; border: 1px solid #b98a35; border-radius: 8px; background: #fff; padding: 8px 10px; color: #744f12; font-weight: 800; cursor: pointer; }
+.phone-final-review { display: grid; gap: 8px; margin: 0 18px !important; }
+.phone-final-review label { font-size: 13px; font-weight: 800; color: #243746; }
+.phone-final-review textarea { min-height: 112px; resize: vertical; border: 1px solid #aebdcc; border-radius: 10px; padding: 12px; font: inherit; line-height: 1.55; }
+.phone-final-review textarea[readonly] { background: #f2f5f7; color: #465866; }
+.phone-final-review > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.phone-final-review span { font-size: 12px; color: #60717f; }
 .integrated-search { display: flex; gap: 7px; min-width: min(430px, 50%); }
 .integrated-search input { min-width: 0; flex: 1; border: 1px solid #d5e0e8; border-radius: 8px; padding: 9px 11px; font-size: 12px; outline: none; }
 .integrated-search button { border: 0; border-radius: 8px; background: #203f68; padding: 0 16px; color: #fff; font-size: 11px; font-weight: 800; }

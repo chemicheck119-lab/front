@@ -159,6 +159,9 @@ export interface MaterialDiscoveryResponse {
 
 export type IncidentAnalyzeRequest = DashboardBffSchemas["DashboardIncidentAnalyzeRequest"];
 export type IncidentAnalyzeInput = Omit<IncidentAnalyzeRequest, "inputType" | "evidenceTopK"> & Partial<Pick<IncidentAnalyzeRequest, "inputType" | "evidenceTopK">>;
+export type PhoneSessionResponse = DashboardBffSchemas["DashboardPhoneSessionResponse"];
+export type PhoneTranscriptEvent = DashboardBffSchemas["DashboardPhoneTranscriptEvent"];
+export type PhoneTranscriptReviewRequest = DashboardBffSchemas["DashboardPhoneTranscriptReviewRequest"];
 
 export interface ConflictReviewWaiting {
   executed: false;
