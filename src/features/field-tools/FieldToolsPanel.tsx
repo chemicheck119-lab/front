@@ -62,6 +62,7 @@ interface FieldToolsPanelProps {
   confirmationIds: string[];
   canSave: boolean;
   recordAvailable: boolean;
+  recordSaved?: boolean;
   dispatchStreamAvailable: boolean;
   dispatchStreamStatus: DispatchStreamStatus;
   dispatchPreview: DispatchPreview | null;
@@ -85,7 +86,7 @@ export function normalizePhoneHref(phone: string): string | null {
 }
 
 export function countUnsavedRecordItems(messages: FieldRecordMessage[], analysisIds: string[], confirmationIds: string[]) {
-  return Math.max(0, messages.length - 1) + analysisIds.length + confirmationIds.length;
+  return messages.filter((message) => message.role !== "SYSTEM").length + analysisIds.length + confirmationIds.length;
 }
 
 export function getOfficialSubstanceItems(analysis: IncidentAnalysisResponse | null) {
@@ -187,6 +188,7 @@ export function FieldToolsPanel({
   confirmationIds,
   canSave,
   recordAvailable,
+  recordSaved = false,
   dispatchStreamAvailable,
   dispatchStreamStatus,
   dispatchPreview,
@@ -203,7 +205,8 @@ export function FieldToolsPanel({
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const dialogTriggerRef = useRef<HTMLElement | null>(null);
   const officialItems = useMemo(() => getOfficialSubstanceItems(analysis), [analysis]);
-  const unsavedCount = countUnsavedRecordItems(messages, analysisIds, confirmationIds);
+  const recordMessages = messages.filter((message) => message.role !== "SYSTEM");
+  const unsavedCount = recordSaved ? 0 : countUnsavedRecordItems(messages, analysisIds, confirmationIds);
   const phoneHref = normalizePhoneHref(dispatchContact.phone);
   const dataStatus = modeStatus(dataMode);
   const incidentIdLabel = incidentId?.replace(/^INC-.*-/, "INC…") ?? null;
@@ -252,7 +255,7 @@ export function FieldToolsPanel({
 
         <div className="mt-auto space-y-2.5 rounded-xl border border-sidebar-border bg-sidebar-accent/55 p-3 text-xs text-muted-foreground" aria-label="운영 상태">
           <div className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${dataStatus.tone}`} /><span className="truncate">{dataStatus.label}</span></div>
-          <div className="flex items-center gap-2"><FileClock size={11} className="shrink-0" /><span>{recordAvailable ? (unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 없음") : (unsavedCount ? `세션 기록 ${unsavedCount}건` : "세션 기록 없음")}</span></div>
+          <div className="flex items-center gap-2"><FileClock size={11} className="shrink-0" /><span>{recordSaved ? (syntheticMode ? "시연 저장 완료" : "저장 완료") : recordAvailable ? (unsavedCount ? `미저장 ${unsavedCount}건` : "미저장 없음") : (unsavedCount ? `세션 기록 ${unsavedCount}건` : "세션 기록 없음")}</span></div>
           <p className="border-t border-sidebar-border pt-2 leading-relaxed">현재 사고의 확인 상태와 대응 기록에 집중합니다.</p>
         </div>
       </aside>
@@ -368,12 +371,12 @@ export function FieldToolsPanel({
       {activeDialog === "record" && (
         <ToolDialogShell title="현재 사고 기록" description={recordAvailable ? "현재 화면의 대화·분석·현장 확인 상태입니다. 저장 성공 전까지 미저장 기록으로 유지됩니다." : "현재 브라우저 세션의 시연 진행 기록입니다. 운영 기록 저장소에는 반영되지 않습니다."} onClose={closeDialog}>
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl bg-secondary p-3"><p className="text-[9px] text-muted-foreground">대화·상태</p><p className="mt-1 text-lg font-bold">{Math.max(0, messages.length - 1)}</p></div>
+            <div className="rounded-xl bg-secondary p-3"><p className="text-[9px] text-muted-foreground">대화·상태</p><p className="mt-1 text-lg font-bold">{recordMessages.length}</p></div>
             <div className="rounded-xl bg-secondary p-3"><p className="text-[9px] text-muted-foreground">분석</p><p className="mt-1 text-lg font-bold">{analysisIds.length}</p></div>
             <div className="rounded-xl bg-secondary p-3"><p className="text-[9px] text-muted-foreground">현장 확인</p><p className="mt-1 text-lg font-bold">{confirmationIds.length}</p></div>
           </div>
           <div className="mt-4 max-h-[310px] space-y-2 overflow-y-auto pr-1">
-            {messages.length > 1 ? messages.slice(1).map((message) => (
+            {recordMessages.length > 0 ? recordMessages.map((message) => (
               <article key={message.messageId} className="grid grid-cols-[44px_1fr] gap-2 rounded-xl border border-border p-3">
                 <time className="text-[9px] font-semibold text-muted-foreground">{formatRecordTime(message.createdAt)}</time>
                 <div><p className="text-[9px] font-bold text-muted-foreground">{message.role === "USER" ? "대원" : message.role === "ASSISTANT" ? "대응 안내" : "시스템"}</p><p className="mt-1 text-[11px] leading-relaxed">{message.text}</p></div>

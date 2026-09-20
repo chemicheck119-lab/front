@@ -9,7 +9,7 @@ import { receiveContestIncident } from "../api/intake";
 import { createPhoneSession, reviewPhoneTranscript, subscribeToPhoneTranscripts } from "../api/phone";
 import { apiConfig, runtimeDataMode } from "../api/config";
 import type { IncidentAnalysisResponse, MaterialCandidate, PhoneTranscriptEvent, SessionContextResponse } from "../api/contracts";
-import { getDemoAnalysis } from "../fixtures/demo";
+import { resetDemoSession } from "../fixtures/demo";
 import { IncidentAnalysisCard } from "../features/incident/IncidentAnalysisCard";
 import { FieldToolsPanel, type DispatchPreview, type DispatchStreamStatus, type FieldRecordMessage } from "../features/field-tools/FieldToolsPanel";
 import { MessageComposer } from "../features/composer/MessageComposer";
@@ -114,12 +114,26 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   }
 
   async function handlePreparePhoneSession() {
-    if ((!session && !isSynthetic) || phoneBusy) return;
+    if ((!session && !isSynthetic) || phoneBusy || busy) return;
     setPhoneBusy(true);
     setError(null);
+    setCurrentIncidentId(null);
     setPhoneTranscript(null);
+    setPhoneReviewText("");
+    setIncidentText("");
+    setAnalysis(null);
+    setConfirmationIds({});
+    setMessages([]);
+    setOutcomeDraft(emptyStructuredOutcomeDraft());
+    setSavedRecordId(null);
+    setSubstanceQuery("");
+    setSubstanceResult(null);
+    setDispatchPreview(null);
+    setDispatchAccepted(false);
+    setDispatchStatus("IDLE");
     try {
       if (isSynthetic) {
+        resetDemoSession();
         const syntheticIncidentId = `INC-PUBLIC-PHONE-${Date.now()}`;
         setCurrentIncidentId(syntheticIncidentId);
         setPhoneTranscript({
@@ -206,7 +220,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   }
 
   async function runAnalysis(value = incidentText) {
-    if (!value.trim() || busy) return;
+    if (!value.trim() || busy || phoneBusy) return;
     if (phoneTranscript && !phoneAnalysisReady) {
       setError("최종 전화 전사를 수정·승인한 뒤 분석할 수 있습니다.");
       return;
@@ -230,6 +244,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         text: value.trim(),
       });
       setAnalysis(result);
+      setSavedRecordId(null);
       setMessages((current) => [...current, { messageId: `${Date.now()}`, role: "USER", text: value.trim(), createdAt: new Date().toISOString() }]);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "사고 분석을 시작하지 못했습니다.");
@@ -264,6 +279,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         observedAt: new Date().toISOString(),
       });
       setConfirmationIds((current) => ({ ...current, [role]: response.confirmationId }));
+      setSavedRecordId(null);
       if (incidentText.trim()) {
         const refreshed = await analyzeIncident(phoneTranscript ? {
           incidentId: activeIncidentId,
@@ -285,6 +301,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     if (!activeIncidentId || busy) return;
     setBusy("confirmation");
     setAnalysis(null);
+    setSavedRecordId(null);
     try {
       await cancelConfirmation(activeIncidentId, role, confirmationId);
       setConfirmationIds((current) => ({ ...current, [role]: undefined }));
@@ -364,6 +381,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
             confirmationIds={Object.values(confirmationIds).filter((value): value is string => Boolean(value))}
             canSave={Boolean(analysis)}
             recordAvailable={apiConfig.recordEnabled && Boolean(activeIncidentId)}
+            recordSaved={Boolean(savedRecordId)}
             dispatchStreamAvailable={apiConfig.presentationScenarioEnabled}
             dispatchStreamStatus={dispatchStatus}
             dispatchPreview={dispatchPreview}
@@ -387,7 +405,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
                 <section className="integrated-card phone-review-card" aria-labelledby="phone-review-title">
                   <div className="integrated-card-heading">
                     <div><h2 id="phone-review-title">전화 신고</h2><p className="integrated-card-subtitle">통화 중 내용은 임시로만 표시하고, 종료 후 담당자가 수정·승인합니다.</p></div>
-                    <button type="button" disabled={(!session && !isSynthetic) || phoneBusy} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중" : isSynthetic ? "합성 통화 시작" : "전화 접수 준비"}</button>
+                    <button type="button" disabled={(!session && !isSynthetic) || phoneBusy || Boolean(busy)} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중" : isSynthetic ? "합성 통화 시작" : "전화 접수 준비"}</button>
                   </div>
                   <div className="phone-review-status" role="status">
                     <strong>{isSynthetic ? "합성 시연 · " : ""}{!currentIncidentId ? "접수 전" : phoneStreamError ? "연결 확인 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</strong>
@@ -415,7 +433,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
               <div className="integrated-workstream-scroll">
                 <section className="integrated-card integrated-analysis-card"><div className="integrated-card-heading"><h2>현장 확인과 대응 참고</h2>{busy === "confirmation" && <LoaderCircle size={16} className="animate-spin" />}</div><IncidentAnalysisCard analysis={analysis} onConfirm={(role, cas, name) => void handleConfirm(role, cas, name)} confirmingRole={busy === "confirmation" ? "INCIDENT" : null} onCancel={(role, id) => void handleCancel(role, id)} activeConfirmationIds={confirmationIds} confirmationMode={isSynthetic ? "PUBLIC_SYNTHETIC" : "FIELD"} /></section>
 
-                {analysis && <section className="integrated-card"><div className="integrated-card-heading"><div><h2>대응 결과 기록</h2><p className="integrated-card-subtitle">현장에서 수행한 조치와 결과만 기록합니다.</p></div>{savedRecordId && <span className="integrated-saved">저장 완료 · {savedRecordId}</span>}</div><div className="integrated-outcome-form"><StructuredOutcomeForm value={outcomeDraft} onChange={setOutcomeDraft} /><button type="button" disabled={busy === "confirmation"} onClick={() => void handleSaveRecord()} className="integrated-save-button">{busy === "confirmation" ? "저장 중..." : "현재 대응 기록 저장"}</button></div></section>}
+                {analysis && <section className="integrated-card"><div className="integrated-card-heading"><div><h2>대응 결과 기록</h2><p className="integrated-card-subtitle">{isSynthetic ? "합성 시연 기록 · 운영 기록 저장소에는 반영되지 않습니다." : "현장에서 수행한 조치와 결과만 기록합니다."}</p></div>{savedRecordId && <span className="integrated-saved">{isSynthetic ? "시연 저장 완료" : "저장 완료"} · {savedRecordId}</span>}</div><div className="integrated-outcome-form"><StructuredOutcomeForm value={outcomeDraft} onChange={(next) => { setOutcomeDraft(next); setSavedRecordId(null); }} /><button type="button" disabled={busy === "confirmation"} onClick={() => void handleSaveRecord()} className="integrated-save-button">{busy === "confirmation" ? "저장 중..." : "현재 대응 기록 저장"}</button></div></section>}
 
                 <details className="integrated-card integrated-secondary-search">
                   <summary>추가 물질 검색</summary>

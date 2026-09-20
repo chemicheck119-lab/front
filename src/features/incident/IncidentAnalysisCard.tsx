@@ -138,8 +138,8 @@ export function IncidentAnalysisCard({
   if (completed) sourceBadges.push("CAMEO_RULE");
   if (!analysis.confirmationGate.allRequiredConfirmed) sourceBadges.push("FIELD_CONFIRMATION");
   const syntheticNextSteps = [
-    !analysis.confirmationGate.incidentConfirmed ? "공개 합성 사고물질 확인 API로 1/2 안전 게이트를 검증합니다." : null,
-    !analysis.confirmationGate.facilityConfirmed ? "공개 합성 시설물질 확인 API로 2/2 안전 게이트와 Rule Engine 실행을 검증합니다." : null,
+    !analysis.confirmationGate.incidentConfirmed ? "사고물질의 이름과 CAS를 대조한 뒤 합성 확인을 진행하세요." : null,
+    !analysis.confirmationGate.facilityConfirmed ? "시설물질을 별도로 합성 확인해야 대응 참고 결과가 열립니다." : null,
   ].filter((step): step is string => Boolean(step));
 
   return (
@@ -171,7 +171,7 @@ export function IncidentAnalysisCard({
             </div>
             {completed.limitations.length > 0 && <details className="mt-3 rounded-lg bg-accent/10"><summary className="cursor-pointer px-3 py-2.5 text-xs font-bold text-accent">제한사항 {completed.limitations.length}건 보기</summary><div className="border-t border-accent/15 px-3 py-2.5 text-xs leading-relaxed text-accent">{completed.limitations.join(" · ")}</div></details>}
             <div className="mt-3 flex flex-wrap gap-2">{completed.evidenceUrls.flatMap((url, index) => { const safeUrl = resolveOfficialSourceUrl(url); return safeUrl ? [<a key={safeUrl} href={safeUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-border px-3 text-xs font-semibold text-blue-600 hover:bg-muted">공식 근거 {index + 1}<ExternalLink size={12} /></a>] : []; })}</div>
-            <p className="mt-3 text-xs text-muted-foreground">결정 규칙 {completed.ruleId} · {completed.ruleVersion} · {completed.finalDecision}</p>
+            <p className="mt-3 text-xs text-muted-foreground">최종 판단 · {completed.finalDecision}</p>
           </section>
         )}
 
@@ -291,7 +291,7 @@ export function IncidentAnalysisCard({
 
         {!completed && (
           <section className="border-t border-border px-3 py-2">
-            <p className="text-[10px] font-semibold">{confirmationMode === "PUBLIC_SYNTHETIC" ? "합성 QA 다음 단계" : "대원이 해야 할 일"}</p>
+            <p className="text-[10px] font-semibold">{confirmationMode === "PUBLIC_SYNTHETIC" ? "다음 확인 · 합성 시연" : "대원이 해야 할 일"}</p>
             <ul className="mt-1 space-y-1 text-[10px] text-muted-foreground">{(confirmationMode === "PUBLIC_SYNTHETIC" ? syntheticNextSteps : analysis.requiredNextSteps).map((step) => <li key={step}>• {step}</li>)}</ul>
           </section>
         )}

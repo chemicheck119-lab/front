@@ -38,7 +38,7 @@ describe("구조화 대응 결과", () => {
     const onChange = vi.fn();
     render(<StructuredOutcomeForm value={emptyStructuredOutcomeDraft("울산 화학공장")} onChange={onChange} />);
 
-    expect(screen.getByText(/사고물질·시설 내 충돌물질·위험은/)).toBeInTheDocument();
+    expect(screen.getByText(/확인한 물질과 대응 참고 결과는 함께 저장됩니다/)).toBeInTheDocument();
     expect(screen.getByDisplayValue("울산 화학공장")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("checkbox", { name: "경계·출입 통제" }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
