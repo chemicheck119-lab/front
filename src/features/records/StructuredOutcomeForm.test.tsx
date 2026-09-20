@@ -9,6 +9,15 @@ import {
 afterEach(cleanup);
 
 describe("구조화 대응 결과", () => {
+  it("선택 요인은 접어 두되 이미 선택한 수와 값은 보존한다", () => {
+    const onChange = vi.fn();
+    const { container } = render(<StructuredOutcomeForm value={{ ...emptyStructuredOutcomeDraft(), additionalFactors: ["ENCLOSED_SPACE"] }} onChange={onChange} />);
+    expect(screen.getByText("1개 선택")).toBeInTheDocument();
+    expect(container.querySelector("details")).not.toHaveAttribute("open");
+    expect(container.querySelector('input[type="checkbox"][checked]')).toBeChecked();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("필수 선택 전에는 저장 계약을 만들지 않는다", () => {
     expect(toStructuredOutcomeReport(emptyStructuredOutcomeDraft("화학공장")))
       .toBeNull();
@@ -38,7 +47,7 @@ describe("구조화 대응 결과", () => {
     const onChange = vi.fn();
     render(<StructuredOutcomeForm value={emptyStructuredOutcomeDraft("울산 화학공장")} onChange={onChange} />);
 
-    expect(screen.getByText(/사고물질·시설 내 충돌물질·위험은/)).toBeInTheDocument();
+    expect(screen.getByText(/확인한 물질과 대응 참고 결과는 함께 저장됩니다/)).toBeInTheDocument();
     expect(screen.getByDisplayValue("울산 화학공장")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("checkbox", { name: "경계·출입 통제" }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({

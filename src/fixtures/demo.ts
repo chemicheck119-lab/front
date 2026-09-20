@@ -129,36 +129,6 @@ export const demoAnalysis: IncidentAnalysisResponse = {
     statements: [],
     citations: [],
   },
-  agent: {
-    schemaVersion: "chemicheck119-operations-agent-v1",
-    agentType: "DETERMINISTIC_FIELD_RESPONSE_ORCHESTRATOR",
-    phase: "EN_ROUTE_TRIAGE",
-    currentObjective: "출동 중 신고·시설 이력·공식 근거를 미리 정리합니다.",
-    nextActions: [
-      "용기 라벨 또는 현장 MSDS로 사고물질 CAS를 확인하세요.",
-      "시설물질의 현재 존재와 CAS를 운송 문서 또는 라벨로 확인하세요.",
-    ],
-    workflow: [
-      { stepId: "INCIDENT_INGESTION", label: "신고 접수", status: "COMPLETED", detail: "출동 지령이 접수됐습니다." },
-      { stepId: "INCIDENT_PARSING", label: "신고문 구조화", status: "COMPLETED", detail: "누출 및 물질 표현을 찾았습니다." },
-      { stepId: "INCIDENT_LOCATION", label: "사고 위치", status: "COMPLETED", detail: "시연 좌표가 연결됐습니다." },
-      { stepId: "SUBSTANCE_RESOLUTION", label: "물질 후보 검색", status: "COMPLETED", detail: "CAS 후보 2건을 찾았습니다." },
-      { stepId: "ON_SITE_CONFIRMATION", label: "현장 물질 확인", status: "IN_PROGRESS", detail: "두 CAS의 현장 근거가 필요합니다." },
-      { stepId: "CONFLICT_SCREENING", label: "충돌 규칙", status: "BLOCKED", detail: "확인 전에는 실행하지 않습니다." },
-      { stepId: "RESPONSE_RECORD", label: "대응 기록", status: "WAITING", detail: "분석·확인 결과를 저장할 예정입니다." },
-    ],
-    toolExecutions: [
-      { toolId: "RULE_PARSER", status: "COMPLETED", outputReference: "ANL-DEMO-0001", summary: "신고문 구조화를 완료했습니다." },
-      { toolId: "SUBSTANCE_RESOLVER", status: "COMPLETED", outputReference: "ANL-DEMO-0001", summary: "물질 후보 2건을 찾았습니다." },
-      { toolId: "CONFIRMATION_GATE", status: "WAITING", outputReference: "ANL-DEMO-0001", summary: "현장 확인 2건을 기다립니다." },
-      { toolId: "CAMEO_RULE_ENGINE", status: "NOT_RUN", outputReference: "", summary: "확인 게이트가 열리기 전에는 실행하지 않습니다." },
-      { toolId: "SERVER_ROUTE_PROVIDER", status: "FALLBACK", outputReference: "ROUTE-DEMO-001", summary: "시연용 경로 fixture를 표시합니다." },
-    ],
-    mapContext: demoMapContext,
-    autonomousRiskDecisionAllowed: false,
-    finalDecisionAuthority: "현장 지휘관",
-    traceIsChainOfThought: false,
-  },
   confirmationGate: {
     incidentConfirmed: false,
     facilityConfirmed: false,
@@ -243,14 +213,6 @@ export function getDemoAnalysis(incidentId = DEMO_INCIDENT_ID): IncidentAnalysis
         { sourceId: "CAMEO-LIMIT", title: "CAMEO Chemicals", sourceUrls: ["https://cameochemicals.noaa.gov/"] },
       ],
     };
-    if (response.agent) {
-      response.agent.phase = "CONFLICT_SCREENING_COMPLETE";
-      response.agent.currentObjective = "결정 규칙 결과와 공식 근거를 현장 지휘관에게 제시합니다.";
-      response.agent.nextActions = ["농도·온도·압력과 실제 혼합 여부를 확인하세요.", "지휘관 판단과 대응 내용을 기록으로 저장하세요."];
-      response.agent.workflow = response.agent.workflow.map((step) => step.stepId === "ON_SITE_CONFIRMATION" || step.stepId === "CONFLICT_SCREENING"
-        ? { ...step, status: "COMPLETED", detail: "시연 확인과 규칙 실행을 완료했습니다." }
-        : step);
-    }
   } else {
     const missingConfirmations: Array<"incident_cas" | "facility_cas"> = [];
     if (!incidentConfirmed) missingConfirmations.push("incident_cas");

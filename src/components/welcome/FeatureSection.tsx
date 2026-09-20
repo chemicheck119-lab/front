@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
-import { Bot, BookOpenCheck, CircleCheck, FileAudio, FileText } from "lucide-react";
+import { BookOpenCheck, CircleCheck, ClipboardCheck, FileAudio, FileText } from "lucide-react";
 import "../../styles/welcome.css";
 
 const features = [
   ["01", "신고·현장 정보 통합", "신고 내용과 위치, 시설 맥락", FileText],
   ["02", "음성·ClawOps 연계", "전화 전사 초안과 음성 입력", FileAudio],
-  ["03", "현장대응 분석 에이전트", "사고 분석부터 충돌 검토까지", Bot],
+  ["03", "현장 대응 브리프", "확인된 사실과 다음 행동", ClipboardCheck],
   ["04", "공식 근거 연결", "KOSHA·CAMEO와 확인 자료", BookOpenCheck],
   ["05", "대응 기록 관리", "확인 과정과 판단의 기록", FileText],
 ] as const;
@@ -47,7 +47,7 @@ export default function FeatureSection() {
           <div className="product-panel-steps">
             <div><CircleCheck size={15} /> 신고 분석 <b>완료</b></div>
             <div><CircleCheck size={15} /> 공식 근거 탐색 <b>완료</b></div>
-            <div className="pending"><Bot size={15} /> 두 CAS 현장 확인 <b>대기</b></div>
+            <div className="pending"><ClipboardCheck size={15} /> 두 CAS 현장 확인 <b>대기</b></div>
           </div>
         </div>
       </div>

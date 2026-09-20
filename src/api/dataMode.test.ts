@@ -18,7 +18,7 @@ describe("Demo와 Live API 경계", () => {
     const response = await analyzeIncident({ incidentId: "INC-DEMO-TEST", text: "시연 신고" });
 
     expect(response.incidentId).toBe("INC-DEMO-TEST");
-    expect(response.agent?.mapContext.route.status).toBe("DEMO_SIMULATION");
+    expect(response).not.toHaveProperty("agent");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

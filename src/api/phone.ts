@@ -1,23 +1,30 @@
 import { apiConfig } from "./config";
-import { ApiError } from "./client";
+import { ApiError, apiRequest } from "./client";
+import type { PhoneSessionResponse, PhoneTranscriptEvent, PhoneTranscriptReviewRequest } from "./contracts";
+export type { PhoneTranscriptEvent } from "./contracts";
 
 export type PhoneTranscriptPhase = "INTERIM" | "FINAL";
-export type PhoneTranscriptReviewStatus = "INTERIM" | "PENDING_REVIEW";
-
-export interface PhoneTranscriptEvent {
-  eventId: number;
-  incidentId: string;
-  transcriptId: string;
-  callId: string;
-  text: string;
-  language?: string | null;
-  isFinal: boolean;
-  reviewStatus: PhoneTranscriptReviewStatus;
-  receivedAt: string;
-}
+export type PhoneTranscriptReviewStatus = PhoneTranscriptEvent["reviewStatus"];
 
 export interface PhoneTranscriptSubscription {
   close: () => void;
+}
+
+export function createPhoneSession(): Promise<PhoneSessionResponse> {
+  return apiRequest<PhoneSessionResponse>("/api/c2guard/v1/phone-sessions", {
+    method: "POST",
+  });
+}
+
+export function reviewPhoneTranscript(
+  incidentId: string,
+  transcriptId: string,
+  payload: PhoneTranscriptReviewRequest,
+): Promise<PhoneTranscriptEvent> {
+  return apiRequest<PhoneTranscriptEvent>(
+    `/api/c2guard/v1/incidents/${encodeURIComponent(incidentId)}/phone-transcripts/${encodeURIComponent(transcriptId)}/review`,
+    { method: "PUT", body: JSON.stringify(payload) },
+  );
 }
 
 export function subscribeToPhoneTranscripts(
@@ -32,9 +39,20 @@ export function subscribeToPhoneTranscripts(
     `${apiConfig.baseUrl}/api/c2guard/v1/incidents/${encodeURIComponent(incidentId)}/phone-transcripts/stream`,
     { withCredentials: true },
   );
+  const latestRevisionByTranscript = new Map<string, number>();
+  const latestSegmentByCall = new Map<string, number>();
   const handleMessage = (message: MessageEvent<string>) => {
     try {
-      onTranscript(JSON.parse(message.data) as PhoneTranscriptEvent);
+      const event = parsePhoneTranscriptEvent(message.data, incidentId);
+      const knownRevision = latestRevisionByTranscript.get(event.transcriptId) ?? -1;
+      if (event.revision <= knownRevision) return;
+      if (event.revision === 0 && event.segmentIndex != null) {
+        const knownSegment = latestSegmentByCall.get(event.callId) ?? -1;
+        if (event.segmentIndex < knownSegment) return;
+        latestSegmentByCall.set(event.callId, event.segmentIndex);
+      }
+      latestRevisionByTranscript.set(event.transcriptId, event.revision);
+      onTranscript(event);
     } catch {
       onError?.();
     }
@@ -49,3 +67,26 @@ export function subscribeToPhoneTranscripts(
   };
 }
 
+export function parsePhoneTranscriptEvent(payload: string, expectedIncidentId: string): PhoneTranscriptEvent {
+  const value: unknown = JSON.parse(payload);
+  if (!value || typeof value !== "object") throw new Error("invalid phone transcript event");
+  const event = value as Partial<PhoneTranscriptEvent>;
+  const statuses: PhoneTranscriptReviewStatus[] = ["INTERIM", "FINAL_PENDING_REVIEW", "REVIEWED", "ANALYZED"];
+  if (
+    event.incidentId !== expectedIncidentId
+    || typeof event.eventId !== "string"
+    || typeof event.transcriptId !== "string"
+    || typeof event.callId !== "string"
+    || typeof event.text !== "string"
+    || typeof event.isFinal !== "boolean"
+    || typeof event.revision !== "number"
+    || !Number.isSafeInteger(event.revision)
+    || event.revision < 0
+    || !statuses.includes(event.reviewStatus as PhoneTranscriptReviewStatus)
+    || event.eventId !== `${event.transcriptId}:r${event.revision}`
+    || (event.reviewStatus === "INTERIM") === event.isFinal
+  ) {
+    throw new Error("invalid phone transcript event");
+  }
+  return event as PhoneTranscriptEvent;
+}

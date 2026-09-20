@@ -232,6 +232,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/c2guard/v1/phone-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 상황실 전화 접수 세션 생성
+         * @description 인증된 담당자와 관할 상황실에 연결된 서버 소유 incident를 생성합니다.
+         */
+        post: operations["create_phone_session_api_c2guard_v1_phone_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/c2guard/v1/incidents/{incidentId}/phone-transcripts": {
         parameters: {
             query?: never;
@@ -246,6 +266,26 @@ export interface paths {
          * @description 전화 provider가 서버에서 호출합니다. 브라우저 세션이 아니라 X-Phone-Ingress-Token으로 인증하며, chemicheck119.phone-ingress.enabled=false이면 404를 반환합니다. 수신한 전사는 저장 후 SSE로 발행되고 담당자 검토 전에는 안전 판단 근거로 쓰지 않습니다.
          */
         post: operations["ingest_phone_transcript_api_c2guard_v1_incidents__incidentId__phone_transcripts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/incidents/{incidentId}/phone-transcripts/{transcriptId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 최종 전화 전사 수정·승인
+         * @description 사고 접근 권한이 있는 담당자가 FINAL_PENDING_REVIEW 전사를 한 번 수정·승인합니다. expectedRevision 불일치, INTERIM 또는 이미 변경된 전사는 409로 닫힙니다.
+         */
+        put: operations["review_phone_transcript_api_c2guard_v1_incidents__incidentId__phone_transcripts__transcriptId__review_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -426,7 +466,6 @@ export interface components {
         };
         /** DashboardAwaitingAnalysisResponse */
         DashboardAwaitingAnalysisResponse: {
-            agent?: components["schemas"]["DashboardOperationsAgentSnapshot"] | null;
             /** Analysisid */
             analysisId: string;
             confirmationGate: components["schemas"]["DashboardConfirmationGate"];
@@ -473,7 +512,6 @@ export interface components {
         };
         /** DashboardCompletedAnalysisResponse */
         DashboardCompletedAnalysisResponse: {
-            agent?: components["schemas"]["DashboardOperationsAgentSnapshot"] | null;
             /** Analysisid */
             analysisId: string;
             confirmationGate: components["schemas"]["DashboardConfirmationGate"];
@@ -968,13 +1006,17 @@ export interface components {
              * @default MANUAL_TEXT
              * @enum {string}
              */
-            inputType: "MANUAL_TEXT" | "DISPATCH_TEXT" | "VOICE_TRANSCRIPT" | "STRUCTURED_FORM";
+            inputType: "MANUAL_TEXT" | "DISPATCH_TEXT" | "VOICE_TRANSCRIPT" | "PHONE_TRANSCRIPT" | "STRUCTURED_FORM";
             location?: components["schemas"]["DashboardIncidentLocation"] | null;
             /** Occurredat */
             occurredAt?: string | null;
             operationsContext?: components["schemas"]["DashboardOperationsContext"] | null;
             /** Plannedactions */
             plannedActions?: string[];
+            /** @description inputType=PHONE_TRANSCRIPT일 때 서버에서 승인된 전사를 조회하는 ID */
+            phoneTranscriptId?: string | null;
+            /** @description inputType=PHONE_TRANSCRIPT일 때 분석할 REVIEWED revision */
+            phoneTranscriptRevision?: number | null;
             /** Text */
             text: string;
         };
@@ -999,7 +1041,6 @@ export interface components {
         };
         /** DashboardInconclusiveAnalysisResponse */
         DashboardInconclusiveAnalysisResponse: {
-            agent?: components["schemas"]["DashboardOperationsAgentSnapshot"] | null;
             /** Analysisid */
             analysisId: string;
             confirmationGate: components["schemas"]["DashboardConfirmationGate"];
@@ -2018,10 +2059,12 @@ export interface components {
             callId: string;
             isFinal: boolean;
             /**
-             * @description isFinal이면 PENDING_REVIEW(담당자 검토 대기), 아니면 INTERIM.
+             * @description 서버가 강제하는 전사 검토 상태
              * @enum {string}
              */
-            reviewStatus: "PENDING_REVIEW" | "INTERIM";
+            reviewStatus: "INTERIM" | "FINAL_PENDING_REVIEW" | "REVIEWED" | "ANALYZED";
+            /** Format: int64 */
+            revision: number;
             /** Format: date-time */
             acceptedAt: string;
             /** @description 이미 수신한 provider/eventId이면 저장된 결과를 다시 돌려주며 true입니다. */
@@ -2032,8 +2075,8 @@ export interface components {
          * @description SSE 이벤트 phone.transcript의 data 페이로드입니다. SSE id는 eventId와 같습니다.
          */
         DashboardPhoneTranscriptEvent: {
-            /** Format: int64 */
-            eventId: number;
+            /** @description DB에서 복원 가능한 transcriptId:revision 형식의 안정적인 SSE ID */
+            eventId: string;
             incidentId: string;
             transcriptId: string;
             callId: string;
@@ -2041,12 +2084,34 @@ export interface components {
             language?: string | null;
             isFinal: boolean;
             /**
-             * @description isFinal이면 PENDING_REVIEW(담당자 검토 대기), 아니면 INTERIM.
+             * @description 서버가 강제하는 전사 검토 상태
              * @enum {string}
              */
-            reviewStatus: "PENDING_REVIEW" | "INTERIM";
+            reviewStatus: "INTERIM" | "FINAL_PENDING_REVIEW" | "REVIEWED" | "ANALYZED";
+            /** Format: int64 */
+            revision: number;
+            segmentIndex?: number | null;
+            reviewedBy?: string | null;
+            reviewedAt?: string | null;
             /** Format: date-time */
             receivedAt: string;
+        };
+        /** DashboardPhoneTranscriptReviewRequest */
+        DashboardPhoneTranscriptReviewRequest: {
+            text: string;
+            /** Format: int64 */
+            expectedRevision: number;
+        };
+        /** DashboardPhoneSessionResponse */
+        DashboardPhoneSessionResponse: {
+            requestId: string;
+            incidentId: string;
+            stationId: string;
+            stationDisplayName: string;
+            /** @constant */
+            status: "WAITING_FOR_CALL";
+            /** Format: date-time */
+            createdAt: string;
         };
     };
     responses: never;
@@ -3086,6 +3151,40 @@ export interface operations {
             };
         };
     };
+    create_phone_session_api_c2guard_v1_phone_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created phone intake session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardPhoneSessionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ingest_phone_transcript_api_c2guard_v1_incidents__incidentId__phone_transcripts_post: {
         parameters: {
             query?: never;
@@ -3164,6 +3263,61 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DashboardErrorResponse"];
                 };
+            };
+        };
+    };
+    review_phone_transcript_api_c2guard_v1_incidents__incidentId__phone_transcripts__transcriptId__review_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidentId: string;
+                transcriptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardPhoneTranscriptReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description REVIEWED revision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardPhoneTranscriptEvent"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Transcript not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not final or revision conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

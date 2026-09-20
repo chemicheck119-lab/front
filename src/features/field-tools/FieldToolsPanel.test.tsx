@@ -20,8 +20,6 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof FieldToolsPa
     station: "경기 수원소방서",
     dispatchContact: { name: "경기 상황실", phone: "" },
     dataMode: "DEMO_SIMULATION",
-    gpsLabel: "시연 위치",
-    gpsDetail: "실제 GPS가 아닙니다",
     analysis: null,
     incidentId: null,
     messages,
@@ -46,12 +44,21 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof FieldToolsPa
 }
 
 describe("좌측 현장 도구", () => {
+  it("시스템 안내 없이 시작된 첫 신고도 누락하지 않고 저장 상태를 구분한다", () => {
+    renderPanel({ messages: [messages[1]], recordSaved: true, syntheticMode: true });
+    expect(screen.getByText("시연 저장 완료")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /현재 사고 기록/ }));
+    expect(screen.getByText("저장탱크 누출 의심")).toBeInTheDocument();
+    expect(screen.queryByText("신고를 접수하면 기록이 시작됩니다.")).not.toBeInTheDocument();
+  });
+
   it("상황실 번호가 없을 때 가짜 전화 링크 대신 설정 필요 상태를 표시한다", () => {
     renderPanel();
 
     fireEvent.click(screen.getByRole("button", { name: /상황실 연결/ }));
 
     expect(screen.getByRole("dialog", { name: "상황실 연결" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "상황실 연결" }).parentElement).toBe(document.body);
     expect(screen.getByText("운영 연락처 미설정")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /전화 연결/ })).not.toBeInTheDocument();
   });
@@ -153,6 +160,13 @@ describe("좌측 현장 도구", () => {
     expect(screen.getAllByText("미저장 2건")).toHaveLength(2);
     fireEvent.click(screen.getByRole("button", { name: "현재 대응 기록 저장" }));
     expect(onRequestSave).toHaveBeenCalledOnce();
+  });
+
+  it("지도 대신 사고 확인과 기록에 집중하는 운영 상태를 표시한다", () => {
+    renderPanel();
+
+    expect(screen.getByRole("complementary", { name: "현장 도구" })).toHaveTextContent("현재 사고의 확인 상태와 대응 기록에 집중합니다.");
+    expect(screen.queryByText(/GPS|현재 위치/)).not.toBeInTheDocument();
   });
 
   it("record API가 준비되지 않아도 내역 조회는 유지하고 저장만 명시적으로 막는다", () => {

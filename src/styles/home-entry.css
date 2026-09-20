@@ -1,0 +1,82 @@
+/* 기존 히어로 구도·배경은 공유 스타일을 사용하고 전화 영역만 대비를 높인다. */
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent {
+  padding: 12px;
+  border: 1px solid #efd4bf;
+  border-radius: 8px;
+  background: #fff6ef;
+}
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone { padding: 0; gap: 10px !important; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone > span { flex: none; width: 34px !important; height: 34px !important; box-shadow: none !important; }
+.phone-accent-home .phone-entry-number { min-width: 0; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone small,
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone em { color: #56697a !important; font-size: 9px; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone strong { color: #183b63 !important; font-size: clamp(18px, 1.6vw, 22px); line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone a {
+  flex: none;
+  gap: 7px;
+  min-height: 44px !important;
+  padding: 0 13px !important;
+  border: 1px solid #b64b20 !important;
+  border-radius: 7px !important;
+  background: #b64b20 !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  white-space: nowrap;
+  transition: background-color .2s, box-shadow .2s;
+}
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone a:hover { background: #983c18 !important; box-shadow: 0 0 0 3px rgba(182,75,32,.12) !important; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-disclaimer { margin: 8px 0 12px; color: #526b80 !important; font-size: 9px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+.phone-accent-home .phone-entry-disclaimer strong { color: #8b4d2f; margin-right: 8px; }
+.phone-accent-home .phone-entry-disclaimer > span { display: inline; }
+.phone-accent-home .home-entry-station { scroll-margin-top: 24px; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .mvp-entry-title small { color: #183b63 !important; font-size: 11px; font-weight: 800; }
+.phone-accent-home .mvp-entry-title h2 { margin: 5px 0 0; color: #17212b; font-size: 17px; line-height: 1.5; word-break: keep-all; }
+.phone-accent-home .home-entry-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
+.phone-accent-home .home-entry-fields > div { min-width: 0; }
+.phone-accent-home .home-entry-fields > button { grid-column: 1 / -1; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .home-entry-fields select { min-width: 0; min-height: 44px !important; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .home-entry-fields select:disabled { background: #f7f9fb !important; color: #61778a !important; cursor: not-allowed; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .mvp-start-button { min-height: 44px; margin-top: 5px; background: #183b63 !important; cursor: pointer; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .mvp-start-button:hover:not(:disabled) { background: #244f7e !important; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .mvp-start-button:disabled { background: #f3d9cd !important; color: #80513c !important; box-shadow: none !important; opacity: 1; cursor: not-allowed; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .home-entry-selection { margin: 6px 0 0; color: #526b80 !important; font-size: 10px; text-align: center; }
+.phone-accent-home .home-entry-selection:empty { display: none; }
+/* 제목과 본문을 한 행으로 압축하지 않는다. */
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .home-entry-brief { display: block !important; min-width: 0; background: #f7f9fb !important; word-break: keep-all; overflow-wrap: anywhere; }
+.phone-accent-home .home-entry-brief-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; }
+.phone-accent-home .home-entry-brief h2 { margin: 0; color: #183b63; font-size: 11px; line-height: 1.5; font-weight: 800; }
+.phone-accent-home .home-entry-brief-heading small { font-size: 8px; }
+.welcome-page.landing-v2 > .first-slide.phone-accent-home .open-secondary-cta { color: #183b63 !important; background: rgba(255,255,255,.5) !important; }
+.phone-accent-home :is(a, button, select):focus-visible { outline: 3px solid #246b9e; outline-offset: 4px; }
+.phone-accent-home .hero-mvp-foot svg { flex: none; }
+
+@media (min-width: 601px) {
+  .phone-accent-home .home-entry-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; }
+}
+
+@media (max-width: 1100px) {
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .first-slide-content { width: calc(100% - 48px) !important; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr) !important; gap: 28px !important; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .first-slide-heading h1 { font-size: clamp(30px, 3.55vw, 40px) !important; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone > span { display: none !important; }
+}
+@media (max-width: 900px) {
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .first-slide-content { display: flex !important; flex-direction: column !important; width: min(660px, calc(100% - 40px)) !important; min-height: 0 !important; padding: 32px 0 48px !important; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .first-slide-heading { width: 100% !important; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .first-slide-heading h1 { font-size: clamp(26px, 6.8vw, 42px) !important; word-break: keep-all; overflow-wrap: anywhere; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .hero-mvp { grid-column: auto; grid-row: auto; max-width: none !important; margin: 0 !important; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone > span { display: grid !important; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone strong { font-size: 23px; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .first-slide-actions { flex-wrap: wrap; gap: 8px !important; }
+}
+@media (max-width: 480px) {
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .hero-mvp { padding: 12px !important; box-shadow: 6px 8px 0 rgba(216,225,232,.72) !important; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .mvp-entry-card { padding: 10px !important; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone { display: grid !important; grid-template-columns: 34px minmax(0, 1fr); }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone strong { font-size: 21px; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone em { white-space: normal; font-size: 8px; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .phone-entry-accent .mvp-entry-phone a { grid-column: 1 / -1; width: 100%; margin: 0; }
+  .welcome-page.landing-v2 > .first-slide.phone-accent-home .hero-mvp-location { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .phone-accent-home .phone-entry-accent a { transition: none !important; }
+}
