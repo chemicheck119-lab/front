@@ -3,10 +3,22 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import WelcomePage from "../../pages/WelcomePage";
 import { PHONE_ENTRY } from "./phoneEntry";
+import type { HTMLAttributes } from "react";
+
+const motionPreference = vi.hoisted(() => ({ reduced: false }));
+vi.mock("framer-motion", () => ({
+  useReducedMotion: () => motionPreference.reduced,
+  motion: {
+    div: ({ initial, animate, transition, ...props }: HTMLAttributes<HTMLDivElement> & {
+      initial?: unknown; animate?: unknown; transition?: unknown;
+    }) => <div {...props} data-motion={JSON.stringify({ initial, animate, transition })} />,
+  },
+}));
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  motionPreference.reduced = false;
 });
 
 function Destination() {
@@ -32,37 +44,21 @@ describe("전화 중심 메인페이지", () => {
     expect(call).toHaveAttribute("href", PHONE_ENTRY.href);
     expect(call).toHaveAccessibleDescription(/실제 긴급 신고는 119/);
     expect(call).toHaveAccessibleDescription(/전화→화면 연결은 검증 중/);
-    expect(screen.getByRole("link", { name: "대응 화면 열기" })).toHaveAttribute("href", "#station-entry");
+    expect(screen.getAllByRole("link", { name: "대응 화면 열기" }).map((link) => link.getAttribute("href"))).toEqual(["/onboarding", "#station-entry"]);
     for (const link of screen.getAllByRole("link").filter((link) => link.getAttribute("href")?.startsWith("tel:"))) {
       expect(link).toHaveAttribute("href", PHONE_ENTRY.href);
     }
   });
 
-  it("번호 복사 성공을 알린다", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal("navigator", { clipboard: { writeText } });
-    renderHome();
-    fireEvent.click(screen.getByRole("button", { name: "번호 복사" }));
-    expect(writeText).toHaveBeenCalledWith(PHONE_ENTRY.display);
-    expect(await screen.findByText("전화번호를 복사했습니다.")).toHaveAttribute("role", "status");
-  });
-
-  it.each(["denied", "unavailable"])("클립보드 %s 시 직접 입력을 안내하고 전화 링크를 유지한다", async (failure) => {
-    vi.stubGlobal("navigator", failure === "denied" ? {
-      clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
-    } : {});
-    renderHome();
-    fireEvent.click(screen.getByRole("button", { name: "번호 복사" }));
-    expect(await screen.findByText("복사할 수 없습니다. 위 번호를 직접 입력해 주세요.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: `전화로 체험하기 ${PHONE_ENTRY.display}` })).toHaveAttribute("href", PHONE_ENTRY.href);
-  });
-
-  it("브리프 제목·본문·검토 안내를 별도 블록으로 제공하고 예시를 실제 결과로 표시하지 않는다", () => {
+  it("브리프 제목·본문을 별도 블록으로 제공하고 중복 설명을 늘리지 않는다", () => {
     renderHome();
     const preview = screen.getByRole("region", { name: "사고 브리프 미리보기" });
     expect(within(preview).getByRole("heading", { level: 2 })).toBeInTheDocument();
     expect(preview.children[1].tagName).toBe("P");
-    expect(within(preview).getByText(/전사 초안은/).tagName).toBe("SPAN");
+    expect(preview.children).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "번호 복사" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/PC에서는 휴대전화로/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/상황실은 신고·전사를 검토하고/)).not.toBeInTheDocument();
     expect(screen.getByText("화면 예시 · 실제 분석 결과 아님")).toBeInTheDocument();
     expect(within(preview).getByText(/신고문을 입력하면 확인할 사항/)).toBeInTheDocument();
     expect(screen.queryByText("LIVE PREVIEW")).not.toBeInTheDocument();
@@ -75,28 +71,28 @@ describe("전화 중심 메인페이지", () => {
     expect(within(entry).getByLabelText("지역")).toBeVisible();
     expect(within(entry).getByLabelText("소방서")).toBeVisible();
     expect(entry.closest("details")).toBeNull();
-    expect(within(entry).getByText(/상황실은 신고·전사를 검토하고, 소방대원은 대응 근거를 확인합니다/)).toBeInTheDocument();
-    expect(within(entry).getByText(/로그인·권한 확인이나 실시간 전화 연결을 대신하지 않습니다/)).toBeInTheDocument();
+    expect(within(entry).getByText("상황실 모니터링 · 소방대원 대응 지원")).toBeInTheDocument();
     const preview = screen.getByRole("region", { name: "사고 브리프 미리보기" });
     expect(entry.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("전화 체험은 왼쪽 소개 아래, 소방서 선택과 브리프는 오른쪽에 분리한다", () => {
+  it("기존 왼쪽 소개와 오른쪽 통합 카드를 유지하고 전화 강조 영역을 선택 폼 위에 둔다", () => {
     const { container } = renderHome();
-    const content = container.querySelector(".home-entry-layout");
+    const content = container.querySelector(".first-slide-content");
     expect(content).not.toBeNull();
-    const intro = container.querySelector(".home-entry-intro");
-    const panel = container.querySelector(".home-entry-panel");
+    const intro = container.querySelector(".first-slide-heading");
+    const panel = container.querySelector(".hero-mvp");
     const phone = screen.getByRole("region", { name: "시범 신고 전화" });
     const station = screen.getByRole("region", { name: "지역과 소방서를 선택하세요." });
     const preview = screen.getByRole("region", { name: "사고 브리프 미리보기" });
     expect(Array.from(content!.children)).toEqual([intro, panel]);
-    expect(phone.parentElement).toBe(intro);
-    expect(phone.previousElementSibling).toHaveClass("home-entry-description");
-    expect(phone.nextElementSibling).toHaveClass("home-entry-actions");
-    expect(panel).not.toContainElement(phone);
+    expect(intro).not.toContainElement(phone);
+    expect(panel).toContainElement(phone);
+    expect(phone).toHaveClass("phone-entry-accent");
+    expect(phone.parentElement).toBe(station.parentElement);
+    expect(phone.compareDocumentPosition(station) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(phone).getByText("에이전트 신고 전용 · 확인 후 분석")).toBeInTheDocument();
     expect(screen.getAllByRole("region", { name: "시범 신고 전화" })).toHaveLength(1);
-    expect(Array.from(panel!.querySelector(".home-entry-controls")!.children)).toEqual([station]);
     expect(panel).toContainElement(preview);
     expect(station.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(container.querySelector(".home-content")).toBeNull();
@@ -104,6 +100,27 @@ describe("전화 중심 메인페이지", () => {
     expect(within(station).getByRole("button", { name: "대응 화면 열기" }).parentElement).toBe(
       station.querySelector(".home-entry-fields"),
     );
+  });
+
+  it("기존 0.65초 등장과 오른쪽 카드의 지연을 유지한다", () => {
+    const { container } = renderHome();
+    for (const [selector, y, delay] of [[".first-slide-heading", 12, undefined], [".hero-mvp", 18, 0.15]] as const) {
+      const motion = JSON.parse(container.querySelector(selector)!.getAttribute("data-motion")!);
+      expect(motion.initial).toEqual({ opacity: 0, y });
+      expect(motion.animate).toEqual({ opacity: 1, y: 0 });
+      expect(motion.transition).toEqual({ duration: 0.65, ...(delay === undefined ? {} : { delay }) });
+    }
+  });
+
+  it("동작 줄이기 설정에서는 기다리거나 이동하지 않고 바로 표시한다", () => {
+    motionPreference.reduced = true;
+    const { container } = renderHome();
+    for (const selector of [".first-slide-heading", ".hero-mvp"]) {
+      const motion = JSON.parse(container.querySelector(selector)!.getAttribute("data-motion")!);
+      expect(motion.initial).toBe(false);
+      expect(motion.transition.duration).toBe(0);
+      expect(motion.transition.delay ?? 0).toBe(0);
+    }
   });
 
   it("선택하지 않은 상태에서는 폼을 직접 제출해도 이동하지 않는다", () => {
