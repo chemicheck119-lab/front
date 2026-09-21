@@ -40,7 +40,12 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const navigate = useNavigate();
   const region = location.state?.region ?? "지역 미선택";
   const station = session?.stationDisplayName ?? location.state?.station ?? "소방서 미선택";
-  const incidentId = location.state?.incidentId ?? (apiConfig.demoEnabled ? "INC-PUBLIC-DEMO-001" : null);
+  const requestedPhoneIncident = new URLSearchParams(location.search).get("phoneIncident");
+  // This is only a recovery locator, never proof of access or reviewed content.
+  // The authenticated backend authorizes and replays the persisted transcript.
+  const recoveredPhoneIncident = requestedPhoneIncident && /^INC-PHONE-[A-Za-z0-9-]{1,100}$/.test(requestedPhoneIncident)
+    ? requestedPhoneIncident : null;
+  const incidentId = recoveredPhoneIncident ?? location.state?.incidentId ?? (apiConfig.demoEnabled ? "INC-PUBLIC-DEMO-001" : null);
   const [currentIncidentId, setCurrentIncidentId] = useState<string | null>(incidentId);
   const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
   const [incidentText, setIncidentText] = useState("");
@@ -85,6 +90,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           }
         },
         () => setPhoneStreamError(true),
+        () => setPhoneStreamError(false),
       );
     } catch {
       setPhoneStreamError(true);
@@ -124,6 +130,19 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     if ((!session && !isSynthetic) || phoneBusy || busy) return;
     setPhoneBusy(true);
     setError(null);
+    // Do not erase the current report unless preparation actually succeeds.
+    let created: Awaited<ReturnType<typeof createPhoneSession>> | undefined;
+    if (!isSynthetic) {
+      try {
+        created = await createPhoneSession();
+        if (created.incidentId === currentIncidentId) return;
+      } catch (nextError) {
+        setError(nextError instanceof Error ? nextError.message : "전화 접수 세션을 만들지 못했습니다.");
+        return;
+      } finally {
+        setPhoneBusy(false);
+      }
+    }
     setCurrentIncidentId(null);
     setShowRecordForm(false);
     setSelectedIncident("");
@@ -166,8 +185,12 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         setPhoneStreamError(false);
         return;
       }
-      const created = await createPhoneSession();
+      if (!created) return;
       setCurrentIncidentId(created.incidentId);
+      // Store only an opaque incident locator, not caller data or transcript.
+      const search = new URLSearchParams(location.search);
+      search.set("phoneIncident", created.incidentId);
+      navigate({ pathname: location.pathname, search: search.toString() }, { replace: true, state: location.state });
       setPhoneStreamError(false);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "전화 접수 세션을 만들지 못했습니다.");
@@ -403,7 +426,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         <div className="main-header-right">
           <div className={`header-phone-status ${phoneStreamError ? "is-error" : phoneAnalysisReady ? "is-received" : ""}`} aria-label="전화 연결 상태">
             <span className="header-phone-indicator" aria-hidden="true" />
-            <div><strong>{isSynthetic ? "합성 전화 시연" : dispatchContact.phone ? `전화 ${dispatchContact.phone}` : "전화 접수"}</strong><em>{phoneStreamError ? "연결 확인 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</em></div>
+            <div><strong>{isSynthetic ? "합성 전화 시연" : dispatchContact.phone ? `전화 ${dispatchContact.phone}` : "전화 접수"}</strong><em>{phoneStreamError ? "전사 재연결 중" : !currentIncidentId ? "접수 준비 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</em></div>
           </div>
           <div className="record-actions">
             <Dialog open={showRecordForm} onOpenChange={setShowRecordForm}>
@@ -427,7 +450,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           <div className="panel-title"><h2 id="classic-incident-title">현재 사고정보</h2></div>
           <div className="incident-form classic-panel-scroll" aria-label="사고정보 입력 영역" tabIndex={0}>
             <div className="classic-phone-row">
-              <span className="classic-phone-label"><Phone size={17} />{phoneStreamError ? "전사 연결 확인 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</span>
+              <span className="classic-phone-label"><Phone size={17} />{phoneStreamError ? "전사 재연결 중" : !currentIncidentId ? "접수 준비 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</span>
               <button className="chemical-add-button" disabled={(!session && !isSynthetic) || formBusy} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중…" : isSynthetic ? "합성 통화 시작" : phoneTranscript ? "새 전화 접수" : "전화 접수 준비"}</button>
             </div>
             <div className="form-group">
