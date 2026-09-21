@@ -24,6 +24,7 @@ describe("전화 신고에서 현장 확인까지", () => {
     fireEvent.click(screen.getByRole("button", { name: "이 내용으로 승인" }));
     fireEvent.click(screen.getByRole("button", { name: "사고 분석" }));
     await screen.findByRole("button", { name: "사고물질 합성 확인" });
+    expect(screen.getByLabelText("전화 연결 상태")).toHaveTextContent("분석 완료");
     expect(screen.getByRole("textbox", { name: "승인된 신고 내용" })).toHaveAttribute("readonly");
     for (const name of ["현재 사고정보", "초기 대응 분석", "AI 현장 대응 지원"]) expect(screen.getByRole("region", { name })).toBeVisible();
     expect(screen.queryByRole("region", { name: "사고시설" })).not.toBeInTheDocument();

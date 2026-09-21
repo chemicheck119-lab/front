@@ -74,6 +74,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const isSynthetic = apiConfig.demoEnabled;
   const phoneReviewReady = phoneTranscript?.reviewStatus === "FINAL_PENDING_REVIEW";
   const phoneAnalysisReady = phoneTranscript?.reviewStatus === "REVIEWED" || phoneTranscript?.reviewStatus === "ANALYZED";
+  const phoneDisplayStatus = analysis && phoneAnalysisReady ? "ANALYZED" : phoneTranscript?.reviewStatus;
 
   useEffect(() => {
     if (!currentIncidentId || !session) return undefined;
@@ -426,7 +427,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         <div className="main-header-right">
           <div className={`header-phone-status ${phoneStreamError ? "is-error" : phoneAnalysisReady ? "is-received" : ""}`} aria-label="전화 연결 상태">
             <span className="header-phone-indicator" aria-hidden="true" />
-            <div><strong>{isSynthetic ? "합성 전화 시연" : dispatchContact.phone ? `전화 ${dispatchContact.phone}` : "전화 접수"}</strong><em>{phoneStreamError ? "전사 재연결 중" : !currentIncidentId ? "접수 준비 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</em></div>
+            <div><strong>{isSynthetic ? "합성 전화 시연" : dispatchContact.phone ? `전화 ${dispatchContact.phone}` : "전화 접수"}</strong><em>{phoneStreamError ? "전사 재연결 중" : !currentIncidentId ? "접수 준비 필요" : phoneReviewStatusLabel(phoneDisplayStatus)}</em></div>
           </div>
           <div className="record-actions">
             <Dialog open={showRecordForm} onOpenChange={setShowRecordForm}>
@@ -450,7 +451,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           <div className="panel-title"><h2 id="classic-incident-title">현재 사고정보</h2></div>
           <div className="incident-form classic-panel-scroll" aria-label="사고정보 입력 영역" tabIndex={0}>
             <div className="classic-phone-row">
-              <span className="classic-phone-label"><Phone size={17} />{phoneStreamError ? "전사 재연결 중" : !currentIncidentId ? "접수 준비 필요" : phoneReviewStatusLabel(phoneTranscript?.reviewStatus)}</span>
+              <span className="classic-phone-label"><Phone size={17} />{phoneStreamError ? "전사 재연결 중" : !currentIncidentId ? "접수 준비 필요" : phoneReviewStatusLabel(phoneDisplayStatus)}</span>
               <button className="chemical-add-button" disabled={(!session && !isSynthetic) || formBusy} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중…" : isSynthetic ? "합성 통화 시작" : phoneTranscript ? "새 전화 접수" : "전화 접수 준비"}</button>
             </div>
             <div className="form-group">
