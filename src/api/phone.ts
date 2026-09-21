@@ -31,6 +31,7 @@ export function subscribeToPhoneTranscripts(
   incidentId: string,
   onTranscript: (event: PhoneTranscriptEvent) => void,
   onError?: () => void,
+  onConnected?: () => void,
 ): PhoneTranscriptSubscription {
   if (!apiConfig.baseUrl || !apiConfig.authEnabled) {
     throw new ApiError("NOT_READY", "인증된 전화 transcript 스트림이 활성화되지 않았습니다.");
@@ -59,6 +60,7 @@ export function subscribeToPhoneTranscripts(
   };
   stream.addEventListener("phone.transcript", handleMessage);
   stream.onerror = () => onError?.();
+  stream.onopen = () => onConnected?.();
   return {
     close: () => {
       stream.removeEventListener("phone.transcript", handleMessage);

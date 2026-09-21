@@ -21,6 +21,31 @@ function completeAnalysis() {
 }
 
 describe("현장 중심의 단순 브리프", () => {
+  it("물질 미상일 때 검색 근거를 물질 후보로 취급하지 않고 확인할 정보만 안내한다", () => {
+    const analysis = getDemoAnalysis();
+    analysis.substanceCandidates = [];
+    analysis.facilityHistory.candidates = [];
+    renderBrief({ panel: "response", analysis });
+    expect(screen.getByRole("heading", { name: "물질 미상 · 추가 확인 필요" })).toBeVisible();
+    expect(screen.getByText("용기 라벨·현장 MSDS에서 물질명과 CAS를 확인하세요.")).toBeVisible();
+    expect(screen.queryByRole("region", { name: "충돌 검토 결과" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /현장 확인/ })).not.toBeInTheDocument();
+  });
+  it("원래 분석 패널에는 확인한 물질을 유지하고 대응 결과를 중복 표시하지 않는다", () => {
+    renderBrief({ panel: "materials", analysis: completeAnalysis() });
+    expect(screen.getByRole("region", { name: "사고물질 확인" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "시설물질 확인" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "충돌 검토 결과" })).not.toBeInTheDocument();
+  });
+
+  it("분리된 대응 지원 패널도 두 CAS 확인 전에는 결과를 표시하지 않는다", () => {
+    const analysis = completeAnalysis();
+    analysis.confirmationGate.facilityConfirmed = false;
+    renderBrief({ panel: "response", analysis });
+    expect(screen.getByText("물질 확인 후 제공됩니다")).toBeVisible();
+    expect(screen.queryByRole("region", { name: "충돌 검토 결과" })).not.toBeInTheDocument();
+  });
+
   it("확인 전에는 물질 2개와 다음 확인만 보여주고 결과·근거 요약을 숨긴다", () => {
     const props = renderBrief();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("물질 2개를 확인하세요");
