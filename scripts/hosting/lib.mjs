@@ -31,6 +31,24 @@ export function assertPinnedConfig(config) {
       && /^[a-z0-9-]+$/.test(run.tag ?? ""), "현재 BFF rewrite의 고정 tag를 확인할 수 없습니다.");
   }
   assert(config.rewrites.some((r) => r.glob === "**" && r.path === "/index.html"), "SPA fallback이 필요합니다.");
+  assert(config.rewrites.find(r => r.glob === "/api/**").run.tag
+    === config.rewrites.find(r => r.glob === "/auth/**").run.tag, "API와 인증은 같은 BFF revision이어야 합니다.");
+}
+
+// Explicit release input only: preserve every setting except both BFF tags.
+export function withBffTag(config, tag) {
+  assertPinnedConfig(config);
+  if (!tag) return structuredClone(config);
+  assert(/^candidate-[a-f0-9]{7}-[1-9][0-9]*$/.test(tag), "검증된 candidate BFF tag가 필요합니다.");
+  const next = structuredClone(config);
+  for (const rule of next.rewrites) if (["/api/**", "/auth/**"].includes(rule.glob)) rule.run.tag = tag;
+  assertPinnedConfig(next);
+  return next;
+}
+
+export function assertCandidateConfig(candidate, baseline) {
+  const expected = withBffTag(baseline, candidate.labels?.["bff-tag"]);
+  assert(configHash(candidate.config) === configHash(expected), "승인한 BFF tag 외 Hosting 설정 변경 감지");
 }
 export function assertBaseline(live, expected) {
   assert(live.version?.name === expected, "운영 버전이 변경됐습니다. 최신 운영 기준으로 다시 준비하세요.");

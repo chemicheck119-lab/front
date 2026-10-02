@@ -1,4 +1,5 @@
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { withBffTag, assertCandidateConfig } from "./lib.mjs";
 import { allFiles, assert, assertBaseline, assertPinnedConfig, assertStorageBudget, checkRetainedAssets, collectBundle, configHash, createPreview, hostingClient, liveRelease, mergeAssets, promoteSafely, reuseEquivalentAssets, sha256, SITE, LIVE_ORIGIN, smoke, smokePreview, uploadBlobs, versionId, versionName } from "./lib.mjs";
 
 const mode = process.argv[2];
@@ -23,6 +24,8 @@ if (mode === "inspect") {
   if (mode === "preview") {
     const commit = process.env.GITHUB_SHA;
     assert(/^[a-f0-9]{40}$/.test(commit ?? ""), "commit SHA가 필요합니다.");
+    const targetTag = process.env.TARGET_BFF_TAG || "";
+    const candidateConfig = withBffTag(base.config, targetTag);
     const bundle = await collectBundle("dist/hosting");
     assertStorageBudget(base.versionBytes, bundle.bytes);
     const channels = await api(`${SITE}/channels?pageSize=100`);
@@ -32,7 +35,8 @@ if (mode === "inspect") {
     const files = mergeAssets(await reuseEquivalentAssets(bundle, previous), previous);
     const channel = `ci-${run}-${attempt}`;
     const version = await api(`${SITE}/versions`, "POST", {
-      config: base.config, labels: { "managed-by": "front-actions", commit, "base-version": versionId(base.name), channel },
+      config: candidateConfig, labels: { "managed-by": "front-actions", commit, "base-version": versionId(base.name), channel,
+        ...(targetTag ? { "bff-tag": targetTag } : {}) },
     });
     versionId(version.name);
     const upload = await api(`${version.name}:populateFiles`, "POST", { files });
@@ -43,7 +47,7 @@ if (mode === "inspect") {
     const report = await smokePreview(origin, sha256(await readFile("dist/hosting/index.html")));
     assertBaseline(await liveRelease(api), base.name);
     await output({ status: "preview-verified", version: versionId(version.name), expectedLiveVersion: versionId(base.name), commit,
-      previewUrl: origin, configHash: configHash(base.config), manifestHash: sha256(JSON.stringify(files)),
+      previewUrl: origin, configHash: configHash(candidateConfig), bffTag: candidateConfig.rewrites.find(r => r.glob === "/api/**").run.tag, manifestHash: sha256(JSON.stringify(files)),
       newBytes: bundle.bytes, retainedAssetCount: Object.keys(files).length - Object.keys(bundle.files).length, ...report });
   } else {
     const target = versionName(process.env.TARGET_VERSION);
@@ -57,7 +61,7 @@ if (mode === "inspect") {
     if (mode === "promote") {
       assert(candidate.labels?.["managed-by"] === "front-actions", "이 파이프라인이 만든 후보가 아닙니다.");
       assert(candidate.labels?.["base-version"] === versionId(expected), "오래된 운영 기준으로 만든 후보입니다.");
-      assert(configHash(candidate.config) === configHash(base.config), "미리보기 이후 Hosting/BFF 설정 변경 감지");
+      assertCandidateConfig(candidate, base.config);
       const channel = candidate.labels?.channel;
       assert(/^ci-\d+-\d+$/.test(channel ?? ""), "후보 channel이 유효하지 않습니다.");
       const state = await api(`${SITE}/channels/${channel}`);

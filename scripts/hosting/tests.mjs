@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, writeFile, symlink, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { withBffTag, assertCandidateConfig } from "./lib.mjs";
 import { assertBaseline, assertPinnedConfig, assertStorageBudget, assetPaths, collectBundle, configHash, hostingErrorDetail, mergeAssets, promoteSafely, reuseEquivalentAssets, sha256, SITE, smoke, smokePreview, versionId, versionName } from "./lib.mjs";
 
 test("새 미리보기의 일시적 404/503만 같은 hash로 재검증한다", async () => {
@@ -57,6 +58,22 @@ test("Hosting 오류는 제한된 설명만 기록하고 토큰·제어 문자�
   assert.equal(hostingErrorDetail({ error: { message: {} } }), "");
 });
 test("고정된 BFF·SPA 설정만 허용한다", () => assert.doesNotThrow(() => assertPinnedConfig(config)));
+test("명시한 BFF candidate만 API·로그인에 함께 고정한다", () => {
+  const candidate = withBffTag(config, "candidate-123abcd-1");
+  assert.equal(candidate.rewrites[0].run.tag, "candidate-123abcd-1");
+  assert.equal(candidate.rewrites[1].run.tag, "candidate-123abcd-1");
+  assert.equal(config.rewrites[0].run.tag, "candidate-fixed");
+  assert.deepEqual(candidate.rewrites[2], config.rewrites[2]);
+  assert.throws(() => withBffTag(config, "arbitrary-production-tag"));
+  assert.doesNotThrow(() => assertCandidateConfig({ config: candidate, labels: { "bff-tag": "candidate-123abcd-1" } }, config));
+  candidate.headers = [{ glob: "**", headers: [{ key: "X-Test", value: "changed" }] }];
+  assert.throws(() => assertCandidateConfig({ config: candidate, labels: { "bff-tag": "candidate-123abcd-1" } }, config));
+});
+test("API와 로그인 revision이 다른 후보는 거부한다", () => {
+  const mismatched = structuredClone(config);
+  mismatched.rewrites[1].run.tag = "candidate-other";
+  assert.throws(() => assertPinnedConfig(mismatched));
+});
 for (const field of ["tag", "region", "serviceId"]) test(`BFF ${field} 누락 차단`, () => {
   const bad = structuredClone(config); delete bad.rewrites[0].run[field];
   assert.throws(() => assertPinnedConfig(bad));

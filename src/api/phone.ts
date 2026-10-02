@@ -16,6 +16,18 @@ export function createPhoneSession(): Promise<PhoneSessionResponse> {
   });
 }
 
+export function getPhoneSession(incidentId: string): Promise<PhoneSessionResponse> {
+  return apiRequest(`/api/c2guard/v1/phone-sessions/${encodeURIComponent(incidentId)}`);
+}
+
+export function renewPhoneSession(incidentId: string): Promise<PhoneSessionResponse> {
+  return apiRequest(`/api/c2guard/v1/phone-sessions/${encodeURIComponent(incidentId)}/heartbeat`, { method: "POST" });
+}
+
+export function cancelPhoneSession(incidentId: string): Promise<PhoneSessionResponse> {
+  return apiRequest(`/api/c2guard/v1/phone-sessions/${encodeURIComponent(incidentId)}`, { method: "DELETE" });
+}
+
 export function reviewPhoneTranscript(
   incidentId: string,
   transcriptId: string,
@@ -31,6 +43,7 @@ export function subscribeToPhoneTranscripts(
   incidentId: string,
   onTranscript: (event: PhoneTranscriptEvent) => void,
   onError?: () => void,
+  onConnected?: () => void,
 ): PhoneTranscriptSubscription {
   if (!apiConfig.baseUrl || !apiConfig.authEnabled) {
     throw new ApiError("NOT_READY", "인증된 전화 transcript 스트림이 활성화되지 않았습니다.");
@@ -59,6 +72,7 @@ export function subscribeToPhoneTranscripts(
   };
   stream.addEventListener("phone.transcript", handleMessage);
   stream.onerror = () => onError?.();
+  stream.onopen = () => onConnected?.();
   return {
     close: () => {
       stream.removeEventListener("phone.transcript", handleMessage);

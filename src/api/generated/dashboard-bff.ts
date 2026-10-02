@@ -243,9 +243,51 @@ export interface paths {
         put?: never;
         /**
          * 상황실 전화 접수 세션 생성
-         * @description 인증된 담당자와 관할 상황실에 연결된 서버 소유 incident를 생성합니다.
+         * @description 인증된 담당자와 로그인 세션의 서버 소유 incident를 준비합니다. 동일 로그인 세션의 대기/통화를 재사용하며 다른 접수 화면이 점유하면 409를 반환합니다. 대기는 heartbeat로 갱신해야 합니다.
          */
         post: operations["create_phone_session_api_c2guard_v1_phone_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/phone-sessions/{incidentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        /** 현재 로그인 소유의 전화 접수 상태 조회 */
+        get: operations["get_phone_session_status"];
+        put?: never;
+        post?: never;
+        /** 전화 대기 종료 (감사 기록 보존) */
+        delete: operations["cancel_phone_waiting_session"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/c2guard/v1/phone-sessions/{incidentId}/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 로그인 소유 전화 대기 유지
+         * @description 유효한 대기만 갱신합니다. 만료·취소·통화·종료 상태를 대기로 되돌리지 않습니다.
+         */
+        post: operations["renew_phone_waiting_lease"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2108,10 +2150,15 @@ export interface components {
             incidentId: string;
             stationId: string;
             stationDisplayName: string;
-            /** @constant */
-            status: "WAITING_FOR_CALL";
+            /** @enum {string} */
+            status: "WAITING_FOR_CALL" | "IN_CALL" | "ENDED" | "EXPIRED" | "CANCELED";
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: date-time
+             * @description 서버가 확정한 대기 만료 시각. 대기 중 authenticated heartbeat가 갱신하며 생성 시각은 보존합니다.
+             */
+            waitingExpiresAt?: string | null;
         };
     };
     responses: never;
@@ -3178,6 +3225,149 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Another console is waiting or in a call */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_phone_session_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authoritative lifecycle and lease expiry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardPhoneSessionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not owned by this login */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancel_phone_waiting_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Waiting canceled; ended calls unchanged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardPhoneSessionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not owned by this login */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Call in progress; cannot cancel */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    renew_phone_waiting_lease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incidentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current state, with renewed expiry only while waiting */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardPhoneSessionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not owned by this login */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Session not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
