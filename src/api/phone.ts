@@ -16,6 +16,18 @@ export function createPhoneSession(): Promise<PhoneSessionResponse> {
   });
 }
 
+export function getPhoneSession(incidentId: string): Promise<PhoneSessionResponse> {
+  return apiRequest(`/api/c2guard/v1/phone-sessions/${encodeURIComponent(incidentId)}`);
+}
+
+export function renewPhoneSession(incidentId: string): Promise<PhoneSessionResponse> {
+  return apiRequest(`/api/c2guard/v1/phone-sessions/${encodeURIComponent(incidentId)}/heartbeat`, { method: "POST" });
+}
+
+export function cancelPhoneSession(incidentId: string): Promise<PhoneSessionResponse> {
+  return apiRequest(`/api/c2guard/v1/phone-sessions/${encodeURIComponent(incidentId)}`, { method: "DELETE" });
+}
+
 export function reviewPhoneTranscript(
   incidentId: string,
   transcriptId: string,

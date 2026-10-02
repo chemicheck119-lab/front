@@ -13,6 +13,9 @@ on:
       version:
         description: '승격·복구 대상 Hosting version ID (preview는 비움)'
         type: string
+      bff_tag:
+        description: 'preview에 연결할 검증된 candidate BFF tag (비우면 현재 운영 연결 유지)'
+        type: string
       expected_live_version:
         description: '현재 운영 version ID (다르면 전환 차단)'
         type: string
@@ -78,6 +81,8 @@ jobs:
           service_account: ${{ vars.HOSTING_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
       - name: 기존 BFF 고정·미리보기 배포·HTTP smoke
+        env:
+          TARGET_BFF_TAG: ${{ inputs.bff_tag }}
         run: node scripts/hosting/release.mjs preview
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

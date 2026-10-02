@@ -6,9 +6,9 @@ import { confirmSubstance, cancelConfirmation } from "../api/confirmations";
 import { discoverSubstances } from "../api/substances";
 import { saveIncidentRecord } from "../api/records";
 import { receiveContestIncident } from "../api/intake";
-import { createPhoneSession, reviewPhoneTranscript, subscribeToPhoneTranscripts } from "../api/phone";
+import { createPhoneSession, getPhoneSession, renewPhoneSession, cancelPhoneSession, reviewPhoneTranscript, subscribeToPhoneTranscripts } from "../api/phone";
 import { apiConfig, runtimeDataMode } from "../api/config";
-import type { IncidentAnalysisResponse, MaterialCandidate, PhoneTranscriptEvent, SessionContextResponse } from "../api/contracts";
+import type { IncidentAnalysisResponse, MaterialCandidate, PhoneSessionResponse, PhoneTranscriptEvent, SessionContextResponse } from "../api/contracts";
 import { resetDemoSession } from "../fixtures/demo";
 import { ResponderBrief, type ConfirmedMaterials } from "../features/incident/ResponderBrief";
 import { FieldToolsPanel, type DispatchPreview, type DispatchStreamStatus, type FieldRecordMessage } from "../features/field-tools/FieldToolsPanel";
@@ -69,12 +69,70 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const [phoneReviewText, setPhoneReviewText] = useState("");
   const [phoneStreamError, setPhoneStreamError] = useState(false);
   const [phoneBusy, setPhoneBusy] = useState(false);
+  const [phoneSession, setPhoneSession] = useState<PhoneSessionResponse | null>(null);
+  const [phoneLeaseError, setPhoneLeaseError] = useState(false);
+  const [phoneNow, setPhoneNow] = useState(Date.now());
 
   const activeIncidentId = analysis?.incidentId ?? currentIncidentId;
   const isSynthetic = apiConfig.demoEnabled;
   const phoneReviewReady = phoneTranscript?.reviewStatus === "FINAL_PENDING_REVIEW";
   const phoneAnalysisReady = phoneTranscript?.reviewStatus === "REVIEWED" || phoneTranscript?.reviewStatus === "ANALYZED";
   const phoneDisplayStatus = analysis && phoneAnalysisReady ? "ANALYZED" : phoneTranscript?.reviewStatus;
+  const phoneInCall = phoneSession?.status !== "ENDED"
+    && (phoneSession?.status === "IN_CALL" || phoneTranscript?.reviewStatus === "INTERIM");
+  const phoneWaiting = phoneSession?.status === "WAITING_FOR_CALL";
+  const phoneLeaseValid = phoneWaiting && Boolean(phoneSession?.waitingExpiresAt)
+    && Date.parse(phoneSession!.waitingExpiresAt!) > phoneNow;
+  const phoneStatusLabel = phoneStreamError ? "전사 재연결 중"
+    : phoneDisplayStatus ? phoneReviewStatusLabel(phoneDisplayStatus)
+    : phoneLeaseError ? "접수 연결 확인 필요"
+    : phoneInCall ? "통화 연결됨 · 전사 대기"
+    : phoneSession?.status === "ENDED" ? "통화 종료 · 수신 전사 없음"
+    : phoneSession?.status === "CANCELED" ? "전화 대기 종료"
+    : phoneSession?.status === "EXPIRED" || (phoneWaiting && !phoneLeaseValid) ? "대기 만료 · 다시 준비"
+    : phoneLeaseValid ? "전화 접수 대기 중"
+    : "접수 준비 필요";
+
+  useEffect(() => {
+    if (isSynthetic || !session || !currentIncidentId?.startsWith("INC-PHONE-")) return;
+    let disposed = false;
+    let pending = false;
+    let finished = false;
+    const refresh = async (renew: boolean) => {
+      if (pending || finished || disposed) return;
+      pending = true;
+      try {
+        const state = await (renew ? renewPhoneSession(currentIncidentId) : getPhoneSession(currentIncidentId));
+        if (disposed) return;
+        if (!state || state.incidentId !== currentIncidentId) throw new Error("전화 접수 상태 불일치");
+        setPhoneSession(state);
+        setPhoneLeaseError(false);
+        finished = ["ENDED", "EXPIRED", "CANCELED"].includes(state.status);
+      } catch {
+        if (!disposed) setPhoneLeaseError(true);
+      } finally { pending = false; }
+    };
+    void refresh(false);
+    // Renew only while the authenticated console is visible. Closed/abandoned
+    // consoles expire on the server; a late heartbeat never resurrects them.
+    const tick = window.setInterval(() => {
+      setPhoneNow(Date.now());
+    }, 1000);
+    const heartbeat = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh(true);
+    }, 20_000);
+    const onVisible = () => {
+      setPhoneNow(Date.now());
+      if (document.visibilityState === "visible") void refresh(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      disposed = true;
+      window.clearInterval(tick);
+      window.clearInterval(heartbeat);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [currentIncidentId, session, isSynthetic]);
 
   useEffect(() => {
     if (!currentIncidentId || !session) return undefined;
@@ -136,6 +194,9 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     if (!isSynthetic) {
       try {
         created = await createPhoneSession();
+        setPhoneSession(created);
+        setPhoneLeaseError(false);
+        setPhoneNow(Date.now());
         if (created.incidentId === currentIncidentId) return;
       } catch (nextError) {
         setError(nextError instanceof Error ? nextError.message : "전화 접수 세션을 만들지 못했습니다.");
@@ -198,6 +259,17 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     } finally {
       setPhoneBusy(false);
     }
+  }
+
+  async function handleStopPhoneWaiting() {
+    if (!currentIncidentId || phoneBusy || phoneInCall) return;
+    setPhoneBusy(true);
+    try {
+      setPhoneSession(await cancelPhoneSession(currentIncidentId));
+      setPhoneLeaseError(false);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "전화 대기를 종료하지 못했습니다.");
+    } finally { setPhoneBusy(false); }
   }
 
   function handleSyntheticCallEnd() {
@@ -427,7 +499,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         <div className="main-header-right">
           <div className={`header-phone-status ${phoneStreamError ? "is-error" : phoneAnalysisReady ? "is-received" : ""}`} aria-label="전화 연결 상태">
             <span className="header-phone-indicator" aria-hidden="true" />
-            <div><strong>{isSynthetic ? "합성 전화 시연" : dispatchContact.phone ? `전화 ${dispatchContact.phone}` : "전화 접수"}</strong><em>{phoneStreamError ? "전사 재연결 중" : !currentIncidentId ? "접수 준비 필요" : phoneReviewStatusLabel(phoneDisplayStatus)}</em></div>
+            <div><strong>{isSynthetic ? "합성 전화 시연" : dispatchContact.phone ? `전화 ${dispatchContact.phone}` : "전화 접수"}</strong><em>{phoneStatusLabel}</em></div>
           </div>
           <div className="record-actions">
             <Dialog open={showRecordForm} onOpenChange={setShowRecordForm}>
@@ -451,9 +523,12 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           <div className="panel-title"><h2 id="classic-incident-title">현재 사고정보</h2></div>
           <div className="incident-form classic-panel-scroll" aria-label="사고정보 입력 영역" tabIndex={0}>
             <div className="classic-phone-row">
-              <span className="classic-phone-label"><Phone size={17} />{phoneStreamError ? "전사 재연결 중" : !currentIncidentId ? "접수 준비 필요" : phoneReviewStatusLabel(phoneDisplayStatus)}</span>
-              <button className="chemical-add-button" disabled={(!session && !isSynthetic) || formBusy} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중…" : isSynthetic ? "합성 통화 시작" : phoneTranscript ? "새 전화 접수" : "전화 접수 준비"}</button>
+              <span className="classic-phone-label"><Phone size={17} />{phoneStatusLabel}</span>
+              {!isSynthetic && phoneLeaseValid ? <button className="chemical-add-button" disabled={phoneBusy || phoneInCall} onClick={() => void handleStopPhoneWaiting()}>대기 종료</button>
+                : <button className="chemical-add-button" disabled={(!session && !isSynthetic) || formBusy || phoneInCall} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중…" : isSynthetic ? "합성 통화 시작" : phoneTranscript ? "새 전화 접수" : "전화 접수 준비"}</button>}
             </div>
+            {!isSynthetic && phoneLeaseValid && <p className="classic-helper">이 화면을 열어 둔 동안 대기를 자동 유지합니다. 대기 종료는 서버 과금 중지가 아닙니다.</p>}
+            {!isSynthetic && !phoneTranscript && (phoneLeaseError || phoneSession?.status === "EXPIRED") && <p className="classic-helper">접수 준비를 다시 확인한 뒤 전화해 주세요. 현재 수신 가능 여부를 보장할 수 없습니다.</p>}
             <div className="form-group">
               <label>사고 유형</label>
               <div className="incident-type-list">{["화재", "누출", "폭발", "구조", "기타"].map((type) => <button key={type} type="button" className={`incident-type-button ${selectedIncident === type ? "selected" : ""}`} aria-pressed={selectedIncident === type} disabled={formBusy || Boolean(phoneTranscript)} onClick={() => setSelectedIncident(selectedIncident === type ? "" : type)}>{type}</button>)}</div>

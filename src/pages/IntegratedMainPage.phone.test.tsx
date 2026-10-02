@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PhoneTranscriptEvent, SessionContextResponse } from "../api/contracts";
-import { createPhoneSession, subscribeToPhoneTranscripts } from "../api/phone";
+import { createPhoneSession, getPhoneSession, renewPhoneSession, cancelPhoneSession, subscribeToPhoneTranscripts } from "../api/phone";
 import IntegratedMainPage from "./IntegratedMainPage";
 
 vi.mock("../api/config", () => ({
@@ -11,6 +11,7 @@ vi.mock("../api/config", () => ({
 }));
 vi.mock("../api/phone", () => ({
   createPhoneSession: vi.fn(), reviewPhoneTranscript: vi.fn(),
+  getPhoneSession: vi.fn(), renewPhoneSession: vi.fn(), cancelPhoneSession: vi.fn(),
   subscribeToPhoneTranscripts: vi.fn(() => ({ close: vi.fn() })),
 }));
 const session: SessionContextResponse = {
@@ -30,7 +31,7 @@ function renderPage(url = "/main") {
 }
 describe("실통화 전사 복원", () => {
   beforeEach(() => vi.clearAllMocks());
-  afterEach(cleanup);
+  afterEach(() => { cleanup(); vi.useRealTimers(); });
 
   it("복원 주소는 서버 전사를 다시 구독하며 승인 전 분석하지 않는다", () => {
     renderPage("/main?phoneIncident=INC-PHONE-test");
@@ -69,5 +70,46 @@ describe("실통화 전사 복원", () => {
   it("유효하지 않은 복원 주소로는 구독하지 않는다", () => {
     renderPage("/main?phoneIncident=not-a-phone-incident");
     expect(subscribeToPhoneTranscripts).not.toHaveBeenCalled();
+  });
+
+  it("접수 대기를 갱신하며 15분 뒤에도 같은 사고를 유지한다", async () => {
+    vi.useFakeTimers();
+    const waiting = { requestId: "REQ-1", incidentId: "INC-PHONE-test", stationId: "test",
+      stationDisplayName: "테스트 소방서", status: "WAITING_FOR_CALL" as const,
+      createdAt: new Date().toISOString(), waitingExpiresAt: new Date(Date.now() + 90_000).toISOString() };
+    vi.mocked(getPhoneSession).mockResolvedValue(waiting);
+    vi.mocked(renewPhoneSession).mockImplementation(async () => ({ ...waiting,
+      waitingExpiresAt: new Date(Date.now() + 90_000).toISOString() }));
+    renderPage("/main?phoneIncident=INC-PHONE-test");
+    await act(async () => {});
+    expect(screen.getByLabelText("전화 연결 상태")).toHaveTextContent("전화 접수 대기 중");
+    await act(async () => { await vi.advanceTimersByTimeAsync(16 * 60_000); });
+    expect(renewPhoneSession).toHaveBeenCalledWith("INC-PHONE-test");
+    expect(screen.getByLabelText("전화 연결 상태")).toHaveTextContent("전화 접수 대기 중");
+    expect(createPhoneSession).not.toHaveBeenCalled();
+  });
+
+  it("갱신 실패·만료 시 수신 가능하다고 표시하지 않는다", async () => {
+    vi.useFakeTimers();
+    vi.mocked(getPhoneSession).mockResolvedValue({ requestId: "REQ-1", incidentId: "INC-PHONE-test", stationId: "test",
+      stationDisplayName: "테스트 소방서", status: "WAITING_FOR_CALL", createdAt: new Date().toISOString(),
+      waitingExpiresAt: new Date(Date.now() + 90_000).toISOString() });
+    vi.mocked(renewPhoneSession).mockRejectedValue(new Error("offline"));
+    renderPage("/main?phoneIncident=INC-PHONE-test");
+    await act(async () => { await vi.advanceTimersByTimeAsync(100_000); });
+    expect(screen.getByLabelText("전화 연결 상태")).not.toHaveTextContent("전화 접수 대기 중");
+    expect(screen.getByRole("button", { name: "전화 접수 준비" })).toBeEnabled();
+  });
+
+  it("대기 종료 후 다시 통화 대기로 복원하지 않는다", async () => {
+    const waiting = { requestId: "REQ-1", incidentId: "INC-PHONE-test", stationId: "test",
+      stationDisplayName: "테스트 소방서", status: "WAITING_FOR_CALL" as const,
+      createdAt: new Date().toISOString(), waitingExpiresAt: new Date(Date.now() + 90_000).toISOString() };
+    vi.mocked(getPhoneSession).mockResolvedValue(waiting);
+    vi.mocked(cancelPhoneSession).mockResolvedValue({ ...waiting, status: "CANCELED", waitingExpiresAt: null });
+    renderPage("/main?phoneIncident=INC-PHONE-test");
+    fireEvent.click(await screen.findByRole("button", { name: "대기 종료" }));
+    await waitFor(() => expect(screen.getByLabelText("전화 연결 상태")).toHaveTextContent("전화 대기 종료"));
+    expect(cancelPhoneSession).toHaveBeenCalledWith("INC-PHONE-test");
   });
 });
