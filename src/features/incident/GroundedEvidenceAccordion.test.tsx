@@ -26,4 +26,16 @@ describe("대응 근거 카드", () => {
   it("확인 전 상태를 위험 결과가 아닌 잠금 안내로 표시한다", () => {
     expect(getRagPresentation("NOT_RUN_REQUIRES_CONFIRMED_PAIR").title).toBe("대응 근거 잠김");
   });
+  it("혼합 규칙만 있으면 물질별 대응 자료가 없음을 구분한다", () => {
+    const { container } = render(<GroundedEvidenceAccordion rag={{
+      status: "FALLBACK_EXTRACTIVE",
+      statements: [{ text: "혼합 규칙 결과", sourceIds: ["RULE_RESULT"] }],
+      citations: [{ sourceId: "RULE_RESULT", title: "규칙 근거", sourceUrls: ["https://cameochemicals.noaa.gov/reactivity"] }],
+      riskDecisionSource: "DETERMINISTIC_CAMEO_RULE_ENGINE",
+    }} />);
+    expect(screen.getByText("혼합 위험 참고정보")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("물질별 대응 자료는 연결되지 않았습니다.");
+    expect(container).not.toHaveTextContent("물질별 대응 참고정보");
+  });
+
 });

@@ -76,17 +76,21 @@ export function GroundedEvidenceAccordion({ rag }: { rag: GroundedRagResult | nu
   const presentation = getRagPresentation(rag.status);
   const hasStatements = (rag.status === "COMPLETED" || rag.status === "FALLBACK_EXTRACTIVE") && rag.statements.length > 0;
 
+  const onlyRuleEvidence = hasStatements && rag.statements.every((statement) =>
+    statement.sourceIds.length > 0 && statement.sourceIds.every((sourceId) => sourceId === "RULE_RESULT"));
+
   return (
     <details open={hasStatements} className="overflow-hidden rounded-xl border border-border bg-secondary/30">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
           <BookOpenCheck size={14} className="text-blue-600" />
-          <span><span className="block text-[13px] font-bold">물질별 대응 참고정보</span><span className="block text-xs text-muted-foreground">{presentation.title}</span></span>
+          <span><span className="block text-[13px] font-bold">{onlyRuleEvidence ? "혼합 위험 참고정보" : "물질별 대응 참고정보"}</span><span className="block text-xs text-muted-foreground">{presentation.title}</span></span>
         </span>
         <span className="rounded-full bg-blue-500/10 px-2 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">{hasStatements ? `${rag.statements.length}개 근거 문장` : "상태 안내"}</span>
       </summary>
       <div className="space-y-2 border-t border-border p-3">
         <p className="text-xs leading-relaxed text-muted-foreground">{presentation.detail}</p>
+        {onlyRuleEvidence && <p role="status" className="text-xs leading-relaxed text-muted-foreground">물질별 대응 자료는 연결되지 않았습니다. 현장 제품의 원문 MSDS를 확인해주세요.</p>}
         {hasStatements ? rag.statements.slice(0, 3).map((statement, index) => (
           <article key={`${index}-${statement.text}`} className="rounded-lg border border-border bg-card p-3">
             <p className="text-[13px] leading-relaxed">{statement.text}</p>
