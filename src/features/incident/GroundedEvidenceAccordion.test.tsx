@@ -18,6 +18,7 @@ describe("대응 근거 카드", () => {
     render(<GroundedEvidenceAccordion rag={rag} />);
 
     expect(screen.getByText("공식 근거에 연결된 대응 문장")).toBeInTheDocument();
+    expect(screen.getByText("공식 근거에 연결된 대응 문장").closest("details")).toHaveAttribute("open");
     expect(screen.getByRole("link", { name: /CAMEO 원문/ })).toHaveAttribute("href", "https://cameo.example/source");
     expect(screen.queryByRole("link", { name: /사용하지 않은 근거/ })).not.toBeInTheDocument();
   });

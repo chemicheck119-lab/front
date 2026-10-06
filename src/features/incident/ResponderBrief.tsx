@@ -100,10 +100,10 @@ export function ResponderBrief({ panel = "combined", analysis, busy, synthetic, 
           {complete.requiredChecks.length > 3 && <details className="focus-disclosure"><summary>추가 확인 {complete.requiredChecks.length - 3}건</summary><ul>{complete.requiredChecks.slice(3).map((check, index) => <li key={`${index}-${check}`}>{check}</li>)}</ul></details>}
           <p className="focus-authority">최종 판단은 현장 지휘관이 합니다.</p>
         </section>
+        <GroundedEvidenceAccordion rag={analysis.groundedRag} />
         <details className="focus-disclosure focus-evidence" aria-label="근거와 제한사항"><summary>공식 근거·제한사항 보기 <ChevronRight size={18} /></summary><div className="focus-detail-content">
           {complete.limitations.map((item, index) => <p className="focus-notice" key={`${index}-${item}`}>{item}</p>)}
           <div className="focus-source-links">{complete.evidenceUrls.map((url, index) => { const safe = resolveOfficialSourceUrl(url); return safe ? <a key={`${index}-${safe}`} href={safe} target="_blank" rel="noreferrer">공식 근거 {index + 1} <ExternalLink size={15} /></a> : null; })}</div>
-          <GroundedEvidenceAccordion rag={analysis.groundedRag} />
         </div></details>
         {panel === "combined" && <details className="focus-disclosure" aria-label="확인한 물질"><summary>확인한 물질 보기·수정 <ChevronRight size={18} /></summary><div className="focus-detail-content">{materials}</div></details>}
       </> : <>

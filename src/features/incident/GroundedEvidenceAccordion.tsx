@@ -68,7 +68,7 @@ export function GroundedEvidenceAccordion({ rag }: { rag: GroundedRagResult | nu
     return (
       <section className="rounded-xl border border-dashed border-border bg-secondary/30 p-3">
         <p className="flex items-center gap-1.5 text-[13px] font-semibold"><FileWarning size={13} /> 대응 근거 응답 없음</p>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">현재 분석 응답에 groundedRag가 없습니다. 원문 MSDS를 직접 확인해주세요.</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">연결된 대응 자료가 없습니다. 현장 제품의 원문 MSDS를 확인해주세요.</p>
       </section>
     );
   }
@@ -77,17 +77,17 @@ export function GroundedEvidenceAccordion({ rag }: { rag: GroundedRagResult | nu
   const hasStatements = (rag.status === "COMPLETED" || rag.status === "FALLBACK_EXTRACTIVE") && rag.statements.length > 0;
 
   return (
-    <details className="overflow-hidden rounded-xl border border-border bg-secondary/30">
+    <details open={hasStatements} className="overflow-hidden rounded-xl border border-border bg-secondary/30">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
           <BookOpenCheck size={14} className="text-blue-600" />
-          <span><span className="block text-[13px] font-bold">대응 근거</span><span className="block text-xs text-muted-foreground">{presentation.title}</span></span>
+          <span><span className="block text-[13px] font-bold">물질별 대응 참고정보</span><span className="block text-xs text-muted-foreground">{presentation.title}</span></span>
         </span>
         <span className="rounded-full bg-blue-500/10 px-2 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">{hasStatements ? `${rag.statements.length}개 근거 문장` : "상태 안내"}</span>
       </summary>
       <div className="space-y-2 border-t border-border p-3">
         <p className="text-xs leading-relaxed text-muted-foreground">{presentation.detail}</p>
-        {hasStatements ? rag.statements.map((statement, index) => (
+        {hasStatements ? rag.statements.slice(0, 3).map((statement, index) => (
           <article key={`${index}-${statement.text}`} className="rounded-lg border border-border bg-card p-3">
             <p className="text-[13px] leading-relaxed">{statement.text}</p>
             <StatementSources sourceIds={statement.sourceIds} rag={rag} />
@@ -95,6 +95,13 @@ export function GroundedEvidenceAccordion({ rag }: { rag: GroundedRagResult | nu
         )) : (
           <div className="rounded-lg bg-card p-3 text-xs leading-relaxed text-muted-foreground">{presentation.detail}</div>
         )}
+        {hasStatements && rag.statements.length > 3 && <details>
+          <summary className="cursor-pointer text-xs">추가 자료 {rag.statements.length - 3}건 보기</summary>
+          {rag.statements.slice(3).map((statement, index) => <article key={`${index}-${statement.text}`} className="rounded-lg border border-border bg-card p-3">
+            <p className="text-[13px] leading-relaxed">{statement.text}</p>
+            <StatementSources sourceIds={statement.sourceIds} rag={rag} />
+          </article>)}
+        </details>}
         <div className="rounded-lg bg-muted/70 p-2 text-xs leading-relaxed text-muted-foreground">
           위험등급은 대응 근거 요약이 아니라 결정 규칙 결과에서만 표시합니다.
           {rag.usedLlm === false ? " 이 내용은 공식 근거 발췌 요약입니다." : ""}
