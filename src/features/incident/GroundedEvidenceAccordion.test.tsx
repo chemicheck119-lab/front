@@ -38,4 +38,15 @@ describe("대응 근거 카드", () => {
     expect(container).not.toHaveTextContent("물질별 대응 참고정보");
   });
 
+  it("노출 경로와 자료 누락 안내를 숨기지 않는다", () => {
+    const { container } = render(<GroundedEvidenceAccordion rag={{
+      status: "FALLBACK_EXTRACTIVE",
+      statements: [{ text: "보호구 참고자료", sourceIds: ["PPE"] }],
+      citations: [{ sourceId: "PPE", title: "보호구", sourceUrls: ["https://www.data.go.kr/data/15157612/openapi.do"] }],
+      limitations: ["자료 확인: 노출 경로를 확인해주세요.", "자료 확인: 응급조치 자료가 연결되지 않았습니다."],
+    }} />);
+    expect(container).toHaveTextContent("노출 경로를 확인해주세요.");
+    expect(container).toHaveTextContent("응급조치 자료가 연결되지 않았습니다.");
+  });
+
 });

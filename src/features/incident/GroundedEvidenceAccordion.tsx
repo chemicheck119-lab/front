@@ -90,6 +90,7 @@ export function GroundedEvidenceAccordion({ rag }: { rag: GroundedRagResult | nu
       </summary>
       <div className="space-y-2 border-t border-border p-3">
         <p className="text-xs leading-relaxed text-muted-foreground">{presentation.detail}</p>
+        {(rag.limitations ?? []).filter((note) => note.startsWith("자료 확인:")).map((note) => <p key={note} role="status" className="text-xs leading-relaxed text-muted-foreground">{note}</p>)}
         {onlyRuleEvidence && <p role="status" className="text-xs leading-relaxed text-muted-foreground">물질별 대응 자료는 연결되지 않았습니다. 현장 제품의 원문 MSDS를 확인해주세요.</p>}
         {hasStatements ? rag.statements.slice(0, 3).map((statement, index) => (
           <article key={`${index}-${statement.text}`} className="rounded-lg border border-border bg-card p-3">

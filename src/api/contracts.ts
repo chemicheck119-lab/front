@@ -90,6 +90,7 @@ export interface GroundedRagResult {
   citations: Array<{ sourceId: string; title: string; sourceUrls: string[] }>;
   usedLlm?: boolean;
   semanticGroundingVerified?: boolean;
+  limitations?: string[];
   riskDecisionSource?: "DETERMINISTIC_CAMEO_RULE_ENGINE" | string;
 }
 
