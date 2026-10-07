@@ -8,6 +8,7 @@ import { discoverSubstances } from "../api/substances";
 import { saveIncidentRecord } from "../api/records";
 import { receiveContestIncident } from "../api/intake";
 import { createPhoneSession, getPhoneSession, renewPhoneSession, cancelPhoneSession, reviewPhoneTranscript, subscribeToPhoneTranscripts } from "../api/phone";
+import { TranscriptTermReview } from "../features/speech/TranscriptTermReview";
 import { apiConfig, runtimeDataMode } from "../api/config";
 import type { IncidentAnalysisResponse, MaterialCandidate, PhoneSessionResponse, PhoneTranscriptEvent, SessionContextResponse } from "../api/contracts";
 import { resetDemoSession } from "../fixtures/demo";
@@ -559,6 +560,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
               </> : phoneTranscript ? <>
                 <label htmlFor="phone-review-text">{phoneAnalysisReady ? "승인된 신고 내용" : "최종 전사 확인"}</label>
                 <textarea id="phone-review-text" value={phoneReviewText} readOnly={!phoneReviewReady} disabled={phoneBusy} onChange={(event) => setPhoneReviewText(event.target.value)} />
+                {phoneReviewReady && <TranscriptTermReview original={phoneTranscript.text} draft={phoneReviewText} disabled={phoneBusy} onChange={setPhoneReviewText} />}
                 <p className="classic-helper">{phoneAnalysisReady ? "전화 분석에는 승인된 전사만 사용합니다." : "잘못 들린 내용을 수정한 뒤 승인하세요."}</p>
                 {phoneAnalysisReady ? <button className="analyze-button" aria-label="사고 분석" disabled={formBusy} onClick={() => void runAnalysis(phoneTranscript.text)}>{busy === "analysis" ? "분석 중…" : "초기 대응 분석 시작"}</button> : <button className="analyze-button" disabled={!phoneReviewReady || !phoneReviewText.trim() || phoneBusy} onClick={() => void handleReviewPhoneTranscript()}>{phoneBusy ? "승인 중…" : "이 내용으로 승인"}</button>}
               </> : <>

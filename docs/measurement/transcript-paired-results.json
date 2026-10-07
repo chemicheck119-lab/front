@@ -1,0 +1,54 @@
+{
+  "measured_at": "2026-10-07T07:07:37.131Z",
+  "scope": "SYNTHETIC_TEXT_POSTPROCESSING_ONLY",
+  "method": "explicit whitespace suggestions with simulated operator selection",
+  "cases_sha256": "0c4b50ff79e6e8bc402f1c1a55a071fb07ee7a6c1c6d7b9c322636e62545d510",
+  "results": [
+    {
+      "case_id": 1,
+      "candidate_count": 1,
+      "before_exact_match": false,
+      "after_simulated_selection_exact_match": true,
+      "input_unchanged": true
+    },
+    {
+      "case_id": 2,
+      "candidate_count": 1,
+      "before_exact_match": false,
+      "after_simulated_selection_exact_match": true,
+      "input_unchanged": true
+    },
+    {
+      "case_id": 3,
+      "candidate_count": 1,
+      "before_exact_match": false,
+      "after_simulated_selection_exact_match": true,
+      "input_unchanged": true
+    },
+    {
+      "case_id": 4,
+      "candidate_count": 0,
+      "before_exact_match": true,
+      "after_simulated_selection_exact_match": true,
+      "input_unchanged": true
+    },
+    {
+      "case_id": 5,
+      "candidate_count": 0,
+      "before_exact_match": true,
+      "after_simulated_selection_exact_match": true,
+      "input_unchanged": true
+    },
+    {
+      "case_id": 6,
+      "candidate_count": 0,
+      "before_exact_match": true,
+      "after_simulated_selection_exact_match": true,
+      "input_unchanged": true
+    }
+  ],
+  "real_audio_tested": false,
+  "model_trained": false,
+  "human_time_measured": false,
+  "wer_cer_improvement_claimed": false
+}

@@ -2,8 +2,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PhoneTranscriptEvent, SessionContextResponse } from "../api/contracts";
-import { createPhoneSession, getPhoneSession, renewPhoneSession, cancelPhoneSession, subscribeToPhoneTranscripts } from "../api/phone";
+import { createPhoneSession, getPhoneSession, renewPhoneSession, cancelPhoneSession, subscribeToPhoneTranscripts, reviewPhoneTranscript } from "../api/phone";
 import IntegratedMainPage from "./IntegratedMainPage";
+import * as incidentApi from "../api/incidents";
+import { getDemoAnalysis } from "../fixtures/demo";
 
 vi.mock("../api/config", () => ({
   apiConfig: { demoEnabled: false, recordEnabled: true, presentationScenarioEnabled: false, speechEnabled: false },
@@ -31,7 +33,7 @@ function renderPage(url = "/main") {
 }
 describe("실통화 전사 복원", () => {
   beforeEach(() => vi.clearAllMocks());
-  afterEach(() => { cleanup(); vi.useRealTimers(); });
+  afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
   it("복원 주소는 서버 전사를 다시 구독하며 승인 전 분석하지 않는다", () => {
     renderPage("/main?phoneIncident=INC-PHONE-test");
@@ -54,6 +56,34 @@ describe("실통화 전사 복원", () => {
     await screen.findByRole("alert");
     expect(screen.getByRole("textbox", { name: "최종 전사 확인" })).toHaveValue("검토 중 수정문");
     expect(screen.getByLabelText("주소")).toHaveTextContent("phoneIncident=INC-PHONE-test");
+  });
+
+  it("수신 원문을 보존하고 사용자 선택 후 수정문만 정확한 revision으로 승인한다", async () => {
+    const analyze = vi.spyOn(incidentApi, "analyzeIncident").mockResolvedValue(getDemoAnalysis());
+    const incoming = { ...finalEvent, text: "염 산이 누출됐습니다." };
+    vi.mocked(reviewPhoneTranscript).mockResolvedValueOnce({ ...incoming,
+      text: "염산이 누출됐습니다.", revision: 1, eventId: "TRX-1:r1", reviewStatus: "REVIEWED" });
+    renderPage("/main?phoneIncident=INC-PHONE-test");
+    act(() => vi.mocked(subscribeToPhoneTranscripts).mock.calls[0][1](incoming));
+    expect(screen.getByRole("textbox", { name: "최종 전사 확인" })).toHaveValue(incoming.text);
+    expect(reviewPhoneTranscript).not.toHaveBeenCalled();
+    expect(analyze).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "사고 분석" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "염 산 → 염산 적용" }));
+    expect(screen.getByRole("textbox", { name: "최종 전사 확인" })).toHaveValue("염산이 누출됐습니다.");
+    expect(screen.getByText(incoming.text, { selector: "p" })).toBeInTheDocument();
+    expect(reviewPhoneTranscript).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "이 내용으로 승인" }));
+    await waitFor(() => expect(reviewPhoneTranscript).toHaveBeenCalledWith("INC-PHONE-test", "TRX-1", {
+      text: "염산이 누출됐습니다.", expectedRevision: 0,
+    }));
+    expect(await screen.findByRole("button", { name: "사고 분석" })).toBeEnabled();
+    expect(screen.getByRole("textbox", { name: "승인된 신고 내용" })).toHaveValue("염산이 누출됐습니다.");
+    fireEvent.click(screen.getByRole("button", { name: "사고 분석" }));
+    await waitFor(() => expect(analyze).toHaveBeenCalledWith(expect.objectContaining({
+      incidentId: "INC-PHONE-test", text: "염산이 누출됐습니다.",
+      phoneTranscriptId: "TRX-1", phoneTranscriptRevision: 1,
+    })));
   });
 
   it("준비가 성공한 뒤에만 복원 주소를 기록한다", async () => {
