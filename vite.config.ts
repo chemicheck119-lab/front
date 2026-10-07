@@ -17,6 +17,14 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
+  server: {
+    proxy: {
+      '/local-reference': {
+        target: 'http://127.0.0.1:8004',
+        rewrite: (url) => url.replace(/^\/local-reference/, '/reference'),
+      },
+    },
+  },
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if

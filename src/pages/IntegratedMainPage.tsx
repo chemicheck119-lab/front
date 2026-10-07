@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LocalSourceReference } from "../features/reference/LocalSourceReference";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, Check, Info, LockKeyhole, Phone, Save } from "lucide-react";
 import { analyzeIncident } from "../api/incidents";
@@ -564,6 +565,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         <section className="main-panel ai-panel" aria-labelledby="classic-response-title">
           <div className="panel-title"><h2 id="classic-response-title">AI 현장 대응 지원</h2></div>
           <div className="chat-message-list classic-panel-scroll" aria-label="현장 대응 지원 영역" tabIndex={0}>
+            {import.meta.env.DEV && new URLSearchParams(window.location.search).get("referenceLab") === "1" && <LocalSourceReference />}
             {analysis ? <ResponderBrief {...briefProps} panel="response" /> : <div className="classic-response-waiting"><LockKeyhole size={32} /><h3>물질 확인 후 제공됩니다</h3><p>사고물질과 시설물질을 각각 확인하면<br />대응 참고사항을 표시합니다.</p></div>}
           </div>
           <div className="classic-authority">참고 정보입니다. 최종 판단은 현장 지휘관이 합니다.</div>
