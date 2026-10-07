@@ -4,15 +4,35 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDemoAnalysis, resetDemoSession } from "../fixtures/demo";
 import IntegratedMainPage from "./IntegratedMainPage";
 import * as incidentApi from "../api/incidents";
+import { apiConfig } from "../api/config";
 
 vi.mock("../api/config", () => ({
-  apiConfig: { demoEnabled: true, recordEnabled: true, presentationScenarioEnabled: false, speechEnabled: false },
+  apiConfig: { demoEnabled: true, recordEnabled: true, presentationScenarioEnabled: false, speechEnabled: false, approvedReferenceEnabled: false },
   runtimeDataMode: "DEMO_SIMULATION",
 }));
 
 describe("전화 신고에서 현장 확인까지", () => {
   beforeEach(() => resetDemoSession());
-  afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); apiConfig.approvedReferenceEnabled = false; });
+
+  it("사고 접수 없이 기존 검색 한 번으로 원천 자료를 표시하며 사고 확인 게이트를 바꾸지 않는다", async () => {
+    apiConfig.approvedReferenceEnabled = true;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      status: "AVAILABLE", name: "Synthetic material", cas: "7647-01-0", version: "fixture-version",
+      collected_at: "2026-10-07", source_url: "https://www.data.go.kr/data/15157612/openapi.do",
+      sections: [{ number: 5, label: "화재 시 참고사항", status: "AVAILABLE",
+        items: [{ evidence_id: "synthetic", title: "Synthetic heading", text: "Synthetic original guidance text." }] }],
+    }) }));
+    render(<MemoryRouter><IntegratedMainPage /></MemoryRouter>);
+    const input = screen.getByRole("textbox", { name: "물질명 또는 CAS" });
+    fireEvent.change(input, { target: { value: "7647-01-0" } });
+    fireEvent.submit(input.closest("form")!);
+    expect(await screen.findByText("Synthetic original guidance text.")).toBeVisible();
+    expect(screen.getByText(/검색한 물질의 참고자료/)).toBeVisible();
+    expect(getDemoAnalysis().confirmationGate.allRequiredConfirmed).toBe(false);
+    expect(screen.queryByRole("region", { name: "충돌 검토 결과" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "기준자료 CAS" })).not.toBeInTheDocument();
+  });
 
   it("최종 전사 승인과 두 CAS 확인을 거치고, 다음 통화에는 이전 결과를 넘기지 않는다", async () => {
     render(<MemoryRouter><IntegratedMainPage /></MemoryRouter>);
@@ -26,7 +46,7 @@ describe("전화 신고에서 현장 확인까지", () => {
     await screen.findByRole("button", { name: "사고물질 합성 확인" });
     expect(screen.getByLabelText("전화 연결 상태")).toHaveTextContent("분석 완료");
     expect(screen.getByRole("textbox", { name: "승인된 신고 내용" })).toHaveAttribute("readonly");
-    for (const name of ["현재 사고정보", "초기 대응 분석", "AI 현장 대응 지원"]) expect(screen.getByRole("region", { name })).toBeVisible();
+    for (const name of ["현재 사고정보", "초기 대응 분석", "대응 참고사항"]) expect(screen.getByRole("region", { name })).toBeVisible();
     expect(screen.queryByRole("region", { name: "사고시설" })).not.toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "현장 도구" })).not.toBeVisible();
     expect(screen.queryByRole("region", { name: "충돌 검토 결과" })).not.toBeInTheDocument();

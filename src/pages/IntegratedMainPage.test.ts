@@ -13,7 +13,7 @@ describe("상황실·현장 사용자 화면 경계", () => {
   });
 
   it("원래 헤더와 3개 패널을 유지하고 화면 전환 탭을 추가하지 않는다", () => {
-    for (const label of ["현재 사고정보", "초기 대응 분석", "AI 현장 대응 지원", "/images/logonavy.jpg", "기록 저장", "대응 기록 조회"]) expect(page).toContain(label);
+    for (const label of ["현재 사고정보", "초기 대응 분석", "대응 참고사항", "/images/logonavy.jpg", "기록 저장", "대응 기록 조회"]) expect(page).toContain(label);
     expect(page).not.toContain('aria-label="업무 화면"');
     expect(page).not.toContain("focus-navigation");
     expect(styles).toContain("grid-template-columns: repeat(3, minmax(0, 1fr))");

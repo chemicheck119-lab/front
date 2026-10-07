@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LocalSourceReference } from "../features/reference/LocalSourceReference";
+import { MaterialGuidance } from "../features/reference/MaterialGuidance";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, Check, Info, LockKeyhole, Phone, Save } from "lucide-react";
 import { analyzeIncident } from "../api/incidents";
@@ -51,6 +51,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const [analysis, setAnalysis] = useState<IncidentAnalysisResponse | null>(null);
   const [incidentText, setIncidentText] = useState("");
   const [substanceQuery, setSubstanceQuery] = useState("");
+  const [guidanceQuery, setGuidanceQuery] = useState("");
   const [substanceResult, setSubstanceResult] = useState<Awaited<ReturnType<typeof discoverSubstances>> | null>(null);
   const [busy, setBusy] = useState<"analysis" | "substance" | "confirmation" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -220,7 +221,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
     setMessages([]);
     setOutcomeDraft(emptyStructuredOutcomeDraft());
     setSavedRecordId(null);
-    setSubstanceQuery("");
+    setSubstanceQuery(""); setGuidanceQuery("");
     setSubstanceResult(null);
     setDispatchPreview(null);
     setDispatchAccepted(false);
@@ -371,6 +372,11 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
 
   async function runSubstanceSearch() {
     if (!substanceQuery.trim() || busy) return;
+    if (apiConfig.approvedReferenceEnabled) {
+      setGuidanceQuery(substanceQuery.trim());
+      setSubstanceResult(null);
+      return;
+    }
     setBusy("substance");
     setError(null);
     try {
@@ -396,6 +402,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
       });
       setConfirmationIds((current) => ({ ...current, [role]: response.confirmationId }));
       setConfirmedMaterials((current) => ({ ...current, [role]: { casNumber, displayName } }));
+      if (role === "INCIDENT") setGuidanceQuery("");
       setSavedRecordId(null);
       if (incidentText.trim()) {
         const refreshed = await analyzeIncident(phoneTranscript ? {
@@ -495,7 +502,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           <button type="button" className="main-logo classic-home" onClick={() => navigate("/")}><img src="/images/logonavy.jpg" alt="케미체크119 화학재난대응지원시스템" /></button>
           <div className="header-divider" />
           <div className="station-badge">{region} {station}</div>
-          <span className="classic-environment">{isSynthetic ? "공개 합성 시연 · 실운영 아님" : runtimeDataMode === "LIVE_API" ? "서버 연동" : "연결 설정 필요"}</span>
+          <span className="classic-environment">{isSynthetic ? apiConfig.approvedReferenceEnabled ? "로컬 자료 조회 · 사고 분석은 합성 시연" : "공개 합성 시연 · 실운영 아님" : runtimeDataMode === "LIVE_API" ? "서버 연동" : "연결 설정 필요"}</span>
         </div>
         <div className="main-header-right">
           <div className={`header-phone-status ${phoneStreamError ? "is-error" : phoneAnalysisReady ? "is-received" : ""}`} aria-label="전화 연결 상태">
@@ -523,6 +530,14 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         <section className="main-panel incident-panel" aria-labelledby="classic-incident-title">
           <div className="panel-title"><h2 id="classic-incident-title">현재 사고정보</h2></div>
           <div className="incident-form classic-panel-scroll" aria-label="사고정보 입력 영역" tabIndex={0}>
+            <section className="classic-secondary" aria-label="물질 검색">
+              <h3>물질 검색 · 대응자료</h3>
+              <form className="chemical-input-row" onSubmit={(event) => { event.preventDefault(); void runSubstanceSearch(); }}>
+                <input aria-label="물질명 또는 CAS" value={substanceQuery} onChange={(event) => setSubstanceQuery(event.target.value)} placeholder="물질명 또는 CAS" />
+                <button type="submit" className="chemical-add-button" disabled={Boolean(busy) || !substanceQuery.trim()}>{busy === "substance" ? "검색 중…" : "검색"}</button>
+              </form>
+              {!apiConfig.approvedReferenceEnabled && <SubstanceResults result={substanceResult} incidentAvailable={Boolean(activeIncidentId) && !phoneTranscript} onUseCandidate={useCandidate} />}
+            </section>
             <div className="classic-phone-row">
               <span className="classic-phone-label"><Phone size={17} />{phoneStatusLabel}</span>
               {!isSynthetic && phoneLeaseValid ? <button className="chemical-add-button" disabled={phoneBusy || phoneInCall} onClick={() => void handleStopPhoneWaiting()}>대기 종료</button>
@@ -552,7 +567,6 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
               </>}
             </section>
             {!phoneTranscript && <div className="form-group"><label>현장 관찰정보</label><div className="observation-list">{["연기", "화염", "액체 누출", "냄새", "색상"].map((item) => <button type="button" key={item} className={`observation-button ${selectedObservations.includes(item) ? "selected" : ""}`} aria-pressed={selectedObservations.includes(item)} disabled={formBusy} onClick={() => setSelectedObservations((current) => current.includes(item) ? current.filter((value) => value !== item) : [...current, item])}>{item}</button>)}</div></div>}
-            <details className="classic-secondary"><summary>화학물질 검색</summary><div className="chemical-input-row"><input aria-label="물질명 또는 CAS" value={substanceQuery} onChange={(event) => setSubstanceQuery(event.target.value)} placeholder="물질명 또는 CAS" /><button className="chemical-add-button" disabled={Boolean(busy) || !substanceQuery.trim()} onClick={() => void runSubstanceSearch()}>{busy === "substance" ? "검색 중…" : "검색"}</button></div><SubstanceResults result={substanceResult} incidentAvailable={Boolean(activeIncidentId) && !phoneTranscript} onUseCandidate={useCandidate} /></details>
             <details className="classic-secondary"><summary>지원 도구</summary><FieldToolsPanel station={`${region} ${station}`} dispatchContact={dispatchContact} dataMode={runtimeDataMode} analysis={analysis} incidentId={activeIncidentId} messages={messages} analysisIds={analysis ? [analysis.analysisId] : []} confirmationIds={Object.values(confirmationIds).filter((value): value is string => Boolean(value))} canSave={Boolean(analysis)} recordAvailable={apiConfig.recordEnabled && Boolean(activeIncidentId)} recordSaved={Boolean(savedRecordId)} dispatchStreamAvailable={apiConfig.presentationScenarioEnabled} dispatchStreamStatus={dispatchStatus} dispatchPreview={dispatchPreview} dispatchAccepted={dispatchAccepted} syntheticMode={isSynthetic} onRequestSave={() => setShowRecordForm(true)} onContactAttempt={() => undefined} onConnectDispatch={() => void handleConnectDispatch()} onAcceptDispatch={handleAcceptDispatch} /></details>
           </div>
         </section>
@@ -563,10 +577,10 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
           </div>
         </section>
         <section className="main-panel ai-panel" aria-labelledby="classic-response-title">
-          <div className="panel-title"><h2 id="classic-response-title">AI 현장 대응 지원</h2></div>
+          <div className="panel-title"><h2 id="classic-response-title">대응 참고사항</h2></div>
           <div className="chat-message-list classic-panel-scroll" aria-label="현장 대응 지원 영역" tabIndex={0}>
-            {import.meta.env.DEV && new URLSearchParams(window.location.search).get("referenceLab") === "1" && <LocalSourceReference />}
-            {analysis ? <ResponderBrief {...briefProps} panel="response" /> : <div className="classic-response-waiting"><LockKeyhole size={32} /><h3>물질 확인 후 제공됩니다</h3><p>사고물질과 시설물질을 각각 확인하면<br />대응 참고사항을 표시합니다.</p></div>}
+            <MaterialGuidance query={guidanceQuery || confirmedMaterials.INCIDENT?.casNumber || ""} incidentType={selectedIncident} enabled={apiConfig.approvedReferenceEnabled} searched={Boolean(guidanceQuery)} />
+            {analysis ? <ResponderBrief {...briefProps} panel="response" /> : apiConfig.approvedReferenceEnabled ? null : <div className="classic-response-waiting"><LockKeyhole size={32} /><h3>물질 확인 후 제공됩니다</h3><p>사고물질과 시설물질을 각각 확인하면<br />대응 참고사항을 표시합니다.</p></div>}
           </div>
           <div className="classic-authority">참고 정보입니다. 최종 판단은 현장 지휘관이 합니다.</div>
         </section>

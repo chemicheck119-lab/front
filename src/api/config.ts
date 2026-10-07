@@ -37,6 +37,7 @@ export const apiConfig = {
   dispatchCenterName: import.meta.env.VITE_DISPATCH_CENTER_NAME?.trim() ?? "",
   dispatchCenterPhone: import.meta.env.VITE_DISPATCH_CENTER_PHONE?.trim() ?? "",
   demoEnabled,
+  approvedReferenceEnabled: import.meta.env.VITE_ENABLE_APPROVED_REFERENCE === "true",
   presentationScenarioEnabled: !demoEnabled
     && normalizedBaseUrl.length > 0
     && import.meta.env.VITE_ENABLE_PRESENTATION_SCENARIO === "true",
