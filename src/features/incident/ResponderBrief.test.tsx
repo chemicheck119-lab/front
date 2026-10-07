@@ -132,3 +132,20 @@ describe("현장 중심의 단순 브리프", () => {
     expect(screen.queryByRole("button", { name: "확인 취소·다시 확인" })).not.toBeInTheDocument();
   });
 });
+
+
+describe("자료 추적 정보", () => {
+  it("서버 데이터 버전을 상세에 표시하고 최신성으로 표현하지 않는다", () => {
+    const analysis = completeAnalysis();
+    analysis.provenance.dataVersion = "approved-release-test";
+    renderBrief({ panel: "response", analysis });
+    expect(screen.getByText("조회에 사용한 데이터 버전: approved-release-test")).toBeInTheDocument();
+    expect(screen.getByText("이 버전은 자료 개정일이나 현장 제품의 최신성을 뜻하지 않습니다.")).toBeInTheDocument();
+  });
+  it("버전이 비어 있으면 새 버전이나 날짜를 만들지 않는다", () => {
+    const analysis = completeAnalysis();
+    analysis.provenance.dataVersion = "";
+    renderBrief({ panel: "response", analysis });
+    expect(screen.getByText("조회에 사용한 데이터 버전: 확인되지 않음")).toBeInTheDocument();
+  });
+});

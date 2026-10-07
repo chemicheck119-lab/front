@@ -62,7 +62,7 @@ function MaterialCheck({ role, analysis, busy, synthetic, confirmedMaterial, con
       {confirmed && !synthetic && confirmationId && <button className="focus-text-button" disabled={busy} onClick={() => onCancel(role, confirmationId)}>확인 취소·다시 확인</button>}
       <details className="focus-material-evidence"><summary>물질 자료 보기</summary><div>{evidence.length ? evidence.map((item) => {
         const url = resolveOfficialSourceUrl(item.sourceUrl, item.source);
-        return <article key={item.evidenceId}><strong>{item.title}</strong><p>{item.bodyPreview}</p>{url && <a href={url} target="_blank" rel="noreferrer">공식 원문 <ExternalLink size={14} /></a>}</article>;
+        return <article key={item.evidenceId}><strong>{item.title}</strong><p>{item.bodyPreview}</p><p className="focus-notice">자료 버전: {item.documentVersion?.trim() || "확인되지 않음"}</p>{url && <a href={url} target="_blank" rel="noreferrer">공식 원문 <ExternalLink size={14} /></a>}</article>;
       }) : <p>연결된 공식 자료가 없습니다. 현장 제품의 원문 MSDS를 확인하세요.</p>}</div></details>
     </section>
   );
@@ -102,6 +102,8 @@ export function ResponderBrief({ panel = "combined", analysis, busy, synthetic, 
         </section>
         <GroundedEvidenceAccordion rag={analysis.groundedRag} />
         <details className="focus-disclosure focus-evidence" aria-label="근거와 제한사항"><summary>공식 근거·제한사항 보기 <ChevronRight size={18} /></summary><div className="focus-detail-content">
+          <p className="focus-notice">조회에 사용한 데이터 버전: {analysis.provenance.dataVersion?.trim() || "확인되지 않음"}</p>
+          <p className="focus-notice">이 버전은 자료 개정일이나 현장 제품의 최신성을 뜻하지 않습니다.</p>
           {complete.limitations.map((item, index) => <p className="focus-notice" key={`${index}-${item}`}>{item}</p>)}
           <div className="focus-source-links">{complete.evidenceUrls.map((url, index) => { const safe = resolveOfficialSourceUrl(url); return safe ? <a key={`${index}-${safe}`} href={safe} target="_blank" rel="noreferrer">공식 근거 {index + 1} <ExternalLink size={15} /></a> : null; })}</div>
         </div></details>
