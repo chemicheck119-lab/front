@@ -1,0 +1,7 @@
+pair,order,participant,variant,input_sha256,started_at,finished_at,elapsed_seconds,clicks,success,wrong_items,notes
+1,AB,,before,,,,,,,,
+1,AB,,after,,,,,,,,
+2,BA,,after,,,,,,,,
+2,BA,,before,,,,,,,,
+3,AB,,before,,,,,,,,
+3,AB,,after,,,,,,,,

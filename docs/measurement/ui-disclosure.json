@@ -1,0 +1,44 @@
+{
+  "measured_at": "2026-10-07T06:59:17.286Z",
+  "scope": "AUTOMATED_SYNTHETIC_COMPONENT_ONLY",
+  "baseline_commit": "1e575ca",
+  "baseline_path": "src/features/reference/LocalSourceReference.tsx",
+  "current_component": "src/features/reference/MaterialGuidance.tsx",
+  "input_sha256": "fa5ab03fcdb5dc0ea799ee6eb17f3766a47393a6e22fc69a27ff934c295871b5",
+  "metric": "additional disclosure actions after successful lookup for default fire section",
+  "excluded": [
+    "lookup submission",
+    "typing",
+    "human reading time",
+    "network latency",
+    "approval time"
+  ],
+  "trials": [
+    {
+      "repetition": 1,
+      "before_disclosure_actions": 1,
+      "after_disclosure_actions": 0,
+      "before_text_matches": true,
+      "after_text_matches": true,
+      "after_visible_items": 1
+    },
+    {
+      "repetition": 2,
+      "before_disclosure_actions": 1,
+      "after_disclosure_actions": 0,
+      "before_text_matches": true,
+      "after_text_matches": true,
+      "after_visible_items": 1
+    },
+    {
+      "repetition": 3,
+      "before_disclosure_actions": 1,
+      "after_disclosure_actions": 0,
+      "before_text_matches": true,
+      "after_text_matches": true,
+      "after_visible_items": 1
+    }
+  ],
+  "human_time_measured": false,
+  "field_effectiveness_measured": false
+}
