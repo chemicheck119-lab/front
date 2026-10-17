@@ -2292,6 +2292,17 @@ export interface operations {
                     "application/json": components["schemas"]["DashboardErrorResponse"];
                 };
             };
+            /** @description CAPACITY_LIMITED (process-local admission; retryable=false). */
+            429: {
+                headers: {
+                    /** @description Wait before a manual retry; no automatic request replay */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -2724,6 +2735,17 @@ export interface operations {
                     "application/json": components["schemas"]["DashboardErrorResponse"];
                 };
             };
+            /** @description CAPACITY_LIMITED (process-local admission; retryable=false). */
+            429: {
+                headers: {
+                    /** @description Wait before a manual retry; no automatic request replay */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -2833,9 +2855,11 @@ export interface operations {
                     "application/json": components["schemas"]["DashboardErrorResponse"];
                 };
             };
-            /** @description SPEECH_BUSY, retryable=true */
+            /** @description CAPACITY_LIMITED (process-local admission; retryable=false). SPEECH_BUSY, retryable=true */
             429: {
                 headers: {
+                    /** @description Wait before a manual retry; no automatic request replay */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2940,9 +2964,11 @@ export interface operations {
                     "application/json": components["schemas"]["DashboardErrorResponse"];
                 };
             };
-            /** @description SPEECH_BUSY, retryable=true */
+            /** @description CAPACITY_LIMITED (process-local admission; retryable=false). SPEECH_BUSY, retryable=true */
             429: {
                 headers: {
+                    /** @description Wait before a manual retry; no automatic request replay */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3030,6 +3056,17 @@ export interface operations {
             /** @description Unprocessable Entity (MODEL_CONTRACT_VIOLATION 포함) */
             422: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardErrorResponse"];
+                };
+            };
+            /** @description CAPACITY_LIMITED (process-local admission; retryable=false). */
+            429: {
+                headers: {
+                    /** @description Wait before a manual retry; no automatic request replay */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
