@@ -71,6 +71,9 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const [phoneTranscript, setPhoneTranscript] = useState<PhoneTranscriptEvent | null>(null);
   const [phoneReviewText, setPhoneReviewText] = useState("");
   const [phoneStreamError, setPhoneStreamError] = useState(false);
+  const [phoneStreamStopped, setPhoneStreamStopped] = useState(false);
+  const [phoneReconnectAttempt, setPhoneReconnectAttempt] = useState(0);
+  const lastPhoneDraftEvent = useRef("");
   const [phoneBusy, setPhoneBusy] = useState(false);
   const [phoneSession, setPhoneSession] = useState<PhoneSessionResponse | null>(null);
   const [phoneLeaseError, setPhoneLeaseError] = useState(false);
@@ -86,7 +89,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
   const phoneWaiting = phoneSession?.status === "WAITING_FOR_CALL";
   const phoneLeaseValid = phoneWaiting && Boolean(phoneSession?.waitingExpiresAt)
     && Date.parse(phoneSession!.waitingExpiresAt!) > phoneNow;
-  const phoneStatusLabel = phoneStreamError ? "전사 재연결 중"
+  const phoneStatusLabel = phoneStreamStopped ? "전사 연결 중단" : phoneStreamError ? "전사 재연결 중"
     : phoneDisplayStatus ? phoneReviewStatusLabel(phoneDisplayStatus)
     : phoneLeaseError ? "접수 연결 확인 필요"
     : phoneInCall ? "통화 연결됨 · 전사 대기"
@@ -146,19 +149,22 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
         (event) => {
           setPhoneTranscript(event);
           setPhoneStreamError(false);
-          if (event.reviewStatus !== "INTERIM") {
+          setPhoneStreamStopped(false);
+          const draftKey = `${event.incidentId}:${event.eventId}`;
+          if (event.reviewStatus !== "INTERIM" && lastPhoneDraftEvent.current !== draftKey) {
+            lastPhoneDraftEvent.current = draftKey;
             setPhoneReviewText(event.text);
             setIncidentText(event.text);
           }
         },
-        () => setPhoneStreamError(true),
-        () => setPhoneStreamError(false),
+        (stopped = false) => { setPhoneStreamError(true); setPhoneStreamStopped(stopped); },
+        () => { setPhoneStreamError(false); setPhoneStreamStopped(false); },
       );
     } catch {
       setPhoneStreamError(true);
     }
     return () => subscription?.close();
-  }, [currentIncidentId, session]);
+  }, [currentIncidentId, session, phoneReconnectAttempt]);
 
   const dispatchContact = useMemo(() => ({
     name: "케미체크119 상황실",
@@ -544,6 +550,7 @@ export default function IntegratedMainPage({ session = null }: { session?: Sessi
               {!isSynthetic && phoneLeaseValid ? <button className="chemical-add-button" disabled={phoneBusy || phoneInCall} onClick={() => void handleStopPhoneWaiting()}>대기 종료</button>
                 : <button className="chemical-add-button" disabled={(!session && !isSynthetic) || formBusy || phoneInCall} onClick={() => void handlePreparePhoneSession()}>{phoneBusy ? "준비 중…" : isSynthetic ? "합성 통화 시작" : phoneTranscript ? "새 전화 접수" : "전화 접수 준비"}</button>}
             </div>
+            {phoneStreamStopped && <div role="alert"><p>전사 연결이 중단됐습니다. 연결 한도 또는 접근 상태를 확인하고 잠시 후 다시 연결하세요. 작성 내용은 유지됩니다.</p><button type="button" onClick={() => { setPhoneStreamStopped(false); setPhoneReconnectAttempt((value) => value + 1); }}>전사 다시 연결</button></div>}
             {!isSynthetic && phoneLeaseValid && <p className="classic-helper">이 화면을 열어 둔 동안 대기를 자동 유지합니다. 대기 종료는 서버 과금 중지가 아닙니다.</p>}
             {!isSynthetic && !phoneTranscript && (phoneLeaseError || phoneSession?.status === "EXPIRED") && <p className="classic-helper">접수 준비를 다시 확인한 뒤 전화해 주세요. 현재 수신 가능 여부를 보장할 수 없습니다.</p>}
             <div className="form-group">

@@ -3572,6 +3572,15 @@ export interface operations {
                     "text/event-stream": components["schemas"]["DashboardPhoneTranscriptEvent"];
                 };
             };
+            /** @description Connection capacity reached. No body. Native EventSource stops automatic reconnection; preserve input and let the user reconnect manually. */
+            204: {
+                headers: {
+                    /** @description Suggested manual retry delay in seconds; EventSource does not apply this header. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Unauthorized */
             401: {
                 headers: {

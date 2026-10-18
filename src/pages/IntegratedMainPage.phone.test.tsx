@@ -47,6 +47,21 @@ describe("실통화 전사 복원", () => {
     expect(createPhoneSession).not.toHaveBeenCalled();
   });
 
+  it("연결 종료 시 자동 재연결로 표시하지 않고 수동 재연결에서도 수정문을 보존한다", () => {
+    renderPage("/main?phoneIncident=INC-PHONE-test");
+    const [, receive, failed] = vi.mocked(subscribeToPhoneTranscripts).mock.calls[0];
+    act(() => receive(finalEvent));
+    fireEvent.change(screen.getByRole("textbox", { name: "최종 전사 확인" }), { target: { value: "직접 수정 중" } });
+    act(() => failed?.(true));
+    expect(screen.getByLabelText("전화 연결 상태")).toHaveTextContent("전사 연결 중단");
+    expect(subscribeToPhoneTranscripts).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "전사 다시 연결" }));
+    expect(subscribeToPhoneTranscripts).toHaveBeenCalledTimes(2);
+    act(() => vi.mocked(subscribeToPhoneTranscripts).mock.calls[1][1](finalEvent));
+    expect(screen.getByRole("textbox", { name: "최종 전사 확인" })).toHaveValue("직접 수정 중");
+    expect(createPhoneSession).not.toHaveBeenCalled();
+  });
+
   it("새 접수 준비 실패 시 기존 전사와 수정 내용을 보존한다", async () => {
     vi.mocked(createPhoneSession).mockRejectedValueOnce(new Error("준비 실패"));
     renderPage("/main?phoneIncident=INC-PHONE-test");
