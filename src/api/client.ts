@@ -11,6 +11,7 @@ export type ApiErrorKind =
   | "NO_EVIDENCE"
   | "NO_ROUTE"
   | "SPEECH_BUSY"
+  | "CAPACITY"
   | "SPEECH_UNAVAILABLE"
   | "SERVICE_UNAVAILABLE"
   | "SERVER"
@@ -30,6 +31,7 @@ export class ApiError extends Error {
 }
 
 function errorKind(status: number, code?: string): ApiErrorKind {
+  if (code === "CAPACITY_LIMITED") return "CAPACITY";
   if (code === "FAILED_SAFETY") return "SAFETY";
   if (status === 401) return "SESSION_EXPIRED";
   if (status === 403) return "AUTH";
@@ -73,7 +75,8 @@ export async function apiRequest<T>(
     controller.abort();
   }, policy.timeoutMs ?? apiConfig.timeoutMs);
   try {
-    const maximumAttempts = policy.retry503 === false ? 1 : 2;
+    const isRead = (init.method ?? "GET").toUpperCase() === "GET";
+    const maximumAttempts = isRead && policy.retry503 !== false ? 2 : 1;
     for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
       const response = await fetch(`${apiConfig.baseUrl}${path}`, {
         ...init,
@@ -113,6 +116,7 @@ export interface UserFacingErrorInfo {
 export function toUserFacingError(error: unknown): UserFacingErrorInfo {
   if (!(error instanceof ApiError)) return { message: "요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.", retryable: false };
   const messages: Record<ApiErrorKind, string> = {
+    CAPACITY: "처리 한도에 도달했습니다. 잠시 후 직접 다시 요청하세요.",
     SESSION_EXPIRED: "로그인 세션이 만료되었거나 인증이 필요합니다.",
     AUTH: "이 사고에 접근할 권한이 없습니다.",
     SAFETY: "안전 검증에 실패했습니다. 결과 카드를 표시하지 않습니다.",

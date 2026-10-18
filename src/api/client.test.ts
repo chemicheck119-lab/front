@@ -128,6 +128,19 @@ describe("BFF 오류 매핑", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("분석 POST의 503과 처리 한도 429는 자동 반복하지 않는다", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(failedResponse(503, "MODEL_SERVICE_UNAVAILABLE", "REQ-POST"))
+      .mockResolvedValueOnce(failedResponse(429, "CAPACITY_LIMITED", "REQ-LIMIT"));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(apiRequest("/api/c2guard/v1/incidents/analyze", { method: "POST", body: "{}" }))
+      .rejects.toMatchObject({ kind: "SERVICE_UNAVAILABLE" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await expect(apiRequest("/api/c2guard/v1/incidents/analyze", { method: "POST", body: "{}" }))
+      .rejects.toMatchObject({ kind: "CAPACITY", retryable: false });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(toUserFacingError(new ApiError("CAPACITY", "internal" )).message).toContain("처리 한도");
+  });
+
   it("안전 검증 실패는 결과 비공개 오류로 변환한다", () => {
     const issue = toUserFacingError(new ApiError("SAFETY", "internal details", "REQ-SAFE-1"));
 

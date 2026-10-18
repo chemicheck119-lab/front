@@ -42,7 +42,7 @@ export function reviewPhoneTranscript(
 export function subscribeToPhoneTranscripts(
   incidentId: string,
   onTranscript: (event: PhoneTranscriptEvent) => void,
-  onError?: () => void,
+  onError?: (stopped?: boolean) => void,
   onConnected?: () => void,
 ): PhoneTranscriptSubscription {
   if (!apiConfig.baseUrl || !apiConfig.authEnabled) {
@@ -71,7 +71,8 @@ export function subscribeToPhoneTranscripts(
     }
   };
   stream.addEventListener("phone.transcript", handleMessage);
-  stream.onerror = () => onError?.();
+  // HTTP 204 ends native EventSource permanently; do not claim it is reconnecting.
+  stream.onerror = () => onError?.(stream.readyState === EventSource.CLOSED);
   stream.onopen = () => onConnected?.();
   return {
     close: () => {
